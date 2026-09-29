@@ -1,0 +1,9 @@
+# Generated from lib/acp/types/elicitation_property_schema.rb with RBS::Inline
+
+module ACP::Types::ElicitationPropertySchema
+  type t = ACP::Types::ElicitationPropertySchema::StringPropertySchema | ACP::Types::ElicitationPropertySchema::NumberPropertySchema | ACP::Types::ElicitationPropertySchema::IntegerPropertySchema | ACP::Types::ElicitationPropertySchema::BooleanPropertySchema | ACP::Types::ElicitationPropertySchema::MultiSelectPropertySchema | Hash[String, untyped]
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: t
+  def self.from_h: (Hash[String, untyped] hash) -> t
+end

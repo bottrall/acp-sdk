@@ -1,0 +1,13 @@
+# Generated from lib/acp/types/stop_reason.rb with RBS::Inline
+
+module ACP::Types::StopReason
+  END_TURN: ::String
+
+  MAX_TOKENS: ::String
+
+  MAX_TURN_REQUESTS: ::String
+
+  REFUSAL: ::String
+
+  CANCELLED: ::String
+end

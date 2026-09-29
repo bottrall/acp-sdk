@@ -1,0 +1,5 @@
+# Generated from lib/acp/types/elicitation_schema_type.rb with RBS::Inline
+
+module ACP::Types::ElicitationSchemaType
+  OBJECT: ::String
+end

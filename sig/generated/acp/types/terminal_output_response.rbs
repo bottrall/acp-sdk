@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/terminal_output_response.rb with RBS::Inline
+
+class ACP::Types::TerminalOutputResponse
+  # @dynamic output
+  attr_reader output: String
+
+  # @dynamic truncated
+  attr_reader truncated: bool
+
+  # @dynamic exit_status
+  attr_reader exit_status: ACP::Types::TerminalExitStatus?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs output: String
+  # @rbs truncated: bool
+  # @rbs exit_status: ACP::Types::TerminalExitStatus?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (output: String, truncated: bool, ?exit_status: ACP::Types::TerminalExitStatus?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::TerminalOutputResponse
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::TerminalOutputResponse
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

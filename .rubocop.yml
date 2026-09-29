@@ -46,3 +46,8 @@ Style/Documentation:
 
 Style/ModuleFunction:
   EnforcedStyle: extend_self
+
+Naming/MethodParameterName:
+  Exclude:
+    # Parameter names come from the schema's property names.
+    - "lib/acp/types/**/*"

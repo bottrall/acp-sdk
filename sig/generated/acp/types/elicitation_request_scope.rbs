@@ -1,0 +1,17 @@
+# Generated from lib/acp/types/elicitation_request_scope.rb with RBS::Inline
+
+class ACP::Types::ElicitationRequestScope
+  # @dynamic request_id
+  attr_reader request_id: nil | Integer | String
+
+  # @rbs request_id: nil | Integer | String
+  # @rbs return: void
+  def initialize: (request_id: nil | Integer | String) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::ElicitationRequestScope
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::ElicitationRequestScope
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

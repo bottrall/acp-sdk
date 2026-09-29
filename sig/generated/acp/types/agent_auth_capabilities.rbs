@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/agent_auth_capabilities.rb with RBS::Inline
+
+class ACP::Types::AgentAuthCapabilities
+  # @dynamic logout
+  attr_reader logout: ACP::Types::LogoutCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs logout: ACP::Types::LogoutCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?logout: ACP::Types::LogoutCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::AgentAuthCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::AgentAuthCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

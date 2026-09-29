@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/request_permission_response.rb with RBS::Inline
+
+class ACP::Types::RequestPermissionResponse
+  # @dynamic outcome
+  attr_reader outcome: ACP::Types::RequestPermissionOutcome::t
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs outcome: ACP::Types::RequestPermissionOutcome::t
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (outcome: ACP::Types::RequestPermissionOutcome::t, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::RequestPermissionResponse
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::RequestPermissionResponse
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

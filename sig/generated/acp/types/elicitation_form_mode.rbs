@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/elicitation_form_mode.rb with RBS::Inline
+
+class ACP::Types::ElicitationFormMode
+  # @dynamic requested_schema
+  attr_reader requested_schema: ACP::Types::ElicitationSchema
+
+  # @dynamic scope
+  attr_reader scope: ACP::Types::ElicitationFormMode::Scope::t
+
+  # @rbs requested_schema: ACP::Types::ElicitationSchema
+  # @rbs scope: ACP::Types::ElicitationFormMode::Scope::t
+  # @rbs return: void
+  def initialize: (requested_schema: ACP::Types::ElicitationSchema, scope: ACP::Types::ElicitationFormMode::Scope::t) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::ElicitationFormMode
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::ElicitationFormMode
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

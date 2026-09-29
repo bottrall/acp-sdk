@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/session_update/session_info_update.rb with RBS::Inline
+
+class ACP::Types::SessionUpdate::SessionInfoUpdate
+  # @dynamic title
+  attr_reader title: String? | :unset
+
+  # @dynamic updated_at
+  attr_reader updated_at: String? | :unset
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs title: String? | :unset
+  # @rbs updated_at: String? | :unset
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?title: String? | :unset, ?updated_at: String? | :unset, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SessionUpdate::SessionInfoUpdate
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SessionUpdate::SessionInfoUpdate
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

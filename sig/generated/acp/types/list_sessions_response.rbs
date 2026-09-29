@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/list_sessions_response.rb with RBS::Inline
+
+class ACP::Types::ListSessionsResponse
+  # @dynamic sessions
+  attr_reader sessions: Array[ACP::Types::SessionInfo]
+
+  # @dynamic next_cursor
+  attr_reader next_cursor: String?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs sessions: Array[ACP::Types::SessionInfo]
+  # @rbs next_cursor: String?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (sessions: Array[ACP::Types::SessionInfo], ?next_cursor: String?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::ListSessionsResponse
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::ListSessionsResponse
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

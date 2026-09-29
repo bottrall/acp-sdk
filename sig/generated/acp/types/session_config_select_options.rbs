@@ -1,0 +1,9 @@
+# Generated from lib/acp/types/session_config_select_options.rb with RBS::Inline
+
+module ACP::Types::SessionConfigSelectOptions
+  type t = Array[ACP::Types::SessionConfigSelectOption] | Array[ACP::Types::SessionConfigSelectGroup] | Array[Hash[String, untyped]]
+
+  # @rbs items: Array[Hash[String, untyped]]
+  # @rbs return: t
+  def self.from_a: (Array[Hash[String, untyped]] items) -> t
+end

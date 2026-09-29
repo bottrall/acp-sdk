@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/tool_call_content/diff.rb with RBS::Inline
+
+class ACP::Types::ToolCallContent::Diff
+  # @dynamic path
+  attr_reader path: String
+
+  # @dynamic old_text
+  attr_reader old_text: String?
+
+  # @dynamic new_text
+  attr_reader new_text: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs path: String
+  # @rbs old_text: String?
+  # @rbs new_text: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (path: String, new_text: String, ?old_text: String?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::ToolCallContent::Diff
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::ToolCallContent::Diff
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

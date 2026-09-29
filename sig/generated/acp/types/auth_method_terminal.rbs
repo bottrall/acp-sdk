@@ -1,0 +1,37 @@
+# Generated from lib/acp/types/auth_method_terminal.rb with RBS::Inline
+
+class ACP::Types::AuthMethodTerminal
+  # @dynamic id
+  attr_reader id: String
+
+  # @dynamic name
+  attr_reader name: String
+
+  # @dynamic description
+  attr_reader description: String?
+
+  # @dynamic args
+  attr_reader args: Array[String]?
+
+  # @dynamic env
+  attr_reader env: Hash[String, String]?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs id: String
+  # @rbs name: String
+  # @rbs description: String?
+  # @rbs args: Array[String]?
+  # @rbs env: Hash[String, String]?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (id: String, name: String, ?description: String?, ?args: Array[String]?, ?env: Hash[String, String]?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::AuthMethodTerminal
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::AuthMethodTerminal
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

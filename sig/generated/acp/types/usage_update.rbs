@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/usage_update.rb with RBS::Inline
+
+class ACP::Types::UsageUpdate
+  # @dynamic used
+  attr_reader used: Integer
+
+  # @dynamic size
+  attr_reader size: Integer
+
+  # @dynamic cost
+  attr_reader cost: ACP::Types::Cost?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs used: Integer
+  # @rbs size: Integer
+  # @rbs cost: ACP::Types::Cost?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (used: Integer, size: Integer, ?cost: ACP::Types::Cost?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::UsageUpdate
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::UsageUpdate
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

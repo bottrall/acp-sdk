@@ -1,0 +1,11 @@
+# Generated from lib/acp/types/permission_option_kind.rb with RBS::Inline
+
+module ACP::Types::PermissionOptionKind
+  ALLOW_ONCE: ::String
+
+  ALLOW_ALWAYS: ::String
+
+  REJECT_ONCE: ::String
+
+  REJECT_ALWAYS: ::String
+end

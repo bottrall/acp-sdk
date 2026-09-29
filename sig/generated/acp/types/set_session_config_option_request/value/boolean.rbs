@@ -1,0 +1,17 @@
+# Generated from lib/acp/types/set_session_config_option_request/value/boolean.rb with RBS::Inline
+
+class ACP::Types::SetSessionConfigOptionRequest::Value::Boolean
+  # @dynamic value
+  attr_reader value: bool
+
+  # @rbs value: bool
+  # @rbs return: void
+  def initialize: (value: bool) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SetSessionConfigOptionRequest::Value::Boolean
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SetSessionConfigOptionRequest::Value::Boolean
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

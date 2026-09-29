@@ -1,0 +1,33 @@
+# Generated from lib/acp/types/content_block/image.rb with RBS::Inline
+
+class ACP::Types::ContentBlock::Image
+  # @dynamic annotations
+  attr_reader annotations: ACP::Types::Annotations?
+
+  # @dynamic data
+  attr_reader data: String
+
+  # @dynamic mime_type
+  attr_reader mime_type: String
+
+  # @dynamic uri
+  attr_reader uri: String?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs annotations: ACP::Types::Annotations?
+  # @rbs data: String
+  # @rbs mime_type: String
+  # @rbs uri: String?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (data: String, mime_type: String, ?annotations: ACP::Types::Annotations?, ?uri: String?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::ContentBlock::Image
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::ContentBlock::Image
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

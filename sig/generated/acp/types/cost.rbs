@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/cost.rb with RBS::Inline
+
+class ACP::Types::Cost
+  # @dynamic amount
+  attr_reader amount: Numeric
+
+  # @dynamic currency
+  attr_reader currency: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs amount: Numeric
+  # @rbs currency: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (amount: Numeric, currency: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Cost
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Cost
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

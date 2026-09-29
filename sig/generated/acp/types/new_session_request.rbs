@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/new_session_request.rb with RBS::Inline
+
+class ACP::Types::NewSessionRequest
+  # @dynamic cwd
+  attr_reader cwd: String
+
+  # @dynamic additional_directories
+  attr_reader additional_directories: Array[String]?
+
+  # @dynamic mcp_servers
+  attr_reader mcp_servers: Array[ACP::Types::McpServer::t]
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs cwd: String
+  # @rbs additional_directories: Array[String]?
+  # @rbs mcp_servers: Array[ACP::Types::McpServer::t]
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (cwd: String, mcp_servers: Array[ACP::Types::McpServer::t], ?additional_directories: Array[String]?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::NewSessionRequest
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::NewSessionRequest
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

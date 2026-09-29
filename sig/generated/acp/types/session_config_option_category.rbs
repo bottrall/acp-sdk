@@ -1,0 +1,11 @@
+# Generated from lib/acp/types/session_config_option_category.rb with RBS::Inline
+
+module ACP::Types::SessionConfigOptionCategory
+  MODE: ::String
+
+  MODEL: ::String
+
+  MODEL_CONFIG: ::String
+
+  THOUGHT_LEVEL: ::String
+end

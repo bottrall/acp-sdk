@@ -1,0 +1,9 @@
+# Generated from lib/acp/types/plan_entry_priority.rb with RBS::Inline
+
+module ACP::Types::PlanEntryPriority
+  HIGH: ::String
+
+  MEDIUM: ::String
+
+  LOW: ::String
+end

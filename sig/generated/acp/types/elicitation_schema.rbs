@@ -1,0 +1,37 @@
+# Generated from lib/acp/types/elicitation_schema.rb with RBS::Inline
+
+class ACP::Types::ElicitationSchema
+  # @dynamic type
+  attr_reader type: String?
+
+  # @dynamic title
+  attr_reader title: String?
+
+  # @dynamic properties
+  attr_reader properties: Hash[String, ACP::Types::ElicitationPropertySchema::t]?
+
+  # @dynamic required
+  attr_reader required: Array[String]?
+
+  # @dynamic description
+  attr_reader description: String?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs type: String?
+  # @rbs title: String?
+  # @rbs properties: Hash[String, ACP::Types::ElicitationPropertySchema::t]?
+  # @rbs required: Array[String]?
+  # @rbs description: String?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?type: String?, ?title: String?, ?properties: Hash[String, ACP::Types::ElicitationPropertySchema::t]?, ?required: Array[String]?, ?description: String?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::ElicitationSchema
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::ElicitationSchema
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/permission_option.rb with RBS::Inline
+
+class ACP::Types::PermissionOption
+  # @dynamic option_id
+  attr_reader option_id: String
+
+  # @dynamic name
+  attr_reader name: String
+
+  # @dynamic kind
+  attr_reader kind: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs option_id: String
+  # @rbs name: String
+  # @rbs kind: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (option_id: String, name: String, kind: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::PermissionOption
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::PermissionOption
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

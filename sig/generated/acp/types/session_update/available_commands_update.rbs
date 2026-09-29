@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/session_update/available_commands_update.rb with RBS::Inline
+
+class ACP::Types::SessionUpdate::AvailableCommandsUpdate
+  # @dynamic available_commands
+  attr_reader available_commands: Array[ACP::Types::AvailableCommand]
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs available_commands: Array[ACP::Types::AvailableCommand]
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (available_commands: Array[ACP::Types::AvailableCommand], ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SessionUpdate::AvailableCommandsUpdate
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SessionUpdate::AvailableCommandsUpdate
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

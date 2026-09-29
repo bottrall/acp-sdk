@@ -1,0 +1,37 @@
+# Generated from lib/acp/types/integer_property_schema.rb with RBS::Inline
+
+class ACP::Types::IntegerPropertySchema
+  # @dynamic title
+  attr_reader title: String?
+
+  # @dynamic description
+  attr_reader description: String?
+
+  # @dynamic minimum
+  attr_reader minimum: Integer?
+
+  # @dynamic maximum
+  attr_reader maximum: Integer?
+
+  # @dynamic default
+  attr_reader default: Integer?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs title: String?
+  # @rbs description: String?
+  # @rbs minimum: Integer?
+  # @rbs maximum: Integer?
+  # @rbs default: Integer?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?title: String?, ?description: String?, ?minimum: Integer?, ?maximum: Integer?, ?default: Integer?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::IntegerPropertySchema
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::IntegerPropertySchema
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

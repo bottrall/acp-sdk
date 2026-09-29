@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/http_header.rb with RBS::Inline
+
+class ACP::Types::HttpHeader
+  # @dynamic name
+  attr_reader name: String
+
+  # @dynamic value
+  attr_reader value: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs name: String
+  # @rbs value: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (name: String, value: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::HttpHeader
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::HttpHeader
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

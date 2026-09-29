@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/session_update/agent_message_chunk.rb with RBS::Inline
+
+class ACP::Types::SessionUpdate::AgentMessageChunk
+  # @dynamic content
+  attr_reader content: ACP::Types::ContentBlock::t
+
+  # @dynamic message_id
+  attr_reader message_id: String?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs content: ACP::Types::ContentBlock::t
+  # @rbs message_id: String?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (content: ACP::Types::ContentBlock::t, ?message_id: String?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SessionUpdate::AgentMessageChunk
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SessionUpdate::AgentMessageChunk
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

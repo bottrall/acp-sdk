@@ -1,0 +1,13 @@
+# Generated from lib/acp/types/create_elicitation_response/action/decline.rb with RBS::Inline
+
+class ACP::Types::CreateElicitationResponse::Action::Decline
+  # @rbs return: void
+  def initialize: () -> void
+
+  # @rbs _hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::CreateElicitationResponse::Action::Decline
+  def self.from_h: (untyped _hash) -> ACP::Types::CreateElicitationResponse::Action::Decline
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

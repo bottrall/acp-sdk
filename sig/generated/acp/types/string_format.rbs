@@ -1,0 +1,11 @@
+# Generated from lib/acp/types/string_format.rb with RBS::Inline
+
+module ACP::Types::StringFormat
+  EMAIL: ::String
+
+  URI: ::String
+
+  DATE: ::String
+
+  DATE_TIME: ::String
+end

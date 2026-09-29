@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/annotations.rb with RBS::Inline
+
+class ACP::Types::Annotations
+  # @dynamic audience
+  attr_reader audience: Array[String]?
+
+  # @dynamic last_modified
+  attr_reader last_modified: String?
+
+  # @dynamic priority
+  attr_reader priority: Numeric?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs audience: Array[String]?
+  # @rbs last_modified: String?
+  # @rbs priority: Numeric?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?audience: Array[String]?, ?last_modified: String?, ?priority: Numeric?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Annotations
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Annotations
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

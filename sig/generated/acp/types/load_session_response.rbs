@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/load_session_response.rb with RBS::Inline
+
+class ACP::Types::LoadSessionResponse
+  # @dynamic modes
+  attr_reader modes: ACP::Types::SessionModeState?
+
+  # @dynamic config_options
+  attr_reader config_options: Array[ACP::Types::SessionConfigOption]?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs modes: ACP::Types::SessionModeState?
+  # @rbs config_options: Array[ACP::Types::SessionConfigOption]?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?modes: ACP::Types::SessionModeState?, ?config_options: Array[ACP::Types::SessionConfigOption]?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::LoadSessionResponse
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::LoadSessionResponse
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

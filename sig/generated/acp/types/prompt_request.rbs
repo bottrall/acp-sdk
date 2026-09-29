@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/prompt_request.rb with RBS::Inline
+
+class ACP::Types::PromptRequest
+  # @dynamic session_id
+  attr_reader session_id: String
+
+  # @dynamic prompt
+  attr_reader prompt: Array[ACP::Types::ContentBlock::t]
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs session_id: String
+  # @rbs prompt: Array[ACP::Types::ContentBlock::t]
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (session_id: String, prompt: Array[ACP::Types::ContentBlock::t], ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::PromptRequest
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::PromptRequest
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

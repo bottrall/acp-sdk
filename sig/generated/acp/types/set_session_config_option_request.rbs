@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/set_session_config_option_request.rb with RBS::Inline
+
+class ACP::Types::SetSessionConfigOptionRequest
+  # @dynamic session_id
+  attr_reader session_id: String
+
+  # @dynamic config_id
+  attr_reader config_id: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @dynamic value
+  attr_reader value: ACP::Types::SetSessionConfigOptionRequest::Value::t
+
+  # @rbs session_id: String
+  # @rbs config_id: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs value: ACP::Types::SetSessionConfigOptionRequest::Value::t
+  # @rbs return: void
+  def initialize: (session_id: String, config_id: String, value: ACP::Types::SetSessionConfigOptionRequest::Value::t, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SetSessionConfigOptionRequest
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SetSessionConfigOptionRequest
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

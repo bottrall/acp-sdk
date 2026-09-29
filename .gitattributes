@@ -1,1 +1,3 @@
 sig/generated/** linguist-generated=true
+lib/acp/types/** linguist-generated=true
+schema/schema.json linguist-vendored=true

@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/session_config_select.rb with RBS::Inline
+
+class ACP::Types::SessionConfigSelect
+  # @dynamic current_value
+  attr_reader current_value: String
+
+  # @dynamic options
+  attr_reader options: ACP::Types::SessionConfigSelectOptions::t
+
+  # @rbs current_value: String
+  # @rbs options: ACP::Types::SessionConfigSelectOptions::t
+  # @rbs return: void
+  def initialize: (current_value: String, options: ACP::Types::SessionConfigSelectOptions::t) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SessionConfigSelect
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SessionConfigSelect
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end
