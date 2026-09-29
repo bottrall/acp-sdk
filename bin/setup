@@ -2,4 +2,5 @@
 # Doesn't delegate to rake like the other bin/ scripts: rake isn't installed
 # until this has run.
 set -e
-exec bundle install "$@"
+bundle install "$@"
+exec rbs collection install

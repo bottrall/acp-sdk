@@ -1,0 +1,11 @@
+# Zeitwerk ships no RBS, so declare the slice of the loader API used to set up
+# autoloading in lib/acp/sdk.rb.
+
+module Zeitwerk
+  class Loader
+    def tag=: (String) -> String
+    def push_dir: (String path, ?namespace: Module) -> void
+    def ignore: (*String) -> void
+    def setup: () -> void
+  end
+end

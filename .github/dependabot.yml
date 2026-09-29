@@ -1,0 +1,56 @@
+# Shared Dependabot layout across bottrall projects (sterling, ration, punch, mailroom, riffer-rig, acp-sdk).
+# Keep these conventions in sync:
+#   - Ecosystem order: github-actions, bundler, npm, docker.
+#   - Every ecosystem: weekly on Monday 09:00 America/Vancouver, 3-day cooldown,
+#     conventional-commit prefix `chore(deps)`, up to 10 open PRs.
+#   - Group order: named family groups alphabetically, then the catch-alls
+#     `development` (all dev deps) and `production-minor-patch`. First matching
+#     group wins, so keep the order. Production majors always get their own PR.
+#   - github-actions is a single group. docker is ungrouped (image bumps need
+#     manual coordination with .ruby-version / .nvmrc).
+
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Vancouver
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    open-pull-requests-limit: 10
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: bundler
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Vancouver
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    open-pull-requests-limit: 10
+    groups:
+      guard:
+        patterns: ["guard*"]
+      rubocop:
+        patterns: ["rubocop*"]
+      types:
+        patterns: ["rbs*", "steep"]
+      development:
+        dependency-type: development
+      production-minor-patch:
+        dependency-type: production
+        update-types: [minor, patch]

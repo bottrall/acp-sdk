@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
   spec.metadata['changelog_uri'] = 'https://github.com/bottrall/acp-sdk/blob/main/CHANGELOG.md'
   spec.metadata['source_code_uri'] = spec.homepage
 
-  spec.files = Dir['lib/**/*.rb', 'README.md', 'CHANGELOG.md', 'LICENSE.txt']
+  spec.files = Dir['lib/**/*.rb', 'sig/generated/**/*', 'sig/manual/**/*', 'README.md', 'CHANGELOG.md', 'LICENSE.txt']
   spec.require_paths = ['lib']
 
   spec.add_dependency 'zeitwerk', '~> 2.8'
