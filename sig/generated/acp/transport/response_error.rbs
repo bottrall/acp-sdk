@@ -1,0 +1,21 @@
+# Generated from lib/acp/transport/response_error.rb with RBS::Inline
+
+class ACP::Transport::ResponseError
+  # @dynamic code
+  attr_reader code: Integer
+
+  # @dynamic message
+  attr_reader message: String
+
+  # @dynamic data
+  attr_reader data: untyped
+
+  # @rbs code: Integer
+  # @rbs message: String
+  # @rbs data: untyped
+  # @rbs return: void
+  def initialize: (code: Integer, message: String, ?data: untyped) -> void
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end
