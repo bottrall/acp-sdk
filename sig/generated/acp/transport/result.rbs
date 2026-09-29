@@ -1,0 +1,25 @@
+# Generated from lib/acp/transport/result.rb with RBS::Inline
+
+class ACP::Transport::Result
+  # @dynamic value
+  attr_reader value: untyped
+
+  # @dynamic error
+  attr_reader error: ACP::Transport::ResponseError?
+
+  # @rbs value: untyped
+  # @rbs return: ACP::Transport::Result
+  def self.ok: (untyped value) -> ACP::Transport::Result
+
+  # @rbs error: ACP::Transport::ResponseError
+  # @rbs return: ACP::Transport::Result
+  def self.error: (ACP::Transport::ResponseError error) -> ACP::Transport::Result
+
+  # @rbs value: untyped
+  # @rbs error: ACP::Transport::ResponseError?
+  # @rbs return: void
+  def initialize: (value: untyped, error: ACP::Transport::ResponseError?) -> void
+
+  # @rbs return: bool
+  def ok?: () -> bool
+end

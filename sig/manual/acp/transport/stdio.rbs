@@ -1,0 +1,14 @@
+class ACP::Transport::Stdio
+  interface _Reader
+    def each_line: () { (String) -> void } -> untyped
+  end
+
+  interface _Writer
+    def write: (String) -> untyped
+    def flush: () -> untyped
+  end
+
+  interface _Handler
+    def call: (untyped params) -> ACP::Transport::Result
+  end
+end
