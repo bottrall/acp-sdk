@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/elicitation_capabilities.rb with RBS::Inline
+
+class ACP::Types::ElicitationCapabilities
+  # @dynamic form
+  attr_reader form: ACP::Types::ElicitationFormCapabilities?
+
+  # @dynamic url
+  attr_reader url: ACP::Types::ElicitationUrlCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs form: ACP::Types::ElicitationFormCapabilities?
+  # @rbs url: ACP::Types::ElicitationUrlCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?form: ACP::Types::ElicitationFormCapabilities?, ?url: ACP::Types::ElicitationUrlCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::ElicitationCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::ElicitationCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

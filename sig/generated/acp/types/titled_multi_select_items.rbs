@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/titled_multi_select_items.rb with RBS::Inline
+
+class ACP::Types::TitledMultiSelectItems
+  # @dynamic any_of
+  attr_reader any_of: Array[ACP::Types::EnumOption]
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs any_of: Array[ACP::Types::EnumOption]
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (any_of: Array[ACP::Types::EnumOption], ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::TitledMultiSelectItems
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::TitledMultiSelectItems
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

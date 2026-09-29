@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/create_elicitation_request.rb with RBS::Inline
+
+class ACP::Types::CreateElicitationRequest
+  # @dynamic message
+  attr_reader message: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @dynamic mode
+  attr_reader mode: ACP::Types::CreateElicitationRequest::Mode::t
+
+  # @rbs message: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs mode: ACP::Types::CreateElicitationRequest::Mode::t
+  # @rbs return: void
+  def initialize: (message: String, mode: ACP::Types::CreateElicitationRequest::Mode::t, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::CreateElicitationRequest
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::CreateElicitationRequest
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

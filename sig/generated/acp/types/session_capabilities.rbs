@@ -1,0 +1,37 @@
+# Generated from lib/acp/types/session_capabilities.rb with RBS::Inline
+
+class ACP::Types::SessionCapabilities
+  # @dynamic list
+  attr_reader list: ACP::Types::SessionListCapabilities?
+
+  # @dynamic delete
+  attr_reader delete: ACP::Types::SessionDeleteCapabilities?
+
+  # @dynamic additional_directories
+  attr_reader additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?
+
+  # @dynamic resume
+  attr_reader resume: ACP::Types::SessionResumeCapabilities?
+
+  # @dynamic close
+  attr_reader close: ACP::Types::SessionCloseCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs list: ACP::Types::SessionListCapabilities?
+  # @rbs delete: ACP::Types::SessionDeleteCapabilities?
+  # @rbs additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?
+  # @rbs resume: ACP::Types::SessionResumeCapabilities?
+  # @rbs close: ACP::Types::SessionCloseCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?list: ACP::Types::SessionListCapabilities?, ?delete: ACP::Types::SessionDeleteCapabilities?, ?additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?, ?resume: ACP::Types::SessionResumeCapabilities?, ?close: ACP::Types::SessionCloseCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SessionCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SessionCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

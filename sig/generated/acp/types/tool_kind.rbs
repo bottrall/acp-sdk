@@ -1,0 +1,23 @@
+# Generated from lib/acp/types/tool_kind.rb with RBS::Inline
+
+module ACP::Types::ToolKind
+  READ: ::String
+
+  EDIT: ::String
+
+  DELETE: ::String
+
+  MOVE: ::String
+
+  SEARCH: ::String
+
+  EXECUTE: ::String
+
+  THINK: ::String
+
+  FETCH: ::String
+
+  SWITCH_MODE: ::String
+
+  OTHER: ::String
+end

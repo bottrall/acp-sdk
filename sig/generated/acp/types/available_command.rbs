@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/available_command.rb with RBS::Inline
+
+class ACP::Types::AvailableCommand
+  # @dynamic name
+  attr_reader name: String
+
+  # @dynamic description
+  attr_reader description: String
+
+  # @dynamic input
+  attr_reader input: ACP::Types::AvailableCommandInput::t?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs name: String
+  # @rbs description: String
+  # @rbs input: ACP::Types::AvailableCommandInput::t?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (name: String, description: String, ?input: ACP::Types::AvailableCommandInput::t?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::AvailableCommand
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::AvailableCommand
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

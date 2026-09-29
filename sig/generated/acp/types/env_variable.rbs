@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/env_variable.rb with RBS::Inline
+
+class ACP::Types::EnvVariable
+  # @dynamic name
+  attr_reader name: String
+
+  # @dynamic value
+  attr_reader value: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs name: String
+  # @rbs value: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (name: String, value: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::EnvVariable
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::EnvVariable
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

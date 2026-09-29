@@ -1,0 +1,17 @@
+# Generated from lib/acp/types/session_config_option/kind/boolean.rb with RBS::Inline
+
+class ACP::Types::SessionConfigOption::Kind::Boolean
+  # @dynamic current_value
+  attr_reader current_value: bool
+
+  # @rbs current_value: bool
+  # @rbs return: void
+  def initialize: (current_value: bool) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SessionConfigOption::Kind::Boolean
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SessionConfigOption::Kind::Boolean
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

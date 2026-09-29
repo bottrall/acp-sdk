@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/prompt_capabilities.rb with RBS::Inline
+
+class ACP::Types::PromptCapabilities
+  # @dynamic image
+  attr_reader image: bool?
+
+  # @dynamic audio
+  attr_reader audio: bool?
+
+  # @dynamic embedded_context
+  attr_reader embedded_context: bool?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs image: bool?
+  # @rbs audio: bool?
+  # @rbs embedded_context: bool?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?image: bool?, ?audio: bool?, ?embedded_context: bool?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::PromptCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::PromptCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

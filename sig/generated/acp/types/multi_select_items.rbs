@@ -1,0 +1,9 @@
+# Generated from lib/acp/types/multi_select_items.rb with RBS::Inline
+
+module ACP::Types::MultiSelectItems
+  type t = ACP::Types::MultiSelectItems::StringMultiSelectItems | ACP::Types::TitledMultiSelectItems | Hash[String, untyped]
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: t
+  def self.from_h: (Hash[String, untyped] hash) -> t
+end

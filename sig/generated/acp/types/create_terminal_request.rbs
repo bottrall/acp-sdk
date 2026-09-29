@@ -1,0 +1,41 @@
+# Generated from lib/acp/types/create_terminal_request.rb with RBS::Inline
+
+class ACP::Types::CreateTerminalRequest
+  # @dynamic session_id
+  attr_reader session_id: String
+
+  # @dynamic command
+  attr_reader command: String
+
+  # @dynamic args
+  attr_reader args: Array[String]?
+
+  # @dynamic env
+  attr_reader env: Array[ACP::Types::EnvVariable]?
+
+  # @dynamic cwd
+  attr_reader cwd: String?
+
+  # @dynamic output_byte_limit
+  attr_reader output_byte_limit: Integer?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs session_id: String
+  # @rbs command: String
+  # @rbs args: Array[String]?
+  # @rbs env: Array[ACP::Types::EnvVariable]?
+  # @rbs cwd: String?
+  # @rbs output_byte_limit: Integer?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (session_id: String, command: String, ?args: Array[String]?, ?env: Array[ACP::Types::EnvVariable]?, ?cwd: String?, ?output_byte_limit: Integer?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::CreateTerminalRequest
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::CreateTerminalRequest
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

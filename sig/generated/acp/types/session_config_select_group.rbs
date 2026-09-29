@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/session_config_select_group.rb with RBS::Inline
+
+class ACP::Types::SessionConfigSelectGroup
+  # @dynamic group
+  attr_reader group: String
+
+  # @dynamic name
+  attr_reader name: String
+
+  # @dynamic options
+  attr_reader options: Array[ACP::Types::SessionConfigSelectOption]
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs group: String
+  # @rbs name: String
+  # @rbs options: Array[ACP::Types::SessionConfigSelectOption]
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (group: String, name: String, options: Array[ACP::Types::SessionConfigSelectOption], ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SessionConfigSelectGroup
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SessionConfigSelectGroup
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

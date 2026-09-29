@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/initialize_request.rb with RBS::Inline
+
+class ACP::Types::InitializeRequest
+  # @dynamic protocol_version
+  attr_reader protocol_version: Integer
+
+  # @dynamic client_capabilities
+  attr_reader client_capabilities: ACP::Types::ClientCapabilities?
+
+  # @dynamic client_info
+  attr_reader client_info: ACP::Types::Implementation?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs protocol_version: Integer
+  # @rbs client_capabilities: ACP::Types::ClientCapabilities?
+  # @rbs client_info: ACP::Types::Implementation?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (protocol_version: Integer, ?client_capabilities: ACP::Types::ClientCapabilities?, ?client_info: ACP::Types::Implementation?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::InitializeRequest
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::InitializeRequest
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

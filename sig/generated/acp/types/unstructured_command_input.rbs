@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/unstructured_command_input.rb with RBS::Inline
+
+class ACP::Types::UnstructuredCommandInput
+  # @dynamic hint
+  attr_reader hint: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs hint: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (hint: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::UnstructuredCommandInput
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::UnstructuredCommandInput
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

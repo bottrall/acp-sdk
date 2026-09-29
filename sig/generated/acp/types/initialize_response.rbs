@@ -1,0 +1,33 @@
+# Generated from lib/acp/types/initialize_response.rb with RBS::Inline
+
+class ACP::Types::InitializeResponse
+  # @dynamic protocol_version
+  attr_reader protocol_version: Integer
+
+  # @dynamic agent_capabilities
+  attr_reader agent_capabilities: ACP::Types::AgentCapabilities?
+
+  # @dynamic auth_methods
+  attr_reader auth_methods: Array[ACP::Types::AuthMethod::t]?
+
+  # @dynamic agent_info
+  attr_reader agent_info: ACP::Types::Implementation?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs protocol_version: Integer
+  # @rbs agent_capabilities: ACP::Types::AgentCapabilities?
+  # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]?
+  # @rbs agent_info: ACP::Types::Implementation?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (protocol_version: Integer, ?agent_capabilities: ACP::Types::AgentCapabilities?, ?auth_methods: Array[ACP::Types::AuthMethod::t]?, ?agent_info: ACP::Types::Implementation?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::InitializeResponse
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::InitializeResponse
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

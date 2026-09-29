@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/content_block/text.rb with RBS::Inline
+
+class ACP::Types::ContentBlock::Text
+  # @dynamic annotations
+  attr_reader annotations: ACP::Types::Annotations?
+
+  # @dynamic text
+  attr_reader text: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs annotations: ACP::Types::Annotations?
+  # @rbs text: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (text: String, ?annotations: ACP::Types::Annotations?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::ContentBlock::Text
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::ContentBlock::Text
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

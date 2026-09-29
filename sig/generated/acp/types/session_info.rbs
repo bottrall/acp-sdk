@@ -1,0 +1,37 @@
+# Generated from lib/acp/types/session_info.rb with RBS::Inline
+
+class ACP::Types::SessionInfo
+  # @dynamic session_id
+  attr_reader session_id: String
+
+  # @dynamic cwd
+  attr_reader cwd: String
+
+  # @dynamic additional_directories
+  attr_reader additional_directories: Array[String]?
+
+  # @dynamic title
+  attr_reader title: String?
+
+  # @dynamic updated_at
+  attr_reader updated_at: String?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs session_id: String
+  # @rbs cwd: String
+  # @rbs additional_directories: Array[String]?
+  # @rbs title: String?
+  # @rbs updated_at: String?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (session_id: String, cwd: String, ?additional_directories: Array[String]?, ?title: String?, ?updated_at: String?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SessionInfo
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SessionInfo
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

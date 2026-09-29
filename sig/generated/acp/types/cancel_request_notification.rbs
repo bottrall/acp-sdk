@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/cancel_request_notification.rb with RBS::Inline
+
+class ACP::Types::CancelRequestNotification
+  # @dynamic request_id
+  attr_reader request_id: nil | Integer | String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs request_id: nil | Integer | String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (request_id: nil | Integer | String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::CancelRequestNotification
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::CancelRequestNotification
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

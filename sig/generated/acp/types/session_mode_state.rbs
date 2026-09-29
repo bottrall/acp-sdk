@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/session_mode_state.rb with RBS::Inline
+
+class ACP::Types::SessionModeState
+  # @dynamic current_mode_id
+  attr_reader current_mode_id: String
+
+  # @dynamic available_modes
+  attr_reader available_modes: Array[ACP::Types::SessionMode]
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs current_mode_id: String
+  # @rbs available_modes: Array[ACP::Types::SessionMode]
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (current_mode_id: String, available_modes: Array[ACP::Types::SessionMode], ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SessionModeState
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SessionModeState
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

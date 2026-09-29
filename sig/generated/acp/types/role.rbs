@@ -1,0 +1,7 @@
+# Generated from lib/acp/types/role.rb with RBS::Inline
+
+module ACP::Types::Role
+  ASSISTANT: ::String
+
+  USER: ::String
+end

@@ -1,0 +1,41 @@
+# Generated from lib/acp/types/elicitation_property_schema/multi_select_property_schema.rb with RBS::Inline
+
+class ACP::Types::ElicitationPropertySchema::MultiSelectPropertySchema
+  # @dynamic title
+  attr_reader title: String?
+
+  # @dynamic description
+  attr_reader description: String?
+
+  # @dynamic min_items
+  attr_reader min_items: Integer?
+
+  # @dynamic max_items
+  attr_reader max_items: Integer?
+
+  # @dynamic items
+  attr_reader items: ACP::Types::MultiSelectItems::t
+
+  # @dynamic default
+  attr_reader default: Array[String]?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs title: String?
+  # @rbs description: String?
+  # @rbs min_items: Integer?
+  # @rbs max_items: Integer?
+  # @rbs items: ACP::Types::MultiSelectItems::t
+  # @rbs default: Array[String]?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (items: ACP::Types::MultiSelectItems::t, ?title: String?, ?description: String?, ?min_items: Integer?, ?max_items: Integer?, ?default: Array[String]?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::ElicitationPropertySchema::MultiSelectPropertySchema
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::ElicitationPropertySchema::MultiSelectPropertySchema
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

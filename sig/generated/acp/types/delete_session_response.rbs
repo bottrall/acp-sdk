@@ -1,0 +1,17 @@
+# Generated from lib/acp/types/delete_session_response.rb with RBS::Inline
+
+class ACP::Types::DeleteSessionResponse
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::DeleteSessionResponse
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::DeleteSessionResponse
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/session_config_options_capabilities.rb with RBS::Inline
+
+class ACP::Types::SessionConfigOptionsCapabilities
+  # @dynamic boolean
+  attr_reader boolean: ACP::Types::BooleanConfigOptionCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs boolean: ACP::Types::BooleanConfigOptionCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?boolean: ACP::Types::BooleanConfigOptionCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SessionConfigOptionsCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SessionConfigOptionsCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

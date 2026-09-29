@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/client_session_capabilities.rb with RBS::Inline
+
+class ACP::Types::ClientSessionCapabilities
+  # @dynamic config_options
+  attr_reader config_options: ACP::Types::SessionConfigOptionsCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs config_options: ACP::Types::SessionConfigOptionsCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?config_options: ACP::Types::SessionConfigOptionsCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::ClientSessionCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::ClientSessionCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

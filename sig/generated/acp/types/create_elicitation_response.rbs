@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/create_elicitation_response.rb with RBS::Inline
+
+class ACP::Types::CreateElicitationResponse
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @dynamic action
+  attr_reader action: ACP::Types::CreateElicitationResponse::Action::t
+
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs action: ACP::Types::CreateElicitationResponse::Action::t
+  # @rbs return: void
+  def initialize: (action: ACP::Types::CreateElicitationResponse::Action::t, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::CreateElicitationResponse
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::CreateElicitationResponse
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

@@ -1,0 +1,3 @@
+# Generated from lib/acp/types/session_list_request.rb with RBS::Inline
+
+class ACP::Types::SessionListRequest = ACP::Types::ListSessionsRequest

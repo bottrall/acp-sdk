@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/elicitation_property_schema/boolean_property_schema.rb with RBS::Inline
+
+class ACP::Types::ElicitationPropertySchema::BooleanPropertySchema
+  # @dynamic title
+  attr_reader title: String?
+
+  # @dynamic description
+  attr_reader description: String?
+
+  # @dynamic default
+  attr_reader default: bool?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs title: String?
+  # @rbs description: String?
+  # @rbs default: bool?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?title: String?, ?description: String?, ?default: bool?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::ElicitationPropertySchema::BooleanPropertySchema
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::ElicitationPropertySchema::BooleanPropertySchema
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

@@ -19,8 +19,9 @@ Every project chore is a script in `bin/`. The Rakefile behind them is an implem
 | `bin/setup`     | Install dependencies on a fresh checkout (gems + rbs collection)                               |
 | `bin/test`      | Run the test suite. Pass files and/or Minitest flags: `bin/test test/foo_test.rb -n /pattern/` |
 | `bin/lint`      | Run RuboCop. Arguments are forwarded, e.g. `bin/lint -a`                                       |
-| `bin/typecheck` | Check the rbs collection lockfile and `sig/generated` are current, then type-check with Steep  |
+| `bin/typecheck` | Check `lib/acp/types`, the rbs collection lockfile and `sig/generated` are current, then type-check with Steep |
 | `bin/rbs`       | Regenerate `sig/generated` from the inline annotations in `lib/`                               |
+| `bin/types`     | Regenerate `lib/acp/types` from `schema/schema.json`, then `sig/generated`                     |
 | `bin/rbs-watch` | Regenerate `sig/generated` whenever `lib/` changes                                             |
 | `bin/ci`        | Run everything CI runs, serially. Use before pushing                                           |
 | `bin/build`     | Build the gem into `pkg/`; the publish workflow runs this before `gem push`                    |

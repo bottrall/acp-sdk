@@ -1,0 +1,3 @@
+# Generated from lib/acp/types/session_prompt_request.rb with RBS::Inline
+
+class ACP::Types::SessionPromptRequest = ACP::Types::PromptRequest

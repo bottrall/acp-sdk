@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/session_update/config_option_update.rb with RBS::Inline
+
+class ACP::Types::SessionUpdate::ConfigOptionUpdate
+  # @dynamic config_options
+  attr_reader config_options: Array[ACP::Types::SessionConfigOption]
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs config_options: Array[ACP::Types::SessionConfigOption]
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (config_options: Array[ACP::Types::SessionConfigOption], ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SessionUpdate::ConfigOptionUpdate
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SessionUpdate::ConfigOptionUpdate
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

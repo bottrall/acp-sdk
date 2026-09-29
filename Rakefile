@@ -3,7 +3,9 @@
 require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'rubocop/rake_task'
+require 'json'
 require 'tmpdir'
+require_relative 'codegen/type_generator'
 
 Rake::TestTask.new(:test) do |t|
   t.libs << 'test' << 'lib'
@@ -13,6 +15,32 @@ end
 
 RuboCop::RakeTask.new do |t|
   t.options = ENV.fetch('RUBOCOP_OPTS', '').split
+end
+
+def write_types(dir)
+  TypeGenerator.files(JSON.parse(File.read('schema/schema.json'))).each do |path, source|
+    target = File.join(dir, path)
+    mkdir_p File.dirname(target), verbose: false
+    File.write(target, source)
+  end
+end
+
+namespace :types do
+  desc 'Generate lib/acp/types from schema/schema.json'
+  task :generate do
+    rm_rf 'lib/acp/types', verbose: false
+    write_types('lib/acp/types')
+  end
+
+  desc 'Fail if lib/acp/types is out of date with schema/schema.json'
+  task :check do
+    Dir.mktmpdir('types-check') do |dir|
+      write_types(dir)
+      sh "diff -ru lib/acp/types #{dir}" do |ok, _|
+        abort 'lib/acp/types is out of date; run bin/types and commit the result' unless ok
+      end
+    end
+  end
 end
 
 namespace :rbs do
@@ -70,8 +98,8 @@ namespace :steep do
   end
 end
 
-desc 'Check RBS signatures are current, then type-check'
-task typecheck: %w[rbs:check rbs:collection_check rbs:lint_manual steep:check]
+desc 'Check generated types and RBS signatures are current, then type-check'
+task typecheck: %w[types:check rbs:check rbs:collection_check rbs:lint_manual steep:check]
 
 desc 'Run everything CI runs'
 task ci: %i[test rubocop typecheck]
