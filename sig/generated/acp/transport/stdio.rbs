@@ -39,9 +39,9 @@ class ACP::Transport::Stdio
   # pending outbound requests.
   #
   # @rbs requests: Hash[String, _Handler]
-  # @rbs notifications: Hash[String, _Handler]
+  # @rbs notifications: Hash[String, _NotificationHandler]
   # @rbs return: Thread
-  def start: (?requests: Hash[String, _Handler], ?notifications: Hash[String, _Handler]) -> Thread
+  def start: (?requests: Hash[String, _Handler], ?notifications: Hash[String, _NotificationHandler]) -> Thread
 
   # @rbs method: String
   # @rbs params: untyped
@@ -57,15 +57,15 @@ class ACP::Transport::Stdio
 
   # @rbs line: String
   # @rbs requests: Hash[String, _Handler]
-  # @rbs notifications: Hash[String, _Handler]
+  # @rbs notifications: Hash[String, _NotificationHandler]
   # @rbs return: void
-  def receive: (String line, Hash[String, _Handler] requests, Hash[String, _Handler] notifications) -> void
+  def receive: (String line, Hash[String, _Handler] requests, Hash[String, _NotificationHandler] notifications) -> void
 
   # @rbs message: Hash[String, untyped]
   # @rbs requests: Hash[String, _Handler]
-  # @rbs notifications: Hash[String, _Handler]
+  # @rbs notifications: Hash[String, _NotificationHandler]
   # @rbs return: void
-  def route: (Hash[String, untyped] message, Hash[String, _Handler] requests, Hash[String, _Handler] notifications) -> void
+  def route: (Hash[String, untyped] message, Hash[String, _Handler] requests, Hash[String, _NotificationHandler] notifications) -> void
 
   # @rbs line: String
   # @rbs return: Hash[String, untyped] | ACP::Transport::ResponseError
@@ -77,13 +77,21 @@ class ACP::Transport::Stdio
   # @rbs return: void
   def serve: (_Handler? handler, untyped id, untyped params) -> void
 
+  # For code with no reply to carry an error: a notification handler, or a
+  # Reply's after once the reply is on the wire. An exception must not kill
+  # the reader thread or print a thread report.
+  #
+  # @rbs &block: () -> void
+  # @rbs return: void
+  def quietly: () { () -> void } -> void
+
   # Handlers are application code at the protocol boundary: an exception
   # becomes an error response instead of killing the thread serving it.
   #
   # @rbs handler: _Handler
   # @rbs params: untyped
-  # @rbs return: ACP::Transport::Result
-  def invoke: (_Handler handler, untyped params) -> ACP::Transport::Result
+  # @rbs return: ACP::Transport::Result | ACP::Transport::Reply
+  def invoke: (_Handler handler, untyped params) -> (ACP::Transport::Result | ACP::Transport::Reply)
 
   # @rbs id: untyped
   # @rbs result: ACP::Transport::Result

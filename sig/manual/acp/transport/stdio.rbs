@@ -9,6 +9,10 @@ class ACP::Transport::Stdio
   end
 
   interface _Handler
-    def call: (untyped params) -> ACP::Transport::Result
+    def call: (untyped params) -> (ACP::Transport::Result | ACP::Transport::Reply)
+  end
+
+  interface _NotificationHandler
+    def call: (untyped params) -> void
   end
 end

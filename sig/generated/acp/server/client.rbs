@@ -1,0 +1,32 @@
+# Generated from lib/acp/server/client.rb with RBS::Inline
+
+# The agent's handle on the connected client: session updates and permission
+# requests go out through it, and it holds the capabilities the client
+# declared in initialize.
+class ACP::Server::Client
+  @connection: ACP::Server::_Connection
+
+  # @dynamic capabilities, capabilities=
+  attr_accessor capabilities: ACP::Types::ClientCapabilities?
+
+  # @rbs connection: ACP::Server::_Connection
+  # @rbs return: void
+  def initialize: (connection: ACP::Server::_Connection) -> void
+
+  # @rbs session_id: String
+  # @rbs update: ACP::Types::SessionUpdate::t
+  # @rbs return: void
+  def update: (String session_id, ACP::Types::SessionUpdate::t update) -> void
+
+  # @rbs session_id: String
+  # @rbs commands: Array[ACP::Types::AvailableCommand]
+  # @rbs return: void
+  def available_commands: (String session_id, Array[ACP::Types::AvailableCommand] commands) -> void
+
+  # Blocks the calling thread until the client answers or the connection
+  # closes.
+  #
+  # @rbs request: ACP::Types::RequestPermissionRequest
+  # @rbs return: ACP::Types::RequestPermissionResponse | ACP::Transport::ResponseError
+  def request_permission: (ACP::Types::RequestPermissionRequest request) -> (ACP::Types::RequestPermissionResponse | ACP::Transport::ResponseError)
+end

@@ -39,7 +39,7 @@ class ACP::Transport::Stdio
   # pending outbound requests.
   #
   # @rbs requests: Hash[String, _Handler]
-  # @rbs notifications: Hash[String, _Handler]
+  # @rbs notifications: Hash[String, _NotificationHandler]
   # @rbs return: Thread
   def start(requests: {}, notifications: {})
     Thread.new do
@@ -73,7 +73,7 @@ class ACP::Transport::Stdio
 
   # @rbs line: String
   # @rbs requests: Hash[String, _Handler]
-  # @rbs notifications: Hash[String, _Handler]
+  # @rbs notifications: Hash[String, _NotificationHandler]
   # @rbs return: void
   def receive(line, requests, notifications)
     message = parse(line)
@@ -85,7 +85,7 @@ class ACP::Transport::Stdio
 
   # @rbs message: Hash[String, untyped]
   # @rbs requests: Hash[String, _Handler]
-  # @rbs notifications: Hash[String, _Handler]
+  # @rbs notifications: Hash[String, _NotificationHandler]
   # @rbs return: void
   def route(message, requests, notifications)
     method = message['method']
@@ -96,7 +96,7 @@ class ACP::Transport::Stdio
       # Run on the reader thread so notifications (session/update) keep their
       # order; a JSON-RPC notification has no reply to carry a handler error.
       handler = notifications[method]
-      invoke(handler, message['params']) if handler
+      quietly { handler.call(message['params']) } if handler
     elsif message.key?('result')
       settle(message['id'], ACP::Transport::Result.ok(message['result']))
     elsif error.is_a?(Hash) && error['code'].is_a?(Integer) && error['message'].is_a?(String)
@@ -125,8 +125,26 @@ class ACP::Transport::Stdio
   # @rbs return: void
   def serve(handler, id, params)
     Thread.new do
-      reply(id, handler ? invoke(handler, params) : ACP::Transport::Result.error(METHOD_NOT_FOUND))
+      outcome = handler ? invoke(handler, params) : ACP::Transport::Result.error(METHOD_NOT_FOUND)
+      case outcome
+      when ACP::Transport::Reply
+        reply(id, outcome.result)
+        quietly(&outcome.after)
+      else reply(id, outcome)
+      end
     end
+  end
+
+  # For code with no reply to carry an error: a notification handler, or a
+  # Reply's after once the reply is on the wire. An exception must not kill
+  # the reader thread or print a thread report.
+  #
+  # @rbs &block: () -> void
+  # @rbs return: void
+  def quietly
+    yield
+  rescue StandardError
+    nil
   end
 
   # Handlers are application code at the protocol boundary: an exception
@@ -134,7 +152,7 @@ class ACP::Transport::Stdio
   #
   # @rbs handler: _Handler
   # @rbs params: untyped
-  # @rbs return: ACP::Transport::Result
+  # @rbs return: ACP::Transport::Result | ACP::Transport::Reply
   def invoke(handler, params)
     handler.call(params)
   rescue StandardError => e
