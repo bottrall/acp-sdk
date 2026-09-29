@@ -8,9 +8,6 @@ require 'json'
 # outbound request mid-turn and still see notifications (e.g. session/cancel)
 # that arrive meanwhile.
 class ACP::Transport::Stdio
-  # @rbs!
-  #   type result = [:ok, untyped] | [:error, ACP::Transport::ResponseError]
-
   # @rbs @input: _Reader
   # @rbs @output: _Writer
   # @rbs @write_lock: Thread::Mutex
@@ -55,14 +52,14 @@ class ACP::Transport::Stdio
 
   # @rbs method: String
   # @rbs params: untyped
-  # @rbs return: result
+  # @rbs return: ACP::Transport::Result
   def request(method, params = nil)
     queue = Thread::Queue.new
     id = register(queue)
-    return [:error, CONNECTION_CLOSED] unless id
+    return ACP::Transport::Result.error(CONNECTION_CLOSED) unless id
 
     write({ 'jsonrpc' => '2.0', 'id' => id, 'method' => method, 'params' => params }.compact)
-    queue.pop || [:error, CONNECTION_CLOSED]
+    queue.pop || ACP::Transport::Result.error(CONNECTION_CLOSED)
   end
 
   # @rbs method: String
@@ -81,7 +78,7 @@ class ACP::Transport::Stdio
   def receive(line, requests, notifications)
     message = parse(line)
     case message
-    when ACP::Transport::ResponseError then reply(nil, [:error, message])
+    when ACP::Transport::ResponseError then reply(nil, ACP::Transport::Result.error(message))
     else route(message, requests, notifications)
     end
   end
@@ -101,12 +98,13 @@ class ACP::Transport::Stdio
       handler = notifications[method]
       invoke(handler, message['params']) if handler
     elsif message.key?('result')
-      settle(message['id'], [:ok, message['result']])
+      settle(message['id'], ACP::Transport::Result.ok(message['result']))
     elsif error.is_a?(Hash) && error['code'].is_a?(Integer) && error['message'].is_a?(String)
       code, text, data = error.values_at('code', 'message', 'data')
-      settle(message['id'], [:error, ACP::Transport::ResponseError.new(code:, message: text, data:)])
+      response_error = ACP::Transport::ResponseError.new(code:, message: text, data:)
+      settle(message['id'], ACP::Transport::Result.error(response_error))
     else
-      reply(nil, [:error, INVALID_REQUEST])
+      reply(nil, ACP::Transport::Result.error(INVALID_REQUEST))
     end
   end
 
@@ -127,7 +125,7 @@ class ACP::Transport::Stdio
   # @rbs return: void
   def serve(handler, id, params)
     Thread.new do
-      reply(id, handler ? invoke(handler, params) : [:error, METHOD_NOT_FOUND])
+      reply(id, handler ? invoke(handler, params) : ACP::Transport::Result.error(METHOD_NOT_FOUND))
     end
   end
 
@@ -136,19 +134,19 @@ class ACP::Transport::Stdio
   #
   # @rbs handler: _Handler
   # @rbs params: untyped
-  # @rbs return: result
+  # @rbs return: ACP::Transport::Result
   def invoke(handler, params)
     handler.call(params)
   rescue StandardError => e
-    [:error, ACP::Transport::ResponseError.new(code: INTERNAL_ERROR, message: e.message)]
+    ACP::Transport::Result.error(ACP::Transport::ResponseError.new(code: INTERNAL_ERROR, message: e.message))
   end
 
   # @rbs id: untyped
-  # @rbs outcome: result
+  # @rbs result: ACP::Transport::Result
   # @rbs return: void
-  def reply(id, outcome)
-    status, value = outcome
-    write({ 'jsonrpc' => '2.0', 'id' => id }.merge(status == :ok ? { 'result' => value } : { 'error' => value.to_h }))
+  def reply(id, result)
+    error = result.error
+    write({ 'jsonrpc' => '2.0', 'id' => id }.merge(error ? { 'error' => error.to_h } : { 'result' => result.value }))
   end
 
   # @rbs queue: Thread::Queue
@@ -164,10 +162,10 @@ class ACP::Transport::Stdio
   end
 
   # @rbs id: untyped
-  # @rbs outcome: result
+  # @rbs result: ACP::Transport::Result
   # @rbs return: void
-  def settle(id, outcome)
-    @lock.synchronize { @pending.delete(id) }&.push(outcome)
+  def settle(id, result)
+    @lock.synchronize { @pending.delete(id) }&.push(result)
   end
 
   # @rbs return: void

@@ -9,6 +9,6 @@ class ACP::Transport::Stdio
   end
 
   interface _Handler
-    def call: (untyped params) -> result
+    def call: (untyped params) -> ACP::Transport::Result
   end
 end

@@ -6,8 +6,6 @@
 # outbound request mid-turn and still see notifications (e.g. session/cancel)
 # that arrive meanwhile.
 class ACP::Transport::Stdio
-  type result = [ :ok, untyped ] | [ :error, ACP::Transport::ResponseError ]
-
   @closed: bool
 
   @next_id: Integer
@@ -47,8 +45,8 @@ class ACP::Transport::Stdio
 
   # @rbs method: String
   # @rbs params: untyped
-  # @rbs return: result
-  def request: (String method, ?untyped params) -> result
+  # @rbs return: ACP::Transport::Result
+  def request: (String method, ?untyped params) -> ACP::Transport::Result
 
   # @rbs method: String
   # @rbs params: untyped
@@ -84,22 +82,22 @@ class ACP::Transport::Stdio
   #
   # @rbs handler: _Handler
   # @rbs params: untyped
-  # @rbs return: result
-  def invoke: (_Handler handler, untyped params) -> result
+  # @rbs return: ACP::Transport::Result
+  def invoke: (_Handler handler, untyped params) -> ACP::Transport::Result
 
   # @rbs id: untyped
-  # @rbs outcome: result
+  # @rbs result: ACP::Transport::Result
   # @rbs return: void
-  def reply: (untyped id, result outcome) -> void
+  def reply: (untyped id, ACP::Transport::Result result) -> void
 
   # @rbs queue: Thread::Queue
   # @rbs return: Integer?
   def register: (Thread::Queue queue) -> Integer?
 
   # @rbs id: untyped
-  # @rbs outcome: result
+  # @rbs result: ACP::Transport::Result
   # @rbs return: void
-  def settle: (untyped id, result outcome) -> void
+  def settle: (untyped id, ACP::Transport::Result result) -> void
 
   # @rbs return: void
   def close: () -> void
