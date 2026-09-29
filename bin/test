@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Rake's test loader treats every argument that doesn't start with
+# `-` as a file, so a flag's value (`--seed 1`, `-n /pattern/`) is joined onto
+# the flag (`--seed=1`, `-n/pattern/`), which Minitest's option parser accepts.
+set -e
+
+files=()
+opts=()
+pending=""
+for arg in "$@"; do
+  if [ -n "$pending" ]; then
+    case "$pending" in
+      --*) opts+=("$pending=$arg") ;;
+      *)   opts+=("$pending$arg") ;;
+    esac
+    pending=""
+  elif [[ "$arg" == -* ]]; then
+    case "$arg" in
+      --name|-n|--seed|-s|--exclude|-e|--skip|-S) pending="$arg" ;;
+      *) opts+=("$arg") ;;
+    esac
+  else
+    files+=("$arg")
+  fi
+done
+
+args=()
+if [ ${#files[@]} -gt 0 ]; then
+  args+=("TEST=$(IFS=,; echo "${files[*]}")")
+fi
+if [ ${#opts[@]} -gt 0 ]; then
+  args+=("TESTOPTS=${opts[*]}")
+fi
+
+exec bundle exec rake test "${args[@]}"
