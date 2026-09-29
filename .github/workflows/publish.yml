@@ -1,8 +1,3 @@
-# The publish job lives in this workflow rather than on a `release` event
-# because releases created with the default GITHUB_TOKEN do not trigger other
-# workflows. The RubyGems trusted publisher is pinned to this file name and the
-# `release` environment; change either and publishing stops.
-
 name: publish
 
 on:
