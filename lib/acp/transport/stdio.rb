@@ -10,22 +10,9 @@ require 'json'
 class ACP::Transport::Stdio
   # @rbs!
   #   type result = [:ok, untyped] | [:error, ACP::Transport::ResponseError]
-  #
-  #   interface _Reader
-  #     def each_line: () { (String) -> void } -> untyped
-  #   end
-  #
-  #   interface _Writer
-  #     def write: (String) -> untyped
-  #     def flush: () -> untyped
-  #   end
-  #
-  #   interface _Handler
-  #     def call: (untyped params) -> result
-  #   end
 
-  # @rbs @input: _Reader
-  # @rbs @output: _Writer
+  # @rbs @input: IO
+  # @rbs @output: IO
   # @rbs @write_lock: Thread::Mutex
   # @rbs @lock: Thread::Mutex
   # @rbs @pending: Hash[untyped, Thread::Queue]
@@ -38,8 +25,8 @@ class ACP::Transport::Stdio
   METHOD_NOT_FOUND = ACP::Transport::ResponseError.new(code: -32_601, message: 'Method not found') #: ACP::Transport::ResponseError
   CONNECTION_CLOSED = ACP::Transport::ResponseError.new(code: INTERNAL_ERROR, message: 'Connection closed') #: ACP::Transport::ResponseError
 
-  # @rbs input: _Reader
-  # @rbs output: _Writer
+  # @rbs input: IO
+  # @rbs output: IO
   # @rbs return: void
   def initialize(input:, output:)
     @input = input
@@ -54,8 +41,8 @@ class ACP::Transport::Stdio
   # Returns the reader thread, which ends at EOF on input after releasing any
   # pending outbound requests.
   #
-  # @rbs requests: Hash[String, _Handler]
-  # @rbs notifications: Hash[String, _Handler]
+  # @rbs requests: Hash[String, ACP::Transport::Handler]
+  # @rbs notifications: Hash[String, ACP::Transport::Handler]
   # @rbs return: Thread
   def start(requests: {}, notifications: {})
     Thread.new do
@@ -88,8 +75,8 @@ class ACP::Transport::Stdio
   private
 
   # @rbs line: String
-  # @rbs requests: Hash[String, _Handler]
-  # @rbs notifications: Hash[String, _Handler]
+  # @rbs requests: Hash[String, ACP::Transport::Handler]
+  # @rbs notifications: Hash[String, ACP::Transport::Handler]
   # @rbs return: void
   def receive(line, requests, notifications)
     message = parse(line)
@@ -100,8 +87,8 @@ class ACP::Transport::Stdio
   end
 
   # @rbs message: Hash[String, untyped]
-  # @rbs requests: Hash[String, _Handler]
-  # @rbs notifications: Hash[String, _Handler]
+  # @rbs requests: Hash[String, ACP::Transport::Handler]
+  # @rbs notifications: Hash[String, ACP::Transport::Handler]
   # @rbs return: void
   def route(message, requests, notifications)
     method = message['method']
@@ -134,7 +121,7 @@ class ACP::Transport::Stdio
     PARSE_ERROR
   end
 
-  # @rbs handler: _Handler?
+  # @rbs handler: ACP::Transport::Handler?
   # @rbs id: untyped
   # @rbs params: untyped
   # @rbs return: void
@@ -147,7 +134,7 @@ class ACP::Transport::Stdio
   # Handlers are application code at the protocol boundary: an exception
   # becomes an error response instead of killing the thread serving it.
   #
-  # @rbs handler: _Handler
+  # @rbs handler: ACP::Transport::Handler
   # @rbs params: untyped
   # @rbs return: result
   def invoke(handler, params)

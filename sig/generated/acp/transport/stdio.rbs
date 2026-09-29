@@ -8,20 +8,6 @@
 class ACP::Transport::Stdio
   type result = [ :ok, untyped ] | [ :error, ACP::Transport::ResponseError ]
 
-  interface _Reader
-    def each_line: () { (String) -> void } -> untyped
-  end
-
-  interface _Writer
-    def write: (String) -> untyped
-
-    def flush: () -> untyped
-  end
-
-  interface _Handler
-    def call: (untyped params) -> result
-  end
-
   @closed: bool
 
   @next_id: Integer
@@ -32,9 +18,9 @@ class ACP::Transport::Stdio
 
   @write_lock: Thread::Mutex
 
-  @output: _Writer
+  @output: IO
 
-  @input: _Reader
+  @input: IO
 
   INTERNAL_ERROR: Integer
 
@@ -46,18 +32,18 @@ class ACP::Transport::Stdio
 
   CONNECTION_CLOSED: ACP::Transport::ResponseError
 
-  # @rbs input: _Reader
-  # @rbs output: _Writer
+  # @rbs input: IO
+  # @rbs output: IO
   # @rbs return: void
-  def initialize: (input: _Reader, output: _Writer) -> void
+  def initialize: (input: IO, output: IO) -> void
 
   # Returns the reader thread, which ends at EOF on input after releasing any
   # pending outbound requests.
   #
-  # @rbs requests: Hash[String, _Handler]
-  # @rbs notifications: Hash[String, _Handler]
+  # @rbs requests: Hash[String, ACP::Transport::Handler]
+  # @rbs notifications: Hash[String, ACP::Transport::Handler]
   # @rbs return: Thread
-  def start: (?requests: Hash[String, _Handler], ?notifications: Hash[String, _Handler]) -> Thread
+  def start: (?requests: Hash[String, ACP::Transport::Handler], ?notifications: Hash[String, ACP::Transport::Handler]) -> Thread
 
   # @rbs method: String
   # @rbs params: untyped
@@ -72,34 +58,34 @@ class ACP::Transport::Stdio
   private
 
   # @rbs line: String
-  # @rbs requests: Hash[String, _Handler]
-  # @rbs notifications: Hash[String, _Handler]
+  # @rbs requests: Hash[String, ACP::Transport::Handler]
+  # @rbs notifications: Hash[String, ACP::Transport::Handler]
   # @rbs return: void
-  def receive: (String line, Hash[String, _Handler] requests, Hash[String, _Handler] notifications) -> void
+  def receive: (String line, Hash[String, ACP::Transport::Handler] requests, Hash[String, ACP::Transport::Handler] notifications) -> void
 
   # @rbs message: Hash[String, untyped]
-  # @rbs requests: Hash[String, _Handler]
-  # @rbs notifications: Hash[String, _Handler]
+  # @rbs requests: Hash[String, ACP::Transport::Handler]
+  # @rbs notifications: Hash[String, ACP::Transport::Handler]
   # @rbs return: void
-  def route: (Hash[String, untyped] message, Hash[String, _Handler] requests, Hash[String, _Handler] notifications) -> void
+  def route: (Hash[String, untyped] message, Hash[String, ACP::Transport::Handler] requests, Hash[String, ACP::Transport::Handler] notifications) -> void
 
   # @rbs line: String
   # @rbs return: Hash[String, untyped] | ACP::Transport::ResponseError
   def parse: (String line) -> (Hash[String, untyped] | ACP::Transport::ResponseError)
 
-  # @rbs handler: _Handler?
+  # @rbs handler: ACP::Transport::Handler?
   # @rbs id: untyped
   # @rbs params: untyped
   # @rbs return: void
-  def serve: (_Handler? handler, untyped id, untyped params) -> void
+  def serve: (ACP::Transport::Handler? handler, untyped id, untyped params) -> void
 
   # Handlers are application code at the protocol boundary: an exception
   # becomes an error response instead of killing the thread serving it.
   #
-  # @rbs handler: _Handler
+  # @rbs handler: ACP::Transport::Handler
   # @rbs params: untyped
   # @rbs return: result
-  def invoke: (_Handler handler, untyped params) -> result
+  def invoke: (ACP::Transport::Handler handler, untyped params) -> result
 
   # @rbs id: untyped
   # @rbs outcome: result

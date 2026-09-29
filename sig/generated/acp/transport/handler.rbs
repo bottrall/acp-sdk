@@ -1,0 +1,9 @@
+# Generated from lib/acp/transport/handler.rb with RBS::Inline
+
+# Base class for the request and notification handlers Stdio dispatches to.
+# Subclass it and override #call.
+class ACP::Transport::Handler
+  # @rbs params: untyped
+  # @rbs return: ACP::Transport::Stdio::result
+  def call: (untyped params) -> ACP::Transport::Stdio::result
+end
