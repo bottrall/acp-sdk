@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  - pull_request
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - run: bin/lint
+
+  test:
+    runs-on: ubuntu-latest
+    name: test ${{ matrix.ruby }}
+
+    strategy:
+      matrix:
+        ruby:
+          - "4.0"
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: bin/test

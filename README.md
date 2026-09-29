@@ -10,6 +10,24 @@ Intent only. Nothing is published yet; the `acp-sdk` gem name is claimed at the 
 
 This repo exists so that [riffer-rig](https://github.com/bottrall/riffer-rig) can depend on it for its `riffer acp` host. Scope for the first release: JSON-RPC over stdio, `mcpServers` and `available_commands` in, permission requests and filesystem methods out.
 
+## Development
+
+Every project chore is a script in `bin/`. The Rakefile behind them is an implementation detail; you never need to call rake directly.
+
+| Script      | What it does                                                                                   |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| `bin/setup` | Install dependencies on a fresh checkout                                                       |
+| `bin/test`  | Run the test suite. Pass files and/or Minitest flags: `bin/test test/foo_test.rb -n /pattern/` |
+| `bin/lint`  | Run RuboCop. Arguments are forwarded, e.g. `bin/lint -a`                                       |
+| `bin/ci`    | Run everything CI runs, serially. Use before pushing                                           |
+| `bin/build` | Build the gem into `pkg/`; the publish workflow runs this before `gem push`                    |
+
+## Releasing
+
+PR titles are [conventional commits](https://www.conventionalcommits.org/) and are linted in CI: `feat:` bumps the minor version, `fix:` bumps the patch, and `feat!:` marks a breaking change (also a minor bump while we are on 0.x). `chore:`, `docs:`, `ci:`, `refactor:` and `test:` never release. Squash-merging makes the title the commit on `main`.
+
+[release-please](https://github.com/googleapis/release-please) keeps a release PR open that bumps `lib/acp/version.rb` and writes `CHANGELOG.md`. Merging that PR tags `vX.Y.Z`, creates the GitHub Release and publishes the gem to RubyGems.org through Trusted Publishing; nothing is pushed by hand. The first release is 0.1.0.
+
 ## Maintainer
 
 - Jake Bottrall - https://github.com/bottrall
