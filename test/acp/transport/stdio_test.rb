@@ -4,15 +4,6 @@ require 'test_helper'
 require 'json'
 require 'timeout'
 
-class BlockHandler < ACP::Transport::Handler
-  def initialize(&body)
-    super()
-    @body = body
-  end
-
-  def call(params) = @body.call(params)
-end
-
 describe ACP::Transport::Stdio do
   before do
     @input, @peer_writer = IO.pipe
@@ -66,7 +57,7 @@ describe ACP::Transport::Stdio do
   end
 
   it 'serves an inbound request with its handler' do
-    start(requests: { 'echo' => BlockHandler.new { |params| [:ok, params] } })
+    start(requests: { 'echo' => ->(params) { [:ok, params] } })
     send_message({ 'jsonrpc' => '2.0', 'id' => 7, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
 
     assert_equal({ 'jsonrpc' => '2.0', 'id' => 7, 'result' => { 'text' => 'hi' } }, receive_message)
@@ -83,7 +74,7 @@ describe ACP::Transport::Stdio do
   end
 
   it 'answers an inbound request whose handler raises with an internal error' do
-    start(requests: { 'boom' => BlockHandler.new { raise 'kaboom' } })
+    start(requests: { 'boom' => ->(_) { raise 'kaboom' } })
     send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'boom' })
 
     assert_equal(
@@ -94,7 +85,7 @@ describe ACP::Transport::Stdio do
 
   it 'delivers an inbound notification to its handler' do
     seen = Thread::Queue.new
-    start(notifications: { 'session/cancel' => BlockHandler.new { |params| seen << params } })
+    start(notifications: { 'session/cancel' => ->(params) { seen << params } })
     send_message({ 'jsonrpc' => '2.0', 'method' => 'session/cancel', 'params' => { 'sessionId' => 'sess_1' } })
 
     assert_equal({ 'sessionId' => 'sess_1' }, seen.pop(timeout: 2))
@@ -111,12 +102,11 @@ describe ACP::Transport::Stdio do
   it 'dispatches inbound messages while a handler waits on its own outbound request' do
     session = { 'sessionId' => 'sess_1' }
     cancels = Thread::Queue.new
-    prompt = BlockHandler.new do |params|
+    prompt = lambda do |params|
       _, permission = @transport.request('session/request_permission', params)
       [:ok, { 'permission' => permission, 'cancelled' => cancels.pop(timeout: 2) }]
     end
-    cancel = BlockHandler.new { |params| cancels << params }
-    start(requests: { 'session/prompt' => prompt }, notifications: { 'session/cancel' => cancel })
+    start(requests: { 'session/prompt' => prompt }, notifications: { 'session/cancel' => cancels.method(:push) })
 
     send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'session/prompt', 'params' => session })
     permission_id = receive_message.fetch('id')
@@ -134,7 +124,7 @@ describe ACP::Transport::Stdio do
   end
 
   it 'answers a malformed line with a parse error and keeps reading' do
-    start(requests: { 'echo' => BlockHandler.new { |params| [:ok, params] } })
+    start(requests: { 'echo' => ->(params) { [:ok, params] } })
     @peer_writer.puts('{"jsonrpc": "2.0", "id": 1, "method"')
     send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => 'still here' })
 
@@ -148,7 +138,7 @@ describe ACP::Transport::Stdio do
   end
 
   it 'answers a line of invalid UTF-8 with a parse error and keeps reading' do
-    start(requests: { 'echo' => BlockHandler.new { |params| [:ok, params] } })
+    start(requests: { 'echo' => ->(params) { [:ok, params] } })
     @peer_writer.puts("{\"jsonrpc\": \"2.0\", \"method\": \"\xFF\"}")
     send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => 'still here' })
 
