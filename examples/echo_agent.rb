@@ -119,7 +119,7 @@ class EchoAgent
 end
 
 if $PROGRAM_NAME == __FILE__
-  ACP::Server.new(
+  ACP::AgentConnection.new(
     transport: ACP::Transport::Stdio.new(input: $stdin, output: $stdout),
     capabilities: EchoAgent::CAPABILITIES,
     agent_info: ACP::Types::Implementation.new(name: 'echo-agent', version: ACP::VERSION)

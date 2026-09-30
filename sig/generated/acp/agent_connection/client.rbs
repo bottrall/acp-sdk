@@ -1,17 +1,17 @@
-# Generated from lib/acp/server/client.rb with RBS::Inline
+# Generated from lib/acp/agent_connection/client.rb with RBS::Inline
 
 # The agent's handle on the connected client: session updates and permission
 # requests go out through it, and it holds the capabilities the client
 # declared in initialize.
-class ACP::Server::Client
-  @connection: ACP::Server::_Connection
+class ACP::AgentConnection::Client
+  @peer: ACP::AgentConnection::_Peer
 
   # @dynamic capabilities, capabilities=
   attr_accessor capabilities: ACP::Types::ClientCapabilities?
 
-  # @rbs connection: ACP::Server::_Connection
+  # @rbs peer: ACP::AgentConnection::_Peer
   # @rbs return: void
-  def initialize: (connection: ACP::Server::_Connection) -> void
+  def initialize: (peer: ACP::AgentConnection::_Peer) -> void
 
   # @rbs session_id: String
   # @rbs update: ACP::Types::SessionUpdate::t

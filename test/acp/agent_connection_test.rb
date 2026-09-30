@@ -5,7 +5,7 @@ require 'json'
 require 'timeout'
 require_relative '../../examples/echo_agent'
 
-describe ACP::Server do
+describe ACP::AgentConnection do
   before do
     @input, @peer_writer = IO.pipe
     @peer_reader, @output = IO.pipe
@@ -21,11 +21,11 @@ describe ACP::Server do
 
   def start(capabilities: EchoAgent::CAPABILITIES)
     agent_info = ACP::Types::Implementation.new(name: 'echo-agent', version: '1.0.0')
-    server = ACP::Server.new(transport: @transport, capabilities:, agent_info:) do |client|
+    connection = ACP::AgentConnection.new(transport: @transport, capabilities:, agent_info:) do |client|
       @client = client
       EchoAgent.new(client:)
     end
-    @reader = server.start
+    @reader = connection.start
   end
 
   def send_message(message)
@@ -211,8 +211,8 @@ describe ACP::Server do
   end
 
   it 'refuses to start when a capability is advertised without its method' do
-    server = ACP::Server.new(transport: @transport, capabilities: EchoAgent::CAPABILITIES) { Object.new }
+    connection = ACP::AgentConnection.new(transport: @transport, capabilities: EchoAgent::CAPABILITIES) { Object.new }
 
-    assert_raises(ArgumentError) { server.start }
+    assert_raises(ArgumentError) { connection.start }
   end
 end

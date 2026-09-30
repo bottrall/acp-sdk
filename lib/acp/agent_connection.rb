@@ -3,23 +3,23 @@
 # Serves an agent over a transport: answers initialize itself, converts each
 # inbound request into its generated type, calls the agent and converts the
 # answer back. The agent is built by the factory block, which receives the
-# ACP::Server::Client handle the agent uses to talk back to the client.
-class ACP::Server
-  # @rbs @transport: ACP::Server::_Transport
+# ACP::AgentConnection::Client handle the agent uses to talk back to the client.
+class ACP::AgentConnection
+  # @rbs @transport: ACP::AgentConnection::_Transport
   # @rbs @capabilities: ACP::Types::AgentCapabilities
   # @rbs @agent_info: ACP::Types::Implementation?
   # @rbs @auth_methods: Array[ACP::Types::AuthMethod::t]
-  # @rbs @factory: ^(ACP::Server::Client) -> ACP::Server::_Agent
+  # @rbs @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
 
   PROTOCOL_VERSION = 1 #: Integer
   INVALID_PARAMS = ACP::Transport::ResponseError.new(code: -32_602, message: 'Invalid params') #: ACP::Transport::ResponseError
   OPTIONAL = { 'session/load' => :load_session, 'session/list' => :list_sessions }.freeze #: Hash[String, Symbol]
 
-  # @rbs transport: ACP::Server::_Transport
+  # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs capabilities: ACP::Types::AgentCapabilities
   # @rbs agent_info: ACP::Types::Implementation?
   # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]
-  # @rbs &factory: (ACP::Server::Client) -> ACP::Server::_Agent
+  # @rbs &factory: (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
   # @rbs return: void
   def initialize(transport:, capabilities:, agent_info: nil, auth_methods: [], &factory)
     @transport = transport
@@ -33,7 +33,7 @@ class ACP::Server
   #
   # @rbs return: Thread
   def start
-    client = ACP::Server::Client.new(connection: @transport)
+    client = ACP::AgentConnection::Client.new(peer: @transport)
     agent = @factory.call(client)
     unrouted = unadvertised
     missing = OPTIONAL.except(*unrouted).values.reject { |name| agent.respond_to?(name) }
@@ -55,11 +55,11 @@ class ACP::Server
   # Handlers for session/load and session/list assume the agent defines them;
   # start drops each one the capabilities do not advertise and checks the rest.
   #
-  # @rbs agent: ACP::Server::_Agent
-  # @rbs client: ACP::Server::Client
+  # @rbs agent: ACP::AgentConnection::_Agent
+  # @rbs client: ACP::AgentConnection::Client
   # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)]
   def requests(agent, client)
-    full = agent #: ACP::Server::_Agent & ACP::Server::_LoadSession & ACP::Server::_ListSessions
+    full = agent #: ACP::AgentConnection::_Agent & ACP::AgentConnection::_LoadSession & ACP::AgentConnection::_ListSessions
     {
       'initialize' => route(ACP::Types::InitializeRequest) { |request| connect(client, request) },
       'session/new' => route(ACP::Types::NewSessionRequest) { |request| new_session(agent, request) },
@@ -69,7 +69,7 @@ class ACP::Server
     }
   end
 
-  # @rbs agent: ACP::Server::_Agent
+  # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs return: Hash[String, ^(untyped) -> void]
   def notifications(agent)
     { 'session/cancel' => ->(params) { agent.cancel(ACP::Types::CancelNotification.from_h(params)) } }
@@ -77,7 +77,7 @@ class ACP::Server
 
   # Generated from_h raises on a missing key or a value of the wrong shape.
   #
-  # @rbs type: ACP::Server::_Parser
+  # @rbs type: ACP::AgentConnection::_Parser
   # @rbs &handle: (untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)
   # @rbs return: ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)
   def route(type, &)
@@ -90,7 +90,7 @@ class ACP::Server
     end
   end
 
-  # @rbs response: ACP::Server::_Response | ACP::Transport::ResponseError
+  # @rbs response: ACP::AgentConnection::_Response | ACP::Transport::ResponseError
   # @rbs return: ACP::Transport::Result
   def respond(response)
     case response
@@ -99,7 +99,7 @@ class ACP::Server
     end
   end
 
-  # @rbs client: ACP::Server::Client
+  # @rbs client: ACP::AgentConnection::Client
   # @rbs request: ACP::Types::InitializeRequest
   # @rbs return: ACP::Transport::Result
   def connect(client, request)
@@ -117,7 +117,7 @@ class ACP::Server
   # session_created runs after the reply because the client must know the
   # session id before updates for it (e.g. available commands) arrive.
   #
-  # @rbs agent: ACP::Server::_Agent
+  # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs request: ACP::Types::NewSessionRequest
   # @rbs return: ACP::Transport::Result | ACP::Transport::Reply
   def new_session(agent, request)
@@ -125,7 +125,7 @@ class ACP::Server
     result = respond(response)
     return result unless response.is_a?(ACP::Types::NewSessionResponse) && agent.respond_to?(:session_created)
 
-    hook = agent #: ACP::Server::_Agent & ACP::Server::_SessionCreated
+    hook = agent #: ACP::AgentConnection::_Agent & ACP::AgentConnection::_SessionCreated
     ACP::Transport::Reply.new(result, after: -> { hook.session_created(response) })
   end
 end

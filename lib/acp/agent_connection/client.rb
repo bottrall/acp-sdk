@@ -3,16 +3,16 @@
 # The agent's handle on the connected client: session updates and permission
 # requests go out through it, and it holds the capabilities the client
 # declared in initialize.
-class ACP::Server::Client
-  # @rbs @connection: ACP::Server::_Connection
+class ACP::AgentConnection::Client
+  # @rbs @peer: ACP::AgentConnection::_Peer
 
   # @dynamic capabilities, capabilities=
   attr_accessor :capabilities #: ACP::Types::ClientCapabilities?
 
-  # @rbs connection: ACP::Server::_Connection
+  # @rbs peer: ACP::AgentConnection::_Peer
   # @rbs return: void
-  def initialize(connection:)
-    @connection = connection
+  def initialize(peer:)
+    @peer = peer
     @capabilities = nil
   end
 
@@ -20,7 +20,7 @@ class ACP::Server::Client
   # @rbs update: ACP::Types::SessionUpdate::t
   # @rbs return: void
   def update(session_id, update)
-    @connection.notify('session/update', ACP::Types::SessionNotification.new(session_id:, update:).to_h)
+    @peer.notify('session/update', ACP::Types::SessionNotification.new(session_id:, update:).to_h)
   end
 
   # @rbs session_id: String
@@ -36,7 +36,7 @@ class ACP::Server::Client
   # @rbs request: ACP::Types::RequestPermissionRequest
   # @rbs return: ACP::Types::RequestPermissionResponse | ACP::Transport::ResponseError
   def request_permission(request)
-    result = @connection.request('session/request_permission', request.to_h)
+    result = @peer.request('session/request_permission', request.to_h)
     result.error || ACP::Types::RequestPermissionResponse.from_h(result.value)
   end
 end
