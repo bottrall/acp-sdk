@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'securerandom'
+require 'shellwords'
 require_relative '../lib/acp/sdk'
 
 # Serve it on stdio with `ruby examples/echo_agent.rb`.
@@ -123,13 +124,13 @@ class EchoAgent
   # `/run <command> [args]` echoes its output, all through the client; any
   # other prompt is echoed as is.
   def respond(session_id, blocks)
-    case blocks.first&.text
-    when %r{\A/read (\S+)\z} then read(session_id, Regexp.last_match(1))
-    when %r{\A/run (.+)\z} then run(session_id, *Regexp.last_match(1).split)
-    when %r{\A/write (\S+) (.*)\z}m
-      @client.write_text_file(
-        ACP::Types::WriteTextFileRequest.new(session_id:, path: Regexp.last_match(1), content: Regexp.last_match(2))
-      )
+    command, rest = blocks.first&.text.to_s.split(' ', 2)
+    return echo(session_id, blocks) unless rest
+
+    case command
+    when '/read' then read(session_id, rest)
+    when '/write' then write(session_id, *rest.split(' ', 2))
+    when '/run' then run(session_id, rest)
     else echo(session_id, blocks)
     end
   end
@@ -141,7 +142,18 @@ class EchoAgent
     echo(session_id, [ACP::Types::ContentBlock::Text.new(text: file.content)])
   end
 
-  def run(session_id, command, *args)
+  def write(session_id, path, content = '')
+    @client.write_text_file(ACP::Types::WriteTextFileRequest.new(session_id:, path:, content:))
+  end
+
+  def run(session_id, command_line)
+    command, *args =
+      begin
+        Shellwords.split(command_line)
+      rescue ArgumentError
+        return ACP::AgentConnection::INVALID_PARAMS
+      end
+
     terminal = @client.create_terminal(ACP::Types::CreateTerminalRequest.new(session_id:, command:, args:))
     return terminal if terminal.is_a?(ACP::Transport::ResponseError)
 

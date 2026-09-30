@@ -196,7 +196,7 @@ describe ACP::AgentConnection do
     start
     connect({ 'terminal' => true })
     session_id = new_session
-    allowed_turn(session_id, '/run echo hi there')
+    allowed_turn(session_id, %(/run echo 'hi there'))
     terminal = { 'sessionId' => session_id, 'terminalId' => 'term_1' }
     requests = [
       answer(receive_message, { 'terminalId' => 'term_1' }),
@@ -209,7 +209,7 @@ describe ACP::AgentConnection do
     assert_equal(
       [
         [
-          ['terminal/create', { 'sessionId' => session_id, 'command' => 'echo', 'args' => %w[hi there] }],
+          ['terminal/create', { 'sessionId' => session_id, 'command' => 'echo', 'args' => ['hi there'] }],
           ['terminal/wait_for_exit', terminal],
           ['terminal/output', terminal],
           ['terminal/release', terminal]
@@ -232,6 +232,15 @@ describe ACP::AgentConnection do
     allowed_turn(session_id, '/run echo hi')
 
     assert_equal({ 'code' => -32_601, 'message' => 'Method not found' }, receive_message['error'])
+  end
+
+  it 'rejects a command line with an unmatched quote without a round trip' do
+    start
+    connect({ 'terminal' => true })
+    session_id = new_session
+    allowed_turn(session_id, %(/run echo 'hi))
+
+    assert_equal({ 'code' => -32_602, 'message' => 'Invalid params' }, receive_message['error'])
   end
 
   it 'stops with cancelled when the turn is cancelled while permission is pending' do
