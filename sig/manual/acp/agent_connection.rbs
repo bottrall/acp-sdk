@@ -27,6 +27,11 @@ class ACP::AgentConnection
     def request_permission: (ACP::Types::RequestPermissionRequest) -> (ACP::Types::RequestPermissionResponse | ACP::Transport::ResponseError)
     def read_text_file: (ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::Transport::ResponseError)
     def write_text_file: (ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::Transport::ResponseError)
+    def create_terminal: (ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::Transport::ResponseError)
+    def terminal_output: (ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::Transport::ResponseError)
+    def wait_for_terminal_exit: (ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::Transport::ResponseError)
+    def kill_terminal: (ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::Transport::ResponseError)
+    def release_terminal: (ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::Transport::ResponseError)
     def capabilities: () -> ACP::Types::ClientCapabilities?
   end
 

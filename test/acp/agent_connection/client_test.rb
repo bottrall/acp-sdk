@@ -19,9 +19,9 @@ class RecordingPeer
 end
 
 describe ACP::AgentConnection::Client do
-  def client(peer, file_system)
+  def client(peer, file_system, terminal: nil)
     ACP::AgentConnection::Client.new(peer:).tap do |client|
-      client.capabilities = ACP::Types::ClientCapabilities.new(fs: file_system)
+      client.capabilities = ACP::Types::ClientCapabilities.new(fs: file_system, terminal:)
     end
   end
 
@@ -67,5 +67,50 @@ describe ACP::AgentConnection::Client do
     ]
 
     assert_equal [[ACP::Transport::Stdio::METHOD_NOT_FOUND] * 3, []], [responses, peer.requests]
+  end
+
+  describe 'terminals' do
+    let(:terminal) { { session_id: 's', terminal_id: 't' } }
+    let(:calls) do
+      {
+        create_terminal: ACP::Types::CreateTerminalRequest.new(session_id: 's', command: 'ls', args: ['-a']),
+        terminal_output: ACP::Types::TerminalOutputRequest.new(**terminal),
+        wait_for_terminal_exit: ACP::Types::WaitForTerminalExitRequest.new(**terminal),
+        kill_terminal: ACP::Types::KillTerminalRequest.new(**terminal),
+        release_terminal: ACP::Types::ReleaseTerminalRequest.new(**terminal)
+      }
+    end
+
+    it 'sends each terminal request to a client that advertises terminal' do
+      result = { 'terminalId' => 't', 'output' => 'x', 'truncated' => false }
+      peer = RecordingPeer.new(ACP::Transport::Result.ok(result))
+      handle = client(peer, nil, terminal: true)
+      responses = calls.map { |method, request| handle.public_send(method, request).class }
+      ids = { 'sessionId' => 's', 'terminalId' => 't' }
+
+      assert_equal(
+        [
+          [
+            ACP::Types::CreateTerminalResponse, ACP::Types::TerminalOutputResponse,
+            ACP::Types::WaitForTerminalExitResponse, ACP::Types::KillTerminalResponse,
+            ACP::Types::ReleaseTerminalResponse
+          ],
+          [
+            ['terminal/create', { 'sessionId' => 's', 'command' => 'ls', 'args' => ['-a'] }],
+            ['terminal/output', ids], ['terminal/wait_for_exit', ids], ['terminal/kill', ids],
+            ['terminal/release', ids]
+          ]
+        ],
+        [responses, peer.requests]
+      )
+    end
+
+    it 'refuses every terminal request without a round trip unless the client advertised terminal' do
+      peer = RecordingPeer.new(ACP::Transport::Result.ok({}))
+      handles = [client(peer, nil, terminal: false), ACP::AgentConnection::Client.new(peer:)]
+      responses = handles.flat_map { |handle| calls.map { |method, request| handle.public_send(method, request) } }
+
+      assert_equal [[ACP::Transport::Stdio::METHOD_NOT_FOUND] * 10, []], [responses, peer.requests]
+    end
   end
 end

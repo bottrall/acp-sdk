@@ -119,11 +119,13 @@ class EchoAgent
     outcome.is_a?(ACP::Types::RequestPermissionOutcome::Selected) && outcome.option_id == ALLOW
   end
 
-  # `/read <path>` echoes the file and `/write <path> <text>` writes it, both
-  # through the client; any other prompt is echoed as is.
+  # `/read <path>` echoes the file, `/write <path> <text>` writes it and
+  # `/run <command> [args]` echoes its output, all through the client; any
+  # other prompt is echoed as is.
   def respond(session_id, blocks)
     case blocks.first&.text
     when %r{\A/read (\S+)\z} then read(session_id, Regexp.last_match(1))
+    when %r{\A/run (.+)\z} then run(session_id, *Regexp.last_match(1).split)
     when %r{\A/write (\S+) (.*)\z}m
       @client.write_text_file(
         ACP::Types::WriteTextFileRequest.new(session_id:, path: Regexp.last_match(1), content: Regexp.last_match(2))
@@ -137,6 +139,27 @@ class EchoAgent
     return file if file.is_a?(ACP::Transport::ResponseError)
 
     echo(session_id, [ACP::Types::ContentBlock::Text.new(text: file.content)])
+  end
+
+  def run(session_id, command, *args)
+    terminal = @client.create_terminal(ACP::Types::CreateTerminalRequest.new(session_id:, command:, args:))
+    return terminal if terminal.is_a?(ACP::Transport::ResponseError)
+
+    output = finish(session_id, terminal.terminal_id)
+    return output if output.is_a?(ACP::Transport::ResponseError)
+
+    echo(session_id, [ACP::Types::ContentBlock::Text.new(text: output.output)])
+  end
+
+  # ACP leaves releasing a terminal to the agent, even when waiting on it fails.
+  def finish(session_id, terminal_id)
+    status = @client.wait_for_terminal_exit(ACP::Types::WaitForTerminalExitRequest.new(session_id:, terminal_id:))
+    output =
+      if status.is_a?(ACP::Transport::ResponseError) then status
+      else @client.terminal_output(ACP::Types::TerminalOutputRequest.new(session_id:, terminal_id:))
+      end
+    @client.release_terminal(ACP::Types::ReleaseTerminalRequest.new(session_id:, terminal_id:))
+    output
   end
 
   def echo(session_id, blocks)

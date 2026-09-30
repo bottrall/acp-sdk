@@ -35,6 +35,26 @@ class ACP::AgentConnection::Client
   # @rbs return: ACP::Types::WriteTextFileResponse | ACP::Transport::ResponseError
   def write_text_file: (ACP::Types::WriteTextFileRequest request) -> (ACP::Types::WriteTextFileResponse | ACP::Transport::ResponseError)
 
+  # @rbs request: ACP::Types::CreateTerminalRequest
+  # @rbs return: ACP::Types::CreateTerminalResponse | ACP::Transport::ResponseError
+  def create_terminal: (ACP::Types::CreateTerminalRequest request) -> (ACP::Types::CreateTerminalResponse | ACP::Transport::ResponseError)
+
+  # @rbs request: ACP::Types::TerminalOutputRequest
+  # @rbs return: ACP::Types::TerminalOutputResponse | ACP::Transport::ResponseError
+  def terminal_output: (ACP::Types::TerminalOutputRequest request) -> (ACP::Types::TerminalOutputResponse | ACP::Transport::ResponseError)
+
+  # @rbs request: ACP::Types::WaitForTerminalExitRequest
+  # @rbs return: ACP::Types::WaitForTerminalExitResponse | ACP::Transport::ResponseError
+  def wait_for_terminal_exit: (ACP::Types::WaitForTerminalExitRequest request) -> (ACP::Types::WaitForTerminalExitResponse | ACP::Transport::ResponseError)
+
+  # @rbs request: ACP::Types::KillTerminalRequest
+  # @rbs return: ACP::Types::KillTerminalResponse | ACP::Transport::ResponseError
+  def kill_terminal: (ACP::Types::KillTerminalRequest request) -> (ACP::Types::KillTerminalResponse | ACP::Transport::ResponseError)
+
+  # @rbs request: ACP::Types::ReleaseTerminalRequest
+  # @rbs return: ACP::Types::ReleaseTerminalResponse | ACP::Transport::ResponseError
+  def release_terminal: (ACP::Types::ReleaseTerminalRequest request) -> (ACP::Types::ReleaseTerminalResponse | ACP::Transport::ResponseError)
+
   private
 
   # @rbs rpc_method: String
@@ -42,4 +62,10 @@ class ACP::AgentConnection::Client
   # @rbs request: ACP::AgentConnection::_Response
   # @rbs return: untyped
   def call: (String rpc_method, ACP::AgentConnection::_Parser type, ACP::AgentConnection::_Response request) -> untyped
+
+  # @rbs rpc_method: String
+  # @rbs type: ACP::AgentConnection::_Parser
+  # @rbs request: ACP::AgentConnection::_Response
+  # @rbs return: untyped
+  def terminal_call: (String rpc_method, ACP::AgentConnection::_Parser type, ACP::AgentConnection::_Response request) -> untyped
 end

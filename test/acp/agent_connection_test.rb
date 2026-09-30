@@ -134,8 +134,8 @@ describe ACP::AgentConnection do
     )
   end
 
-  def connect(file_system)
-    call('initialize', { 'protocolVersion' => 1, 'clientCapabilities' => { 'fs' => file_system } })
+  def connect(capabilities)
+    call('initialize', { 'protocolVersion' => 1, 'clientCapabilities' => capabilities })
   end
 
   def allowed_turn(session_id, prompt)
@@ -151,7 +151,7 @@ describe ACP::AgentConnection do
 
   it 'writes and reads a file through the client when it advertises fs' do
     start
-    connect({ 'readTextFile' => true, 'writeTextFile' => true })
+    connect({ 'fs' => { 'readTextFile' => true, 'writeTextFile' => true } })
     session_id = new_session
     allowed_turn(session_id, '/write /work/notes.txt hello there')
     write = answer(receive_message, {})
@@ -180,7 +180,7 @@ describe ACP::AgentConnection do
 
   it 'refuses file access the client did not advertise without a round trip' do
     start
-    connect({ 'readTextFile' => false })
+    connect({ 'fs' => { 'readTextFile' => false } })
     session_id = new_session
     allowed_turn(session_id, '/write /work/notes.txt hello')
     write_reply = receive_message
@@ -190,6 +190,48 @@ describe ACP::AgentConnection do
       [{ 'code' => -32_601, 'message' => 'Method not found' }] * 2,
       [write_reply['error'], receive_message['error']]
     )
+  end
+
+  it 'runs a command in a terminal through the client when it advertises terminal' do
+    start
+    connect({ 'terminal' => true })
+    session_id = new_session
+    allowed_turn(session_id, '/run echo hi there')
+    terminal = { 'sessionId' => session_id, 'terminalId' => 'term_1' }
+    requests = [
+      answer(receive_message, { 'terminalId' => 'term_1' }),
+      answer(receive_message, { 'exitCode' => 0 }),
+      answer(receive_message, { 'output' => "hi there\n", 'truncated' => false, 'exitStatus' => { 'exitCode' => 0 } }),
+      answer(receive_message, {})
+    ]
+    chunk = receive_message
+
+    assert_equal(
+      [
+        [
+          ['terminal/create', { 'sessionId' => session_id, 'command' => 'echo', 'args' => %w[hi there] }],
+          ['terminal/wait_for_exit', terminal],
+          ['terminal/output', terminal],
+          ['terminal/release', terminal]
+        ],
+        ['agent_message_chunk', "hi there\n"],
+        { 'stopReason' => 'end_turn' }
+      ],
+      [
+        requests.map { |request| request.values_at('method', 'params') },
+        [update_kind(chunk), chunk.dig('params', 'update', 'content', 'text')],
+        receive_message['result']
+      ]
+    )
+  end
+
+  it 'refuses a terminal the client did not advertise without a round trip' do
+    start
+    connect({ 'terminal' => false })
+    session_id = new_session
+    allowed_turn(session_id, '/run echo hi')
+
+    assert_equal({ 'code' => -32_601, 'message' => 'Method not found' }, receive_message['error'])
   end
 
   it 'stops with cancelled when the turn is cancelled while permission is pending' do
