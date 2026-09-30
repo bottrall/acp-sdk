@@ -31,6 +31,29 @@ The agent's contract:
 - After a cancel, the agent must itself end the turn with `stopReason: cancelled`. `ACP::AgentConnection` does not enforce it.
 - `client.capabilities` is `nil` until the client sends `initialize`.
 
+## Driving an agent
+
+`ACP::ClientConnection` is the other side of the same transport, for editors and for tests that drive an agent. Each method takes the request's generated `ACP::Types` object and returns its response type or the agent's `ACP::Transport::ResponseError`. `connect` sends `initialize`, which Ruby reserves for the constructor.
+
+```ruby
+stdin, stdout, = Open3.popen2('ruby', 'examples/echo_agent.rb')
+connection = ACP::ClientConnection.new(
+  transport: ACP::Transport::Stdio.new(input: stdout, output: stdin),
+  permission: ->(request) { ask_the_user(request) },
+  updates: ->(notification) { show(notification) }
+)
+connection.start
+connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1))
+session = connection.session_new(ACP::Types::NewSessionRequest.new(cwd: Dir.pwd, mcp_servers: []))
+prompt = [ACP::Types::ContentBlock::Text.new(text: 'hello')]
+response = connection.session_prompt(ACP::Types::PromptRequest.new(session_id: session.session_id, prompt:)) do |update|
+  print update.content.text if update.is_a?(ACP::Types::SessionUpdate::AgentMessageChunk)
+end
+```
+
+- `session_prompt` and `session_load` yield the session's updates on the calling thread as they arrive and return once the agent replies. Updates outside those calls, such as the available commands after `session/new`, go to `updates`, which runs on the reader thread and must return quickly.
+- `permission` answers `session/request_permission` with an `ACP::Types::RequestPermissionResponse` or an `ACP::Transport::ResponseError`. It runs on its own thread, so it may block while the user decides, and `session_cancel` can be sent meanwhile.
+
 ## Development
 
 Every project chore is a script in `bin/`. The Rakefile behind them is an implementation detail; you never need to call rake directly.
