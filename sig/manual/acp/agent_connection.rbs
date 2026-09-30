@@ -1,0 +1,52 @@
+class ACP::AgentConnection
+  interface _Agent
+    def new_session: (ACP::Types::NewSessionRequest) -> (ACP::Types::NewSessionResponse | ACP::Transport::ResponseError)
+    def prompt: (ACP::Types::PromptRequest) -> (ACP::Types::PromptResponse | ACP::Transport::ResponseError)
+    # Runs on the transport's reader thread, so it must return quickly.
+    def cancel: (ACP::Types::CancelNotification) -> void
+    # AgentConnection probes for the optional methods below.
+    def respond_to?: (Symbol) -> bool
+  end
+
+  interface _LoadSession
+    def load_session: (ACP::Types::LoadSessionRequest) -> (ACP::Types::LoadSessionResponse | ACP::Transport::ResponseError)
+  end
+
+  interface _ListSessions
+    def list_sessions: (ACP::Types::ListSessionsRequest) -> (ACP::Types::ListSessionsResponse | ACP::Transport::ResponseError)
+  end
+
+  interface _SessionCreated
+    def session_created: (ACP::Types::NewSessionResponse) -> void
+  end
+
+  # What an agent sees of ACP::AgentConnection::Client, so tests can pass a fake.
+  interface _Client
+    def update: (String session_id, ACP::Types::SessionUpdate::t update) -> void
+    def available_commands: (String session_id, Array[ACP::Types::AvailableCommand] commands) -> void
+    def request_permission: (ACP::Types::RequestPermissionRequest) -> (ACP::Types::RequestPermissionResponse | ACP::Transport::ResponseError)
+    def capabilities: () -> ACP::Types::ClientCapabilities?
+  end
+
+  interface _Peer
+    def request: (String method, ?untyped params) -> ACP::Transport::Result
+    def notify: (String method, ?untyped params) -> void
+  end
+
+  interface _Transport
+    include _Peer
+
+    def start: (
+      requests: Hash[String, ACP::Transport::Stdio::_Handler],
+      notifications: Hash[String, ACP::Transport::Stdio::_NotificationHandler]
+    ) -> Thread
+  end
+
+  interface _Parser
+    def from_h: (Hash[String, untyped]) -> untyped
+  end
+
+  interface _Response
+    def to_h: () -> Hash[String, untyped]
+  end
+end

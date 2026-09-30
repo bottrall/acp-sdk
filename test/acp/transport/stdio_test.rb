@@ -63,6 +63,38 @@ describe ACP::Transport::Stdio do
     assert_equal({ 'jsonrpc' => '2.0', 'id' => 7, 'result' => { 'text' => 'hi' } }, receive_message)
   end
 
+  it 'runs a reply\'s after callback once the reply is written' do
+    after = -> { @transport.notify('session/update', { 'after' => true }) }
+    start(requests: { 'echo' => ->(params) { ACP::Transport::Reply.new(ACP::Transport::Result.ok(params), after:) } })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'echo', 'params' => 'hi' })
+
+    assert_equal(
+      [
+        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => 'hi' },
+        { 'jsonrpc' => '2.0', 'method' => 'session/update', 'params' => { 'after' => true } }
+      ],
+      [receive_message, receive_message]
+    )
+  end
+
+  it 'keeps serving after a reply\'s after callback raises' do
+    requests = {
+      'boom' => ->(_) { ACP::Transport::Reply.new(ACP::Transport::Result.ok('sent'), after: -> { raise 'kaboom' }) },
+      'echo' => ->(params) { ACP::Transport::Result.ok(params) }
+    }
+    start(requests:)
+    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'boom' })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => 'still here' })
+
+    assert_equal(
+      [
+        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => 'sent' },
+        { 'jsonrpc' => '2.0', 'id' => 2, 'result' => 'still here' }
+      ],
+      [receive_message, receive_message].sort_by { |message| message['id'] }
+    )
+  end
+
   it 'answers an inbound request for an unknown method with method not found' do
     start
     send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'nope' })
