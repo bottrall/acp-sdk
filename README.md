@@ -1,20 +1,43 @@
 # acp-sdk
 
-A standalone Ruby implementation of the [Agent Client Protocol](https://agentclientprotocol.com) (ACP): the agent side (`ACP::AgentConnection`), for exposing an agent to ACP clients such as Zed and JetBrains, and the client side (`ACP::ClientConnection`), for driving ACP agents from Ruby.
+[![Gem Version](https://badge.fury.io/rb/acp-sdk.svg)](https://rubygems.org/gems/acp-sdk)
 
-Namespace `ACP`. MIT licensed.
+A Ruby SDK for the [Agent Client Protocol](https://agentclientprotocol.com) (ACP). It covers both sides of the protocol:
 
-## Status
+- **Agent side** (`ACP::AgentConnection`): expose your agent to ACP clients such as Zed and JetBrains.
+- **Client side** (`ACP::ClientConnection`): drive ACP agents from Ruby, for an editor integration or for tests.
 
-Intent only. Nothing is published yet; the `acp-sdk` gem name is claimed at the first release.
+Every ACP request, response and notification is a generated Ruby class under `ACP::Types`, and messages travel as JSON-RPC over stdio. The SDK speaks ACP protocol version 1.
 
-This repo exists so that [riffer-rig](https://github.com/bottrall/riffer-rig) can depend on it for its `riffer acp` host. Scope for the first release: JSON-RPC over stdio, `mcpServers` and `available_commands` in, permission requests and filesystem methods out.
+## Installation
+
+Requires Ruby 4.0 or later.
+
+Add the gem to your Gemfile:
+
+```sh
+bundle add acp-sdk
+```
+
+Or install it directly:
+
+```sh
+gem install acp-sdk
+```
+
+Then require it:
+
+```ruby
+require 'acp/sdk'
+```
 
 ## Serving an agent
 
-An agent is a plain Ruby object. `ACP::AgentConnection` answers `initialize` itself, turns each request into its generated `ACP::Types` object, calls the agent, and sends back what it returns. The factory block receives an `ACP::AgentConnection::Client` handle, which the agent keeps for sending session updates and asking permission. [`examples/echo_agent.rb`](examples/echo_agent.rb) is a complete agent; `ruby examples/echo_agent.rb` serves it on stdio.
+An agent is a plain Ruby object. `ACP::AgentConnection` answers `initialize` itself, turns each request into its generated `ACP::Types` object, calls the agent, and sends back what it returns. The factory block receives an `ACP::AgentConnection::Client` handle, which the agent keeps for sending session updates and asking permission.
 
 ```ruby
+require 'acp/sdk'
+
 connection = ACP::AgentConnection.new(
   transport: ACP::Transport::Stdio.new(input: $stdin, output: $stdout),
   capabilities: ACP::Types::AgentCapabilities.new(load_session: true),
@@ -31,12 +54,17 @@ The agent's contract:
 - After a cancel, the agent must itself end the turn with `stopReason: cancelled`. `ACP::AgentConnection` does not enforce it.
 - `client.capabilities` is `nil` until the client sends `initialize`.
 
+[`examples/echo_agent.rb`](https://github.com/bottrall/acp-sdk/blob/main/examples/echo_agent.rb) is a complete agent that streams updates, asks permission, handles cancellation, and supports `session/load` and `session/list`.
+
 ## Driving an agent
 
-`ACP::ClientConnection` is the other side of the same transport, for editors and for tests that drive an agent. Each method takes the request's generated `ACP::Types` object and returns its response type or the agent's `ACP::Transport::ResponseError`. `connect` sends `initialize`, which Ruby reserves for the constructor.
+`ACP::ClientConnection` is the other side of the same transport. Each method takes the request's generated `ACP::Types` object and returns its response type or the agent's `ACP::Transport::ResponseError`. `connect` sends `initialize`, since Ruby reserves that name for the constructor.
 
 ```ruby
-stdin, stdout, = Open3.popen2('ruby', 'examples/echo_agent.rb')
+require 'acp/sdk'
+require 'open3'
+
+stdin, stdout, = Open3.popen2('my-agent')
 connection = ACP::ClientConnection.new(
   transport: ACP::Transport::Stdio.new(input: stdout, output: stdin),
   permission: ->(request) { ask_the_user(request) },
@@ -54,28 +82,10 @@ end
 - `session_prompt` and `session_load` yield the session's updates on the calling thread as they arrive and return once the agent replies. Updates outside those calls, such as the available commands after `session/new`, go to `updates`, which runs on the reader thread and must return quickly.
 - `permission` answers `session/request_permission` with an `ACP::Types::RequestPermissionResponse` or an `ACP::Transport::ResponseError`. It runs on its own thread, so it may block while the user decides, and `session_cancel` can be sent meanwhile.
 
-## Development
+## Contributing
 
-Every project chore is a script in `bin/`. The Rakefile behind them is an implementation detail; you never need to call rake directly.
+Bug reports and pull requests are welcome on [GitHub](https://github.com/bottrall/acp-sdk). See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and workflow. Everyone interacting in the project is expected to follow the [code of conduct](CODE_OF_CONDUCT.md).
 
-| Script          | What it does                                                                                   |
-| --------------- | ---------------------------------------------------------------------------------------------- |
-| `bin/setup`     | Install dependencies on a fresh checkout (gems + rbs collection)                               |
-| `bin/test`      | Run the test suite. Pass files and/or Minitest flags: `bin/test test/foo_test.rb -n /pattern/` |
-| `bin/lint`      | Run RuboCop. Arguments are forwarded, e.g. `bin/lint -a`                                       |
-| `bin/typecheck` | Check `lib/acp/types`, the rbs collection lockfile and `sig/generated` are current, then type-check with Steep |
-| `bin/rbs`       | Regenerate `sig/generated` from the inline annotations in `lib/`                               |
-| `bin/types`     | Regenerate `lib/acp/types` from `schema/schema.json`, then `sig/generated`                     |
-| `bin/rbs-watch` | Regenerate `sig/generated` whenever `lib/` changes                                             |
-| `bin/ci`        | Run everything CI runs, serially. Use before pushing                                           |
-| `bin/build`     | Build the gem into `pkg/`; the publish workflow runs this before `gem push`                    |
+## License
 
-## Releasing
-
-PR titles are [conventional commits](https://www.conventionalcommits.org/) and are linted in CI: `feat:` bumps the minor version, `fix:` bumps the patch, and `feat!:` marks a breaking change (also a minor bump while we are on 0.x). `chore:`, `docs:`, `ci:`, `refactor:` and `test:` never release. Squash-merging makes the title the commit on `main`.
-
-[release-please](https://github.com/googleapis/release-please) keeps a release PR open that bumps `lib/acp/version.rb` and writes `CHANGELOG.md`. Merging that PR tags `vX.Y.Z`, creates the GitHub Release and publishes the gem to RubyGems.org through Trusted Publishing; nothing is pushed by hand. The first release is 0.1.0.
-
-## Maintainer
-
-- Jake Bottrall - https://github.com/bottrall
+Released under the [MIT License](LICENSE.txt).
