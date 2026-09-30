@@ -51,3 +51,9 @@ Naming/MethodParameterName:
   Exclude:
     # Parameter names come from the schema's property names.
     - "lib/acp/types/**/*"
+
+Naming/AccessorMethodName:
+  Exclude:
+    # Agent methods mirror the protocol's session/set_mode and
+    # session/set_config_option requests; they are not attribute writers.
+    - "test/acp/agent_connection_test.rb"
