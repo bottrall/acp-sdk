@@ -2,12 +2,12 @@
 
 module ACP::AgentConnection::OptionalMethod::ListSessions
   # @rbs return: String
-  def self.rpc_method: () -> String
+  def rpc_method: () -> String
 
   # @rbs return: Symbol
-  def self.agent_method: () -> Symbol
+  def agent_method: () -> Symbol
 
   # @rbs initialize_response: ACP::Types::InitializeResponse
   # @rbs return: bool
-  def self.advertised?: (ACP::Types::InitializeResponse initialize_response) -> bool
+  def advertised?: (ACP::Types::InitializeResponse initialize_response) -> bool
 end
