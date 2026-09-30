@@ -17,6 +17,20 @@ class EchoAgent
   ].freeze
   NOT_FOUND = ACP::Transport::ResponseError.new(code: -32_002, message: 'Resource not found')
 
+  class Session
+    attr_reader :cwd, :history
+
+    def initialize(cwd:, history: [])
+      @cwd = cwd
+      @history = history
+      freeze
+    end
+
+    def with_history(updates)
+      Session.new(cwd:, history: history + updates)
+    end
+  end
+
   def initialize(client:)
     @client = client
     @lock = Mutex.new
@@ -26,7 +40,7 @@ class EchoAgent
 
   def new_session(request)
     session_id = "sess_#{SecureRandom.hex(8)}"
-    @lock.synchronize { @sessions[session_id] = { cwd: request.cwd, history: [] } }
+    @lock.synchronize { @sessions[session_id] = Session.new(cwd: request.cwd) }
     ACP::Types::NewSessionResponse.new(session_id:)
   end
 
@@ -56,7 +70,7 @@ class EchoAgent
   end
 
   def load_session(request)
-    history = @lock.synchronize { @sessions[request.session_id]&.fetch(:history) }
+    history = @lock.synchronize { @sessions[request.session_id]&.history }
     return NOT_FOUND unless history
 
     history.each { |update| @client.update(request.session_id, update) }
@@ -66,7 +80,7 @@ class EchoAgent
   def list_sessions(request)
     sessions = @lock.synchronize { @sessions.dup }
     infos = sessions.filter_map do |session_id, session|
-      ACP::Types::SessionInfo.new(session_id:, cwd: session[:cwd]) if request.cwd.nil? || request.cwd == session[:cwd]
+      ACP::Types::SessionInfo.new(session_id:, cwd: session.cwd) if request.cwd.nil? || request.cwd == session.cwd
     end
     ACP::Types::ListSessionsResponse.new(sessions: infos)
   end
@@ -111,8 +125,7 @@ class EchoAgent
 
   def record(session_id, updates)
     @lock.synchronize do
-      session = @sessions.fetch(session_id)
-      @sessions[session_id] = session.merge(history: session[:history] + updates)
+      @sessions[session_id] = @sessions.fetch(session_id).with_history(updates)
     end
   end
 end
