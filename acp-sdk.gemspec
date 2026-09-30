@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.email = ['jakebottrall@gmail.com']
 
   spec.summary = 'A Ruby SDK for the Agent Client Protocol.'
-  spec.description = 'An Agent Client Protocol (ACP) server for exposing agents and a client for driving them.'
+  spec.description = 'Agent Client Protocol (ACP) connections for both sides: expose an agent to ACP clients, or drive ACP agents from Ruby.'
   spec.homepage = 'https://github.com/bottrall/acp-sdk'
   spec.license = 'MIT'
   spec.required_ruby_version = '>= 4.0'
