@@ -5,14 +5,43 @@ require 'json'
 require 'timeout'
 require_relative '../../examples/echo_agent'
 
-class AuthenticatingAgent < SimpleDelegator
+class FullAgent < SimpleDelegator
   def authenticate(_request)
     ACP::Types::AuthenticateResponse.new
+  end
+
+  def resume_session(_request)
+    ACP::Types::ResumeSessionResponse.new
+  end
+
+  def close_session(_request)
+    ACP::Types::CloseSessionResponse.new
+  end
+
+  def delete_session(_request)
+    ACP::Types::DeleteSessionResponse.new
+  end
+
+  def change_session_mode(_request)
+    ACP::Types::SetSessionModeResponse.new
+  end
+
+  def change_session_config_option(_request)
+    ACP::Types::SetSessionConfigOptionResponse.new(config_options: [])
   end
 end
 
 describe ACP::AgentConnection do
   let(:token) { ACP::Types::AuthMethodAgent.new(id: 'token', name: 'Token') }
+  let(:session_capabilities) do
+    ACP::Types::AgentCapabilities.new(
+      session_capabilities: ACP::Types::SessionCapabilities.new(
+        resume: ACP::Types::SessionResumeCapabilities.new,
+        close: ACP::Types::SessionCloseCapabilities.new,
+        delete: ACP::Types::SessionDeleteCapabilities.new
+      )
+    )
+  end
 
   before do
     @input, @peer_writer = IO.pipe
@@ -27,11 +56,12 @@ describe ACP::AgentConnection do
     [@input, @output, @peer_reader].each(&:close)
   end
 
-  def start(capabilities: EchoAgent::CAPABILITIES, auth_methods: [])
+  def start(capabilities: EchoAgent::CAPABILITIES, auth_methods: [], full: true)
     agent_info = ACP::Types::Implementation.new(name: 'echo-agent', version: '1.0.0')
     connection = ACP::AgentConnection.new(transport: @transport, capabilities:, agent_info:, auth_methods:) do |client|
       @client = client
-      AuthenticatingAgent.new(EchoAgent.new(client:))
+      agent = EchoAgent.new(client:)
+      full ? FullAgent.new(agent) : agent
     end
     @reader = connection.start
   end
@@ -317,9 +347,51 @@ describe ACP::AgentConnection do
 
   it 'answers unknown methods with method not found' do
     start
-    reply = call('session/set_mode', { 'sessionId' => 's', 'modeId' => 'm' })
+    reply = call('session/unknown', { 'sessionId' => 's' })
 
     assert_equal(-32_601, reply.dig('error', 'code'))
+  end
+
+  it 'routes session/resume, session/close and session/delete when their capabilities are advertised' do
+    start(capabilities: session_capabilities)
+    replies = [
+      call('session/resume', { 'sessionId' => 's', 'cwd' => '/work' }),
+      call('session/close', { 'sessionId' => 's' }),
+      call('session/delete', { 'sessionId' => 's' })
+    ]
+
+    assert_equal([{}] * 3, replies.map { |reply| reply['result'] })
+  end
+
+  it 'answers session/resume, session/close and session/delete with method not found unless advertised' do
+    start
+    replies = [
+      call('session/resume', { 'sessionId' => 's', 'cwd' => '/work' }),
+      call('session/close', { 'sessionId' => 's' }),
+      call('session/delete', { 'sessionId' => 's' })
+    ]
+
+    assert_equal([-32_601] * 3, replies.map { |reply| reply.dig('error', 'code') })
+  end
+
+  it 'routes session/set_mode and session/set_config_option when the agent defines them' do
+    start
+    replies = [
+      call('session/set_mode', { 'sessionId' => 's', 'modeId' => 'code' }),
+      call('session/set_config_option', { 'sessionId' => 's', 'configId' => 'model', 'value' => 'fast' })
+    ]
+
+    assert_equal([{}, { 'configOptions' => [] }], replies.map { |reply| reply['result'] })
+  end
+
+  it 'answers session/set_mode and session/set_config_option with method not found unless the agent defines them' do
+    start(full: false)
+    replies = [
+      call('session/set_mode', { 'sessionId' => 's', 'modeId' => 'code' }),
+      call('session/set_config_option', { 'sessionId' => 's', 'configId' => 'model', 'value' => 'fast' })
+    ]
+
+    assert_equal([-32_601] * 2, replies.map { |reply| reply.dig('error', 'code') })
   end
 
   it 'advertises its auth methods in initialize and authenticates' do
@@ -356,6 +428,12 @@ describe ACP::AgentConnection do
 
   it 'refuses to start when a capability is advertised without its method' do
     connection = ACP::AgentConnection.new(transport: @transport, capabilities: EchoAgent::CAPABILITIES) { Object.new }
+
+    assert_raises(ArgumentError) { connection.start }
+  end
+
+  it 'refuses to start when a session capability is advertised without its method' do
+    connection = ACP::AgentConnection.new(transport: @transport, capabilities: session_capabilities) { Object.new }
 
     assert_raises(ArgumentError) { connection.start }
   end

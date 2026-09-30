@@ -20,11 +20,36 @@ class ACP::AgentConnection
     def authenticate: (ACP::Types::AuthenticateRequest) -> (ACP::Types::AuthenticateResponse | ACP::Transport::ResponseError)
   end
 
+  interface _ResumeSession
+    def resume_session: (ACP::Types::ResumeSessionRequest) -> (ACP::Types::ResumeSessionResponse | ACP::Transport::ResponseError)
+  end
+
+  interface _CloseSession
+    def close_session: (ACP::Types::CloseSessionRequest) -> (ACP::Types::CloseSessionResponse | ACP::Transport::ResponseError)
+  end
+
+  interface _DeleteSession
+    def delete_session: (ACP::Types::DeleteSessionRequest) -> (ACP::Types::DeleteSessionResponse | ACP::Transport::ResponseError)
+  end
+
+  interface _ChangeSessionMode
+    def change_session_mode: (ACP::Types::SetSessionModeRequest) -> (ACP::Types::SetSessionModeResponse | ACP::Transport::ResponseError)
+  end
+
+  interface _ChangeSessionConfigOption
+    def change_session_config_option: (ACP::Types::SetSessionConfigOptionRequest) -> (ACP::Types::SetSessionConfigOptionResponse | ACP::Transport::ResponseError)
+  end
+
   interface _FullAgent
     include _Agent
     include _LoadSession
     include _ListSessions
     include _Authenticate
+    include _ResumeSession
+    include _CloseSession
+    include _DeleteSession
+    include _ChangeSessionMode
+    include _ChangeSessionConfigOption
   end
 
   interface _OptionalMethod

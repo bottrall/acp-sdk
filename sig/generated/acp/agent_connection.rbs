@@ -13,6 +13,11 @@ class ACP::AgentConnection
 
   OPTIONAL: Array[ACP::AgentConnection::_OptionalMethod]
 
+  # The schema has no initialize capability for modes or config options: an
+  # agent offers them per session, in its session responses, so they are
+  # routed whenever the agent defines them.
+  PER_SESSION: Hash[String, Symbol]
+
   # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs capabilities: ACP::Types::AgentCapabilities
   # @rbs agent_info: ACP::Types::Implementation?
