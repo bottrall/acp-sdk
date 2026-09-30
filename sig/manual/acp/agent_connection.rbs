@@ -27,6 +27,12 @@ class ACP::AgentConnection
     include _Authenticate
   end
 
+  interface _OptionalMethod
+    def rpc_method: () -> String
+    def agent_method: () -> Symbol
+    def advertised?: (ACP::Types::InitializeResponse) -> bool
+  end
+
   interface _SessionCreated
     def session_created: (ACP::Types::NewSessionResponse) -> void
   end

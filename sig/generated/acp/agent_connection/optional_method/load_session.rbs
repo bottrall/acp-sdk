@@ -1,0 +1,13 @@
+# Generated from lib/acp/agent_connection/optional_method/load_session.rb with RBS::Inline
+
+module ACP::AgentConnection::OptionalMethod::LoadSession
+  # @rbs return: String
+  def self.rpc_method: () -> String
+
+  # @rbs return: Symbol
+  def self.agent_method: () -> Symbol
+
+  # @rbs initialize_response: ACP::Types::InitializeResponse
+  # @rbs return: bool
+  def self.advertised?: (ACP::Types::InitializeResponse initialize_response) -> bool
+end

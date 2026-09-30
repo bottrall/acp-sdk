@@ -8,16 +8,10 @@ class ACP::AgentConnection
   PROTOCOL_VERSION = 1 #: Integer
   INVALID_PARAMS = ACP::Transport::ResponseError.new(code: -32_602, message: 'Invalid params') #: ACP::Transport::ResponseError
   OPTIONAL = [
-    ACP::AgentConnection::OptionalMethod.new(rpc_method: 'session/load', agent_method: :load_session) do |advertised|
-      advertised.agent_capabilities&.load_session
-    end,
-    ACP::AgentConnection::OptionalMethod.new(rpc_method: 'session/list', agent_method: :list_sessions) do |advertised|
-      advertised.agent_capabilities&.session_capabilities&.list
-    end,
-    ACP::AgentConnection::OptionalMethod.new(rpc_method: 'authenticate', agent_method: :authenticate) do |advertised|
-      advertised.auth_methods&.any?
-    end
-  ].freeze #: Array[ACP::AgentConnection::OptionalMethod]
+    ACP::AgentConnection::OptionalMethod::LoadSession,
+    ACP::AgentConnection::OptionalMethod::ListSessions,
+    ACP::AgentConnection::OptionalMethod::Authenticate
+  ].freeze #: Array[ACP::AgentConnection::_OptionalMethod]
 
   # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs capabilities: ACP::Types::AgentCapabilities

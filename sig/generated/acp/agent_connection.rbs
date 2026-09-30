@@ -11,7 +11,7 @@ class ACP::AgentConnection
 
   INVALID_PARAMS: ACP::Transport::ResponseError
 
-  OPTIONAL: Array[ACP::AgentConnection::OptionalMethod]
+  OPTIONAL: Array[ACP::AgentConnection::_OptionalMethod]
 
   # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs capabilities: ACP::Types::AgentCapabilities
