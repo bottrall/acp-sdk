@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.0](https://github.com/bottrall/acp-sdk/compare/v0.1.0...v0.2.0) (2026-09-30)
+
+
+### Features
+
+* authenticate on ACP::AgentConnection ([#23](https://github.com/bottrall/acp-sdk/issues/23)) ([aac2bdd](https://github.com/bottrall/acp-sdk/commit/aac2bddbada2108bad3397d8f2c7bcdd617e8e0f))
+* filesystem methods on ACP::AgentConnection::Client ([#20](https://github.com/bottrall/acp-sdk/issues/20)) ([a15d942](https://github.com/bottrall/acp-sdk/commit/a15d942d1fe48cd7042732f64ea6d94cdd191549)), closes [#10](https://github.com/bottrall/acp-sdk/issues/10)
+* optional session methods on ACP::AgentConnection ([#24](https://github.com/bottrall/acp-sdk/issues/24)) ([952f906](https://github.com/bottrall/acp-sdk/commit/952f906e32bf455bac40effeb3d32fa6dea95904))
+* terminal methods on ACP::AgentConnection::Client ([#22](https://github.com/bottrall/acp-sdk/issues/22)) ([b4108b8](https://github.com/bottrall/acp-sdk/commit/b4108b8570a36d78a2c1231c04f7c1f697848318))
+
 ## 0.1.0 (2026-09-30)
 
 
