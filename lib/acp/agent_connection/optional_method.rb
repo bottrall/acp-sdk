@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class ACP::AgentConnection::OptionalMethod
-  # @rbs @capability: ^(ACP::Types::AgentCapabilities) -> boolish
+  # @rbs @advertised: ^(ACP::Types::InitializeResponse) -> boolish
 
   # @dynamic rpc_method
   attr_reader :rpc_method #: String
@@ -11,18 +11,18 @@ class ACP::AgentConnection::OptionalMethod
 
   # @rbs rpc_method: String
   # @rbs agent_method: Symbol
-  # @rbs &capability: (ACP::Types::AgentCapabilities) -> boolish
+  # @rbs &advertised: (ACP::Types::InitializeResponse) -> boolish
   # @rbs return: void
-  def initialize(rpc_method:, agent_method:, &capability)
+  def initialize(rpc_method:, agent_method:, &advertised)
     @rpc_method = rpc_method
     @agent_method = agent_method
-    @capability = capability
+    @advertised = advertised
     freeze
   end
 
-  # @rbs capabilities: ACP::Types::AgentCapabilities
+  # @rbs initialize_response: ACP::Types::InitializeResponse
   # @rbs return: bool
-  def advertised?(capabilities)
-    @capability.call(capabilities) ? true : false
+  def advertised?(initialize_response)
+    @advertised.call(initialize_response) ? true : false
   end
 end

@@ -1,15 +1,11 @@
 # Generated from lib/acp/agent_connection.rb with RBS::Inline
 
 class ACP::AgentConnection
-  @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
-
-  @auth_methods: Array[ACP::Types::AuthMethod::t]
-
-  @agent_info: ACP::Types::Implementation?
-
-  @capabilities: ACP::Types::AgentCapabilities
-
   @transport: ACP::AgentConnection::_Transport
+
+  @initialize_response: ACP::Types::InitializeResponse
+
+  @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
 
   PROTOCOL_VERSION: Integer
 

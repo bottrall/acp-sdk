@@ -48,7 +48,7 @@ connection.start.join
 
 The agent's contract:
 
-- It defines `new_session`, `prompt` and `cancel`. `load_session` and `list_sessions` are required only when `capabilities` advertises `load_session` or `session_capabilities.list`; `start` raises `ArgumentError` when one is advertised but missing, and a method that is not advertised is answered with `-32601`. `session_created`, if defined, runs right after the `session/new` reply is sent.
+- It defines `new_session`, `prompt` and `cancel`. `load_session` and `list_sessions` are required only when `capabilities` advertises `load_session` or `session_capabilities.list`, and `authenticate` only when `auth_methods` is non-empty; `start` raises `ArgumentError` when one is advertised but missing, and a method that is not advertised is answered with `-32601`. `session_created`, if defined, runs right after the `session/new` reply is sent.
 - Each request method returns its response type or an `ACP::Transport::ResponseError`, which is sent as the error reply. Params that do not match the schema are answered with `-32602` before the agent sees them.
 - `cancel` runs on the transport's reader thread, so it must return quickly: set a flag and let the prompt notice it.
 - After a cancel, the agent must itself end the turn with `stopReason: cancelled`. `ACP::AgentConnection` does not enforce it.

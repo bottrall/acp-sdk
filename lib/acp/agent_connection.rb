@@ -2,17 +2,20 @@
 
 class ACP::AgentConnection
   # @rbs @transport: ACP::AgentConnection::_Transport
-  # @rbs @capabilities: ACP::Types::AgentCapabilities
-  # @rbs @agent_info: ACP::Types::Implementation?
-  # @rbs @auth_methods: Array[ACP::Types::AuthMethod::t]
+  # @rbs @initialize_response: ACP::Types::InitializeResponse
   # @rbs @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
 
   PROTOCOL_VERSION = 1 #: Integer
   INVALID_PARAMS = ACP::Transport::ResponseError.new(code: -32_602, message: 'Invalid params') #: ACP::Transport::ResponseError
   OPTIONAL = [
-    ACP::AgentConnection::OptionalMethod.new(rpc_method: 'session/load', agent_method: :load_session, &:load_session),
-    ACP::AgentConnection::OptionalMethod.new(rpc_method: 'session/list', agent_method: :list_sessions) do |capabilities|
-      capabilities.session_capabilities&.list
+    ACP::AgentConnection::OptionalMethod.new(rpc_method: 'session/load', agent_method: :load_session) do |advertised|
+      advertised.agent_capabilities&.load_session
+    end,
+    ACP::AgentConnection::OptionalMethod.new(rpc_method: 'session/list', agent_method: :list_sessions) do |advertised|
+      advertised.agent_capabilities&.session_capabilities&.list
+    end,
+    ACP::AgentConnection::OptionalMethod.new(rpc_method: 'authenticate', agent_method: :authenticate) do |advertised|
+      advertised.auth_methods&.any?
     end
   ].freeze #: Array[ACP::AgentConnection::OptionalMethod]
 
@@ -24,9 +27,12 @@ class ACP::AgentConnection
   # @rbs return: void
   def initialize(transport:, capabilities:, agent_info: nil, auth_methods: [], &factory)
     @transport = transport
-    @capabilities = capabilities
-    @agent_info = agent_info
-    @auth_methods = auth_methods
+    @initialize_response = ACP::Types::InitializeResponse.new(
+      protocol_version: PROTOCOL_VERSION,
+      agent_capabilities: capabilities,
+      auth_methods:,
+      agent_info:
+    )
     @factory = factory
   end
 
@@ -34,9 +40,9 @@ class ACP::AgentConnection
   def start
     client = ACP::AgentConnection::Client.new(peer: @transport)
     agent = @factory.call(client)
-    advertised, unadvertised = OPTIONAL.partition { |method| method.advertised?(@capabilities) }
+    advertised, unadvertised = OPTIONAL.partition { |method| method.advertised?(@initialize_response) }
     missing = advertised.map(&:agent_method).reject { |name| agent.respond_to?(name) }
-    raise ArgumentError, "capabilities advertise methods the agent lacks: #{missing.join(', ')}" unless missing.empty?
+    raise ArgumentError, "initialize advertises methods the agent lacks: #{missing.join(', ')}" unless missing.empty?
 
     unrouted = unadvertised.map(&:rpc_method)
     @transport.start(requests: requests(agent, client).except(*unrouted), notifications: notifications(agent))
@@ -48,11 +54,12 @@ class ACP::AgentConnection
   # @rbs client: ACP::AgentConnection::Client
   # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)]
   def requests(agent, client)
-    # Safe: start drops the load/list handlers the capabilities do not
-    # advertise and checks the agent defines the rest.
-    full = agent #: ACP::AgentConnection::_Agent & ACP::AgentConnection::_LoadSession & ACP::AgentConnection::_ListSessions
+    # Safe: start drops the optional handlers initialize does not advertise
+    # and checks the agent defines the rest.
+    full = agent #: ACP::AgentConnection::_FullAgent
     {
       'initialize' => route(ACP::Types::InitializeRequest) { |request| connect(client, request) },
+      'authenticate' => route(ACP::Types::AuthenticateRequest) { |request| respond(full.authenticate(request)) },
       'session/new' => route(ACP::Types::NewSessionRequest) { |request| new_session(agent, request) },
       'session/prompt' => route(ACP::Types::PromptRequest) { |request| respond(agent.prompt(request)) },
       'session/load' => route(ACP::Types::LoadSessionRequest) { |request| respond(full.load_session(request)) },
@@ -95,14 +102,7 @@ class ACP::AgentConnection
   # @rbs return: ACP::Transport::Result
   def connect(client, request)
     client.capabilities = request.client_capabilities || ACP::Types::ClientCapabilities.new
-    respond(
-      ACP::Types::InitializeResponse.new(
-        protocol_version: PROTOCOL_VERSION,
-        agent_capabilities: @capabilities,
-        auth_methods: @auth_methods,
-        agent_info: @agent_info
-      )
-    )
+    respond(@initialize_response)
   end
 
   # session_created runs after the reply because the client must know the
