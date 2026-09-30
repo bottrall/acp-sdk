@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'securerandom'
+require 'shellwords'
 require_relative '../lib/acp/sdk'
 
 # Serve it on stdio with `ruby examples/echo_agent.rb`.
@@ -9,7 +10,21 @@ class EchoAgent
     load_session: true,
     session_capabilities: ACP::Types::SessionCapabilities.new(list: ACP::Types::SessionListCapabilities.new)
   )
-  COMMANDS = [ACP::Types::AvailableCommand.new(name: 'echo', description: 'Echo the prompt back')].freeze
+  READ = ACP::Types::AvailableCommand.new(
+    name: 'read',
+    description: 'Echo a file from the editor',
+    input: ACP::Types::UnstructuredCommandInput.new(hint: 'path')
+  )
+  WRITE = ACP::Types::AvailableCommand.new(
+    name: 'write',
+    description: 'Write text to a file in the editor',
+    input: ACP::Types::UnstructuredCommandInput.new(hint: 'path text')
+  )
+  RUN = ACP::Types::AvailableCommand.new(
+    name: 'run',
+    description: 'Run a command in a terminal and echo its output',
+    input: ACP::Types::UnstructuredCommandInput.new(hint: 'command [args]')
+  )
   ALLOW = 'allow'
   OPTIONS = [
     ACP::Types::PermissionOption.new(option_id: ALLOW, name: 'Allow', kind: ACP::Types::PermissionOptionKind::ALLOW_ONCE),
@@ -45,7 +60,7 @@ class EchoAgent
   end
 
   def session_created(response)
-    @client.available_commands(response.session_id, COMMANDS)
+    @client.available_commands(response.session_id, commands(@client.capabilities))
   end
 
   def prompt(request)
@@ -89,6 +104,14 @@ class EchoAgent
 
   private
 
+  def commands(capabilities)
+    [
+      (READ if capabilities&.fs&.read_text_file),
+      (WRITE if capabilities&.fs&.write_text_file),
+      (RUN if capabilities&.terminal)
+    ].compact
+  end
+
   def begin_turn(session_id)
     @lock.synchronize do
       @cancelled.delete(session_id)
@@ -119,15 +142,17 @@ class EchoAgent
     outcome.is_a?(ACP::Types::RequestPermissionOutcome::Selected) && outcome.option_id == ALLOW
   end
 
-  # `/read <path>` echoes the file and `/write <path> <text>` writes it, both
-  # through the client; any other prompt is echoed as is.
+  # `/read <path>` echoes the file, `/write <path> <text>` writes it and
+  # `/run <command> [args]` echoes its output, all through the client; any
+  # other prompt is echoed as is.
   def respond(session_id, blocks)
-    case blocks.first&.text
-    when %r{\A/read (\S+)\z} then read(session_id, Regexp.last_match(1))
-    when %r{\A/write (\S+) (.*)\z}m
-      @client.write_text_file(
-        ACP::Types::WriteTextFileRequest.new(session_id:, path: Regexp.last_match(1), content: Regexp.last_match(2))
-      )
+    command, rest = blocks.first&.text.to_s.split(' ', 2)
+    return echo(session_id, blocks) unless rest
+
+    case command
+    when '/read' then read(session_id, rest)
+    when '/write' then write(session_id, *rest.split(' ', 2))
+    when '/run' then run(session_id, rest)
     else echo(session_id, blocks)
     end
   end
@@ -137,6 +162,38 @@ class EchoAgent
     return file if file.is_a?(ACP::Transport::ResponseError)
 
     echo(session_id, [ACP::Types::ContentBlock::Text.new(text: file.content)])
+  end
+
+  def write(session_id, path, content = '')
+    @client.write_text_file(ACP::Types::WriteTextFileRequest.new(session_id:, path:, content:))
+  end
+
+  def run(session_id, command_line)
+    command, *args =
+      begin
+        Shellwords.split(command_line)
+      rescue ArgumentError
+        return ACP::AgentConnection::INVALID_PARAMS
+      end
+
+    terminal = @client.create_terminal(ACP::Types::CreateTerminalRequest.new(session_id:, command:, args:))
+    return terminal if terminal.is_a?(ACP::Transport::ResponseError)
+
+    output = finish(session_id, terminal.terminal_id)
+    return output if output.is_a?(ACP::Transport::ResponseError)
+
+    echo(session_id, [ACP::Types::ContentBlock::Text.new(text: output.output)])
+  end
+
+  # ACP leaves releasing a terminal to the agent, even when waiting on it fails.
+  def finish(session_id, terminal_id)
+    status = @client.wait_for_terminal_exit(ACP::Types::WaitForTerminalExitRequest.new(session_id:, terminal_id:))
+    output =
+      if status.is_a?(ACP::Transport::ResponseError) then status
+      else @client.terminal_output(ACP::Types::TerminalOutputRequest.new(session_id:, terminal_id:))
+      end
+    @client.release_terminal(ACP::Types::ReleaseTerminalRequest.new(session_id:, terminal_id:))
+    output
   end
 
   def echo(session_id, blocks)

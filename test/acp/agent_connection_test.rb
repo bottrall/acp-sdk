@@ -92,9 +92,14 @@ describe ACP::AgentConnection do
 
   it 'replies to session/new before sending the available commands' do
     start
+    connect({ 'fs' => { 'readTextFile' => true, 'writeTextFile' => true }, 'terminal' => true })
     reply = call('session/new', { 'cwd' => '/work', 'mcpServers' => [] })
     update = receive_message
-    commands = [{ 'name' => 'echo', 'description' => 'Echo the prompt back' }]
+    commands = [
+      ['read', 'Echo a file from the editor', 'path'],
+      ['write', 'Write text to a file in the editor', 'path text'],
+      ['run', 'Run a command in a terminal and echo its output', 'command [args]']
+    ].map { |name, description, hint| { 'name' => name, 'description' => description, 'input' => { 'hint' => hint } } }
 
     assert_equal(
       [true, 'session/update', reply.dig('result', 'sessionId'), 'available_commands_update', commands],
@@ -106,6 +111,16 @@ describe ACP::AgentConnection do
         update.dig('params', 'update', 'availableCommands')
       ]
     )
+  end
+
+  it 'advertises only the commands the client has the capabilities for' do
+    start
+    connect({ 'terminal' => true })
+    call('session/new', { 'cwd' => '/work', 'mcpServers' => [] })
+
+    commands = receive_message.dig('params', 'update', 'availableCommands')
+
+    assert_equal(['run'], commands.map { |command| command['name'] })
   end
 
   it 'echoes the prompt once the client allows the tool call' do
@@ -134,8 +149,8 @@ describe ACP::AgentConnection do
     )
   end
 
-  def connect(file_system)
-    call('initialize', { 'protocolVersion' => 1, 'clientCapabilities' => { 'fs' => file_system } })
+  def connect(capabilities)
+    call('initialize', { 'protocolVersion' => 1, 'clientCapabilities' => capabilities })
   end
 
   def allowed_turn(session_id, prompt)
@@ -151,7 +166,7 @@ describe ACP::AgentConnection do
 
   it 'writes and reads a file through the client when it advertises fs' do
     start
-    connect({ 'readTextFile' => true, 'writeTextFile' => true })
+    connect({ 'fs' => { 'readTextFile' => true, 'writeTextFile' => true } })
     session_id = new_session
     allowed_turn(session_id, '/write /work/notes.txt hello there')
     write = answer(receive_message, {})
@@ -180,7 +195,7 @@ describe ACP::AgentConnection do
 
   it 'refuses file access the client did not advertise without a round trip' do
     start
-    connect({ 'readTextFile' => false })
+    connect({ 'fs' => { 'readTextFile' => false } })
     session_id = new_session
     allowed_turn(session_id, '/write /work/notes.txt hello')
     write_reply = receive_message
@@ -190,6 +205,57 @@ describe ACP::AgentConnection do
       [{ 'code' => -32_601, 'message' => 'Method not found' }] * 2,
       [write_reply['error'], receive_message['error']]
     )
+  end
+
+  it 'runs a command in a terminal through the client when it advertises terminal' do
+    start
+    connect({ 'terminal' => true })
+    session_id = new_session
+    allowed_turn(session_id, %(/run echo 'hi there'))
+    terminal = { 'sessionId' => session_id, 'terminalId' => 'term_1' }
+    requests = [
+      answer(receive_message, { 'terminalId' => 'term_1' }),
+      answer(receive_message, { 'exitCode' => 0 }),
+      answer(receive_message, { 'output' => "hi there\n", 'truncated' => false, 'exitStatus' => { 'exitCode' => 0 } }),
+      answer(receive_message, {})
+    ]
+    chunk = receive_message
+
+    assert_equal(
+      [
+        [
+          ['terminal/create', { 'sessionId' => session_id, 'command' => 'echo', 'args' => ['hi there'] }],
+          ['terminal/wait_for_exit', terminal],
+          ['terminal/output', terminal],
+          ['terminal/release', terminal]
+        ],
+        ['agent_message_chunk', "hi there\n"],
+        { 'stopReason' => 'end_turn' }
+      ],
+      [
+        requests.map { |request| request.values_at('method', 'params') },
+        [update_kind(chunk), chunk.dig('params', 'update', 'content', 'text')],
+        receive_message['result']
+      ]
+    )
+  end
+
+  it 'refuses a terminal the client did not advertise without a round trip' do
+    start
+    connect({ 'terminal' => false })
+    session_id = new_session
+    allowed_turn(session_id, '/run echo hi')
+
+    assert_equal({ 'code' => -32_601, 'message' => 'Method not found' }, receive_message['error'])
+  end
+
+  it 'rejects a command line with an unmatched quote without a round trip' do
+    start
+    connect({ 'terminal' => true })
+    session_id = new_session
+    allowed_turn(session_id, %(/run echo 'hi))
+
+    assert_equal({ 'code' => -32_602, 'message' => 'Invalid params' }, receive_message['error'])
   end
 
   it 'stops with cancelled when the turn is cancelled while permission is pending' do

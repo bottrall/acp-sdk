@@ -87,11 +87,18 @@ describe ACP::ClientConnection do
 
     it 'hands updates outside a prompt, such as the available commands, to the updates handler' do
       connection = allowing
+      within do
+        connection.connect(
+          ACP::Types::InitializeRequest.new(
+            protocol_version: 1, client_capabilities: ACP::Types::ClientCapabilities.new(terminal: true)
+          )
+        )
+      end
       session_id = within { connection.session_new(new_session_request) }.session_id
       notification = within { @updates.pop }
 
       assert_equal(
-        [session_id, ['echo']],
+        [session_id, ['run']],
         [notification.session_id, notification.update.available_commands.map(&:name)]
       )
     end

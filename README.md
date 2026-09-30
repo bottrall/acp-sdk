@@ -33,7 +33,7 @@ require 'acp/sdk'
 
 ## Serving an agent
 
-An agent is a plain Ruby object. `ACP::AgentConnection` answers `initialize` itself, turns each request into its generated `ACP::Types` object, calls the agent, and sends back what it returns. The factory block receives an `ACP::AgentConnection::Client` handle, which the agent keeps for sending session updates, asking permission, and reading and writing files.
+An agent is a plain Ruby object. `ACP::AgentConnection` answers `initialize` itself, turns each request into its generated `ACP::Types` object, calls the agent, and sends back what it returns. The factory block receives an `ACP::AgentConnection::Client` handle, which the agent keeps for sending session updates, asking permission, reading and writing files, and running commands in terminals.
 
 ```ruby
 require 'acp/sdk'
@@ -54,8 +54,9 @@ The agent's contract:
 - After a cancel, the agent must itself end the turn with `stopReason: cancelled`. `ACP::AgentConnection` does not enforce it.
 - `client.capabilities` is `nil` until the client sends `initialize`.
 - `client.read_text_file` and `client.write_text_file` take an `ACP::Types::ReadTextFileRequest` or `ACP::Types::WriteTextFileRequest` and return the response type or an `ACP::Transport::ResponseError`. Unless `client.capabilities` advertises `fs.read_text_file` or `fs.write_text_file`, they return `-32601` without sending anything to the client.
+- `client.create_terminal`, `client.terminal_output`, `client.wait_for_terminal_exit`, `client.kill_terminal` and `client.release_terminal` take the matching `ACP::Types` request (`CreateTerminalRequest`, `TerminalOutputRequest`, `WaitForTerminalExitRequest`, `KillTerminalRequest`, `ReleaseTerminalRequest`) and return its response type or an `ACP::Transport::ResponseError`. Unless `client.capabilities` advertises `terminal`, they return `-32601` without sending anything to the client. The agent must release every terminal it creates.
 
-[`examples/echo_agent.rb`](https://github.com/bottrall/acp-sdk/blob/main/examples/echo_agent.rb) is a complete agent that streams updates, asks permission, handles cancellation, reads and writes files through the client (`/read <path>` and `/write <path> <text>`), and supports `session/load` and `session/list`.
+[`examples/echo_agent.rb`](https://github.com/bottrall/acp-sdk/blob/main/examples/echo_agent.rb) is a complete agent that streams updates, asks permission, handles cancellation, reads and writes files and runs commands through the client (`/read <path>`, `/write <path> <text>` and `/run <command> [args]`, each advertised as a slash command only when the client supports it), and supports `session/load` and `session/list`.
 
 ## Driving an agent
 
