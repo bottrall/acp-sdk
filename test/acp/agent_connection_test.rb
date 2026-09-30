@@ -22,11 +22,11 @@ class FullAgent < SimpleDelegator
     ACP::Types::DeleteSessionResponse.new
   end
 
-  def set_session_mode(_request)
+  def change_session_mode(_request)
     ACP::Types::SetSessionModeResponse.new
   end
 
-  def set_session_config_option(_request)
+  def change_session_config_option(_request)
     ACP::Types::SetSessionConfigOptionResponse.new(config_options: [])
   end
 end

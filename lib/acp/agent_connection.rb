@@ -19,8 +19,8 @@ class ACP::AgentConnection
   # agent offers them per session, in its session responses, so they are
   # routed whenever the agent defines them.
   PER_SESSION = {
-    'session/set_mode' => :set_session_mode,
-    'session/set_config_option' => :set_session_config_option
+    'session/set_mode' => :change_session_mode,
+    'session/set_config_option' => :change_session_config_option
   }.freeze #: Hash[String, Symbol]
 
   # @rbs transport: ACP::AgentConnection::_Transport
@@ -72,10 +72,10 @@ class ACP::AgentConnection
       'session/close' => route(ACP::Types::CloseSessionRequest) { |request| respond(full.close_session(request)) },
       'session/delete' => route(ACP::Types::DeleteSessionRequest) { |request| respond(full.delete_session(request)) },
       'session/set_mode' => route(ACP::Types::SetSessionModeRequest) do |request|
-        respond(full.set_session_mode(request))
+        respond(full.change_session_mode(request))
       end,
       'session/set_config_option' => route(ACP::Types::SetSessionConfigOptionRequest) do |request|
-        respond(full.set_session_config_option(request))
+        respond(full.change_session_config_option(request))
       end
     }
   end

@@ -32,12 +32,12 @@ class ACP::AgentConnection
     def delete_session: (ACP::Types::DeleteSessionRequest) -> (ACP::Types::DeleteSessionResponse | ACP::Transport::ResponseError)
   end
 
-  interface _SetSessionMode
-    def set_session_mode: (ACP::Types::SetSessionModeRequest) -> (ACP::Types::SetSessionModeResponse | ACP::Transport::ResponseError)
+  interface _ChangeSessionMode
+    def change_session_mode: (ACP::Types::SetSessionModeRequest) -> (ACP::Types::SetSessionModeResponse | ACP::Transport::ResponseError)
   end
 
-  interface _SetSessionConfigOption
-    def set_session_config_option: (ACP::Types::SetSessionConfigOptionRequest) -> (ACP::Types::SetSessionConfigOptionResponse | ACP::Transport::ResponseError)
+  interface _ChangeSessionConfigOption
+    def change_session_config_option: (ACP::Types::SetSessionConfigOptionRequest) -> (ACP::Types::SetSessionConfigOptionResponse | ACP::Transport::ResponseError)
   end
 
   interface _FullAgent
@@ -48,8 +48,8 @@ class ACP::AgentConnection
     include _ResumeSession
     include _CloseSession
     include _DeleteSession
-    include _SetSessionMode
-    include _SetSessionConfigOption
+    include _ChangeSessionMode
+    include _ChangeSessionConfigOption
   end
 
   interface _OptionalMethod
