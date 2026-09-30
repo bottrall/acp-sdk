@@ -92,9 +92,14 @@ describe ACP::AgentConnection do
 
   it 'replies to session/new before sending the available commands' do
     start
+    connect({ 'fs' => { 'readTextFile' => true, 'writeTextFile' => true }, 'terminal' => true })
     reply = call('session/new', { 'cwd' => '/work', 'mcpServers' => [] })
     update = receive_message
-    commands = [{ 'name' => 'echo', 'description' => 'Echo the prompt back' }]
+    commands = [
+      ['read', 'Echo a file from the editor', 'path'],
+      ['write', 'Write text to a file in the editor', 'path text'],
+      ['run', 'Run a command in a terminal and echo its output', 'command [args]']
+    ].map { |name, description, hint| { 'name' => name, 'description' => description, 'input' => { 'hint' => hint } } }
 
     assert_equal(
       [true, 'session/update', reply.dig('result', 'sessionId'), 'available_commands_update', commands],
@@ -106,6 +111,16 @@ describe ACP::AgentConnection do
         update.dig('params', 'update', 'availableCommands')
       ]
     )
+  end
+
+  it 'advertises only the commands the client has the capabilities for' do
+    start
+    connect({ 'terminal' => true })
+    call('session/new', { 'cwd' => '/work', 'mcpServers' => [] })
+
+    commands = receive_message.dig('params', 'update', 'availableCommands')
+
+    assert_equal(['run'], commands.map { |command| command['name'] })
   end
 
   it 'echoes the prompt once the client allows the tool call' do

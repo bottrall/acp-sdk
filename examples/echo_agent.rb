@@ -10,7 +10,21 @@ class EchoAgent
     load_session: true,
     session_capabilities: ACP::Types::SessionCapabilities.new(list: ACP::Types::SessionListCapabilities.new)
   )
-  COMMANDS = [ACP::Types::AvailableCommand.new(name: 'echo', description: 'Echo the prompt back')].freeze
+  READ = ACP::Types::AvailableCommand.new(
+    name: 'read',
+    description: 'Echo a file from the editor',
+    input: ACP::Types::UnstructuredCommandInput.new(hint: 'path')
+  )
+  WRITE = ACP::Types::AvailableCommand.new(
+    name: 'write',
+    description: 'Write text to a file in the editor',
+    input: ACP::Types::UnstructuredCommandInput.new(hint: 'path text')
+  )
+  RUN = ACP::Types::AvailableCommand.new(
+    name: 'run',
+    description: 'Run a command in a terminal and echo its output',
+    input: ACP::Types::UnstructuredCommandInput.new(hint: 'command [args]')
+  )
   ALLOW = 'allow'
   OPTIONS = [
     ACP::Types::PermissionOption.new(option_id: ALLOW, name: 'Allow', kind: ACP::Types::PermissionOptionKind::ALLOW_ONCE),
@@ -46,7 +60,7 @@ class EchoAgent
   end
 
   def session_created(response)
-    @client.available_commands(response.session_id, COMMANDS)
+    @client.available_commands(response.session_id, commands(@client.capabilities))
   end
 
   def prompt(request)
@@ -89,6 +103,14 @@ class EchoAgent
   end
 
   private
+
+  def commands(capabilities)
+    [
+      (READ if capabilities&.fs&.read_text_file),
+      (WRITE if capabilities&.fs&.write_text_file),
+      (RUN if capabilities&.terminal)
+    ].compact
+  end
 
   def begin_turn(session_id)
     @lock.synchronize do
