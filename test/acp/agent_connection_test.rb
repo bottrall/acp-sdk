@@ -134,6 +134,64 @@ describe ACP::AgentConnection do
     )
   end
 
+  def connect(file_system)
+    call('initialize', { 'protocolVersion' => 1, 'clientCapabilities' => { 'fs' => file_system } })
+  end
+
+  def allowed_turn(session_id, prompt)
+    send_request('session/prompt', { 'sessionId' => session_id, 'prompt' => [text(prompt)] })
+    receive_message
+    answer_permission({ 'outcome' => 'selected', 'optionId' => EchoAgent::ALLOW })
+  end
+
+  def answer(request, result)
+    send_message({ 'jsonrpc' => '2.0', 'id' => request.fetch('id'), 'result' => result })
+    request
+  end
+
+  it 'writes and reads a file through the client when it advertises fs' do
+    start
+    connect({ 'readTextFile' => true, 'writeTextFile' => true })
+    session_id = new_session
+    allowed_turn(session_id, '/write /work/notes.txt hello there')
+    write = answer(receive_message, {})
+    write_reply = receive_message
+    allowed_turn(session_id, '/read /work/notes.txt')
+    read = answer(receive_message, { 'content' => 'hello there' })
+    chunk = receive_message
+
+    assert_equal(
+      [
+        ['fs/write_text_file', { 'sessionId' => session_id, 'path' => '/work/notes.txt', 'content' => 'hello there' }],
+        { 'stopReason' => 'end_turn' },
+        ['fs/read_text_file', { 'sessionId' => session_id, 'path' => '/work/notes.txt' }],
+        ['agent_message_chunk', 'hello there'],
+        { 'stopReason' => 'end_turn' }
+      ],
+      [
+        write.values_at('method', 'params'),
+        write_reply['result'],
+        read.values_at('method', 'params'),
+        [update_kind(chunk), chunk.dig('params', 'update', 'content', 'text')],
+        receive_message['result']
+      ]
+    )
+  end
+
+  it 'refuses file access the client did not advertise without a round trip' do
+    start
+    connect({ 'readTextFile' => false })
+    session_id = new_session
+    allowed_turn(session_id, '/write /work/notes.txt hello')
+    write_reply = receive_message
+    allowed_turn(session_id, '/read /work/notes.txt')
+
+    assert_equal(
+      [{ 'code' => -32_601, 'message' => 'Method not found' }] * 2,
+      [write_reply['error'], receive_message['error']]
+    )
+  end
+
   it 'stops with cancelled when the turn is cancelled while permission is pending' do
     start
     session_id = new_session

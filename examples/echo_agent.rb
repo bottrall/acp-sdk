@@ -61,7 +61,9 @@ class EchoAgent
       permission
     )
 
-    echo(session_id, blocks) if allowed?(permission)
+    reply = respond(session_id, blocks) if allowed?(permission)
+    return reply if reply.is_a?(ACP::Transport::ResponseError)
+
     ACP::Types::PromptResponse.new(stop_reason: ACP::Types::StopReason::END_TURN)
   end
 
@@ -115,6 +117,26 @@ class EchoAgent
   def allowed?(permission)
     outcome = permission.outcome
     outcome.is_a?(ACP::Types::RequestPermissionOutcome::Selected) && outcome.option_id == ALLOW
+  end
+
+  # `/read <path>` echoes the file and `/write <path> <text>` writes it, both
+  # through the client; any other prompt is echoed as is.
+  def respond(session_id, blocks)
+    case blocks.first&.text
+    when %r{\A/read (\S+)\z} then read(session_id, Regexp.last_match(1))
+    when %r{\A/write (\S+) (.*)\z}m
+      @client.write_text_file(
+        ACP::Types::WriteTextFileRequest.new(session_id:, path: Regexp.last_match(1), content: Regexp.last_match(2))
+      )
+    else echo(session_id, blocks)
+    end
+  end
+
+  def read(session_id, path)
+    file = @client.read_text_file(ACP::Types::ReadTextFileRequest.new(session_id:, path:))
+    return file if file.is_a?(ACP::Transport::ResponseError)
+
+    echo(session_id, [ACP::Types::ContentBlock::Text.new(text: file.content)])
   end
 
   def echo(session_id, blocks)
