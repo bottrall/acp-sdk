@@ -15,7 +15,7 @@ class ACP::AgentConnection
 
   INVALID_PARAMS: ACP::Transport::ResponseError
 
-  OPTIONAL: Hash[String, Symbol]
+  OPTIONAL: Array[ACP::AgentConnection::OptionalMethod]
 
   # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs capabilities: ACP::Types::AgentCapabilities
@@ -29,9 +29,6 @@ class ACP::AgentConnection
   def start: () -> Thread
 
   private
-
-  # @rbs return: Array[String]
-  def unadvertised: () -> Array[String]
 
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs client: ACP::AgentConnection::Client

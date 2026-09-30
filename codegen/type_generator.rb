@@ -39,6 +39,53 @@ module TypeGenerator
 
   RAW_HASH = 'Hash[String, untyped]'
 
+  class Type
+    attr_reader :rbs, :from, :to
+
+    def initialize(rbs:, from: nil, to: nil, nullable: false)
+      @rbs = rbs
+      @from = from
+      @to = to
+      @nullable = nullable
+      freeze
+    end
+
+    def nullable? = @nullable
+  end
+
+  class Field
+    attr_reader :json, :attr, :type
+
+    # A flattened field has no JSON key: schemars merges its union variant's properties into the parent.
+    def initialize(attr:, type:, required:, nullable:, json: nil, clearable: false, flattened: false)
+      @json = json
+      @attr = attr
+      @type = type
+      @required = required
+      @nullable = nullable
+      @clearable = clearable
+      @flattened = flattened
+      freeze
+    end
+
+    def required? = @required
+    def nullable? = @nullable
+    def clearable? = @clearable
+    def flattened? = @flattened
+    def nilable? = !required? || nullable?
+  end
+
+  class Dispatch
+    attr_reader :tag, :tagged, :untagged
+
+    def initialize(tag:, tagged:, untagged:)
+      @tag = tag
+      @tagged = tagged
+      @untagged = untagged
+      freeze
+    end
+  end
+
   def files(schema)
     defs = schema.fetch('$defs')
     roots = defs.select { |_, definition| definition.key?('x-method') }.keys
@@ -121,37 +168,41 @@ module TypeGenerator
     case Array(schema['type']) - ['null']
     in ['array']
       item = resolve(defs, schema.fetch('items'))
-      { rbs: "Array[#{item[:rbs]}]", from: elementwise(:map, item[:from]), to: elementwise(:map, item[:to]) }
+      Type.new(rbs: "Array[#{item.rbs}]", from: elementwise(:map, item.from), to: elementwise(:map, item.to))
     in ['object']
       values = schema['additionalProperties']
-      return { rbs: RAW_HASH } unless values.is_a?(Hash)
+      return Type.new(rbs: RAW_HASH) unless values.is_a?(Hash)
 
       value = resolve(defs, values)
-      { rbs: "Hash[String, #{value[:rbs]}]",
-        from: elementwise(:transform_values, value[:from]),
-        to: elementwise(:transform_values, value[:to]) }
-    in [type] then { rbs: PRIMITIVES.fetch(type) }
-    in [] then { rbs: 'untyped' }
+      Type.new(
+        rbs: "Hash[String, #{value.rbs}]",
+        from: elementwise(:transform_values, value.from),
+        to: elementwise(:transform_values, value.to)
+      )
+    in [type] then Type.new(rbs: PRIMITIVES.fetch(type))
+    in [] then Type.new(rbs: 'untyped')
     end
   end
 
   def resolve_ref(defs, name)
     definition = defs.fetch(name)
     case kind(definition)
-    when :object then { rbs: const(name), from: [:call, "#{const(name)}.from_h"], to: [:send, 'to_h'] }
-    when :union then { rbs: "#{const(name)}::t", from: [:call, "#{const(name)}.from_h"], to: [:send, 'to_h'] }
+    when :object then Type.new(rbs: const(name), from: [:call, "#{const(name)}.from_h"], to: [:send, 'to_h'])
+    when :union then Type.new(rbs: "#{const(name)}::t", from: [:call, "#{const(name)}.from_h"], to: [:send, 'to_h'])
     when :array_union
-      { rbs: "#{const(name)}::t", from: [:call, "#{const(name)}.from_a"], to: [:map, [:send, 'to_h']] }
-    when :enum then { rbs: PRIMITIVES.fetch(variants(definition).first.fetch('type')) }
+      Type.new(rbs: "#{const(name)}::t", from: [:call, "#{const(name)}.from_a"], to: [:map, [:send, 'to_h']])
+    when :enum then Type.new(rbs: PRIMITIVES.fetch(variants(definition).first.fetch('type')))
     when :primitive_union
-      types = variants(definition).map { |option| option['type'] == 'null' ? 'nil' : resolve(defs, option)[:rbs] }
-      { rbs: types.join(' | '), nullable: types.include?('nil') }
+      types = variants(definition).map { |option| option['type'] == 'null' ? 'nil' : resolve(defs, option).rbs }
+      Type.new(rbs: types.join(' | '), nullable: types.include?('nil'))
     else resolve(defs, definition)
     end
   end
 
   def elementwise(method, conversion) = conversion && [method, conversion]
 
+  # Conversions stay tagged arrays rather than POROs: they only exist to be pattern-matched here, and array patterns
+  # match the nested shapes (`[:map, [:send, 'to_h']]`) directly.
   def convert(conversion, expression, nilable)
     dot = nilable ? '&.' : '.'
     case conversion
@@ -175,10 +226,16 @@ module TypeGenerator
     required = schema.fetch('required', [])
     schema.fetch('properties', {}).except(*except).map do |json, property|
       type = resolve(defs, property)
-      nullable = type[:nullable] || Array(property['type']).include?('null') ||
+      nullable = type.nullable? || Array(property['type']).include?('null') ||
                  Array(property['anyOf']).any? { |option| option['type'] == 'null' }
-      { json:, attr: snake(json), type:, required: required.include?(json), nullable:,
-        clearable: clearable.include?(json) }
+      Field.new(
+        json:,
+        attr: snake(json),
+        type:,
+        required: required.include?(json),
+        nullable:,
+        clearable: clearable.include?(json)
+      )
     end
   end
 
@@ -188,10 +245,13 @@ module TypeGenerator
     return plain unless variants(definition)
 
     union = flattened_union(name)
-    flattened = {
-      attr: FLATTENED_UNION_ATTRS.fetch(name), flattened: true, required: true, nullable: false,
-      type: { rbs: "#{union}::t", from: [:call, "#{union}.from_h"], to: [:send, 'to_h'] }
-    }
+    flattened = Field.new(
+      attr: FLATTENED_UNION_ATTRS.fetch(name),
+      flattened: true,
+      required: true,
+      nullable: false,
+      type: Type.new(rbs: "#{union}::t", from: [:call, "#{union}.from_h"], to: [:send, 'to_h'])
+    )
     [*plain, flattened]
   end
 
@@ -223,24 +283,24 @@ module TypeGenerator
   def indent(lines, depth) = lines.map { |line| "#{' ' * depth}#{line}" }
 
   def rbs_type(field)
-    return field[:type][:rbs] unless nilable?(field)
+    return field.type.rbs unless field.nilable?
 
-    field[:clearable] ? "#{optional(field[:type][:rbs])} | :unset" : optional(field[:type][:rbs])
+    field.clearable? ? "#{optional(field.type.rbs)} | :unset" : optional(field.type.rbs)
   end
 
   def attr_reader(field)
-    ["# @dynamic #{field[:attr]}", "attr_reader :#{field[:attr]} #: #{rbs_type(field)}"]
+    ["# @dynamic #{field.attr}", "attr_reader :#{field.attr} #: #{rbs_type(field)}"]
   end
 
   def initialize_method(fields)
-    required, optional = fields.partition { |field| field[:required] }
-    defaults = optional.map { |field| "#{field[:attr]}: #{field[:clearable] ? ':unset' : 'nil'}" }
-    params = [*required.map { |field| "#{field[:attr]}:" }, *defaults]
+    required, optional = fields.partition(&:required?)
+    defaults = optional.map { |field| "#{field.attr}: #{field.clearable? ? ':unset' : 'nil'}" }
+    params = [*required.map { |field| "#{field.attr}:" }, *defaults]
     [
-      *fields.map { |field| "# @rbs #{field[:attr]}: #{rbs_type(field)}" },
+      *fields.map { |field| "# @rbs #{field.attr}: #{rbs_type(field)}" },
       '# @rbs return: void',
       *call('def initialize', params, 2),
-      *fields.map { |field| "  @#{field[:attr]} = #{field[:attr]}" },
+      *fields.map { |field| "  @#{field.attr} = #{field.attr}" },
       '  freeze',
       'end'
     ]
@@ -248,7 +308,7 @@ module TypeGenerator
 
   def from_h_method(const, fields)
     param = fields.empty? ? '_hash' : 'hash'
-    args = fields.map { |field| "#{field[:attr]}: #{from_expression(field)}" }
+    args = fields.map { |field| "#{field.attr}: #{from_expression(field)}" }
     [
       "# @rbs #{param}: #{RAW_HASH}",
       "# @rbs return: #{const}",
@@ -260,32 +320,30 @@ module TypeGenerator
 
   def from_expression(field)
     source =
-      if field[:flattened]
+      if field.flattened?
         'hash'
-      elsif field[:required]
-        "hash.fetch('#{field[:json]}')"
-      elsif field[:clearable]
-        "hash.fetch('#{field[:json]}', :unset)"
+      elsif field.required?
+        "hash.fetch('#{field.json}')"
+      elsif field.clearable?
+        "hash.fetch('#{field.json}', :unset)"
       else
-        "hash['#{field[:json]}']"
+        "hash['#{field.json}']"
       end
-    convert(field[:type][:from], source, nilable?(field))
+    convert(field.type.from, source, field.nilable?)
   end
 
-  def nilable?(field) = !field[:required] || field[:nullable]
-
   def to_h_method(fields, tag)
-    entry = ->(field) { "'#{field[:json]}' => #{convert(field[:type][:to], field[:attr], nilable?(field))}" }
-    flattened, plain = fields.partition { |field| field[:flattened] }
-    clearable, settled = plain.partition { |field| field[:clearable] }
-    optional, required = settled.partition { |field| !field[:required] }
-    nullable, present = required.partition { |field| field[:nullable] }
+    entry = ->(field) { "'#{field.json}' => #{convert(field.type.to, field.attr, field.nilable?)}" }
+    flattened, plain = fields.partition(&:flattened?)
+    clearable, settled = plain.partition(&:clearable?)
+    required, optional = settled.partition(&:required?)
+    nullable, present = required.partition(&:nullable?)
     entries = [*(tag && "'#{tag[0]}' => '#{tag[1]}'"), *(optional.empty? ? required : present + optional).map(&entry)]
     suffix = [
       ('.compact' unless optional.empty?),
       (".merge(#{nullable.map(&entry).join(', ')})" unless optional.empty? || nullable.empty?),
       (".merge({ #{clearable.map(&entry).join(', ')} }.reject { |_, value| value == :unset })" unless clearable.empty?),
-      *flattened.map { |field| ".merge(#{field[:attr]}.to_h)" }
+      *flattened.map { |field| ".merge(#{field.attr}.to_h)" }
     ].join
     ["# @rbs return: #{RAW_HASH}", 'def to_h', *indent(hash_literal(entries, suffix, 4), 2), 'end']
   end
@@ -336,11 +394,11 @@ module TypeGenerator
     untagged_classes = untagged.zip(untagged_consts).filter_map do |option, variant|
       class_file(variant, variant_fields(defs, option, tag)) if variant.start_with?("#{union}::")
     end
-    dispatch = {
+    dispatch = Dispatch.new(
       tag:,
       tagged: tag_values.zip(tagged_consts),
       untagged: untagged_consts.zip(unique_keys(untagged.map { |option| required_keys(defs, option) }))
-    }
+    )
     [union_file(union, dispatch), *tagged_classes, *untagged_classes]
   end
 
@@ -379,7 +437,7 @@ module TypeGenerator
   end
 
   def union_file(union, dispatch)
-    variants = [*dispatch[:tagged].map(&:last), *dispatch[:untagged].map(&:first), RAW_HASH]
+    variants = [*dispatch.tagged.map(&:last), *dispatch.untagged.map(&:first), RAW_HASH]
     from_h = [
       "# @rbs hash: #{RAW_HASH}",
       '# @rbs return: t',
@@ -395,17 +453,17 @@ module TypeGenerator
   end
 
   def dispatch_body(dispatch)
-    unless dispatch[:tag]
-      branches = dispatch[:untagged].map { |variant, key| ["hash.key?('#{key}')", "#{variant}.from_h(hash)"] }
+    unless dispatch.tag
+      branches = dispatch.untagged.map { |variant, key| ["hash.key?('#{key}')", "#{variant}.from_h(hash)"] }
       return key_dispatch(branches, 'hash')
     end
 
-    raise "Several untagged variants alongside #{dispatch[:tag]}" if dispatch[:untagged].size > 1
+    raise "Several untagged variants alongside #{dispatch.tag}" if dispatch.untagged.size > 1
 
     [
-      "case hash['#{dispatch[:tag]}']",
-      *dispatch[:tagged].map { |value, variant| "when '#{value}' then #{variant}.from_h(hash)" },
-      *dispatch[:untagged].map { |variant, _| "when nil then #{variant}.from_h(hash)" },
+      "case hash['#{dispatch.tag}']",
+      *dispatch.tagged.map { |value, variant| "when '#{value}' then #{variant}.from_h(hash)" },
+      *dispatch.untagged.map { |variant, _| "when nil then #{variant}.from_h(hash)" },
       'else hash',
       'end'
     ]

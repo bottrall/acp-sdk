@@ -9,7 +9,12 @@ class ACP::AgentConnection
 
   PROTOCOL_VERSION = 1 #: Integer
   INVALID_PARAMS = ACP::Transport::ResponseError.new(code: -32_602, message: 'Invalid params') #: ACP::Transport::ResponseError
-  OPTIONAL = { 'session/load' => :load_session, 'session/list' => :list_sessions }.freeze #: Hash[String, Symbol]
+  OPTIONAL = [
+    ACP::AgentConnection::OptionalMethod.new(rpc_method: 'session/load', agent_method: :load_session, &:load_session),
+    ACP::AgentConnection::OptionalMethod.new(rpc_method: 'session/list', agent_method: :list_sessions) do |capabilities|
+      capabilities.session_capabilities&.list
+    end
+  ].freeze #: Array[ACP::AgentConnection::OptionalMethod]
 
   # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs capabilities: ACP::Types::AgentCapabilities
@@ -29,22 +34,15 @@ class ACP::AgentConnection
   def start
     client = ACP::AgentConnection::Client.new(peer: @transport)
     agent = @factory.call(client)
-    unrouted = unadvertised
-    missing = OPTIONAL.except(*unrouted).values.reject { |name| agent.respond_to?(name) }
+    advertised, unadvertised = OPTIONAL.partition { |method| method.advertised?(@capabilities) }
+    missing = advertised.map(&:agent_method).reject { |name| agent.respond_to?(name) }
     raise ArgumentError, "capabilities advertise methods the agent lacks: #{missing.join(', ')}" unless missing.empty?
 
+    unrouted = unadvertised.map(&:rpc_method)
     @transport.start(requests: requests(agent, client).except(*unrouted), notifications: notifications(agent))
   end
 
   private
-
-  # @rbs return: Array[String]
-  def unadvertised
-    {
-      'session/load' => @capabilities.load_session,
-      'session/list' => @capabilities.session_capabilities&.list
-    }.reject { |_, capability| capability }.keys
-  end
 
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs client: ACP::AgentConnection::Client
