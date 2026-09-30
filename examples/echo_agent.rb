@@ -3,8 +3,7 @@
 require 'securerandom'
 require_relative '../lib/acp/sdk'
 
-# Echoes each prompt's text back once the client allows it. Run it as a
-# script to serve it on stdio: `ruby examples/echo_agent.rb`.
+# Serve it on stdio with `ruby examples/echo_agent.rb`.
 class EchoAgent
   CAPABILITIES = ACP::Types::AgentCapabilities.new(
     load_session: true,

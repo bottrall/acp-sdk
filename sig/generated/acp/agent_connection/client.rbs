@@ -1,8 +1,5 @@
 # Generated from lib/acp/agent_connection/client.rb with RBS::Inline
 
-# The agent's handle on the connected client: session updates and permission
-# requests go out through it, and it holds the capabilities the client
-# declared in initialize.
 class ACP::AgentConnection::Client
   @peer: ACP::AgentConnection::_Peer
 

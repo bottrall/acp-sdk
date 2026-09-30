@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-# The agent's handle on the connected client: session updates and permission
-# requests go out through it, and it holds the capabilities the client
-# declared in initialize.
 class ACP::AgentConnection::Client
   # @rbs @peer: ACP::AgentConnection::_Peer
 

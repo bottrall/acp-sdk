@@ -1,9 +1,5 @@
 # Generated from lib/acp/agent_connection.rb with RBS::Inline
 
-# Serves an agent over a transport: answers initialize itself, converts each
-# inbound request into its generated type, calls the agent and converts the
-# answer back. The agent is built by the factory block, which receives the
-# ACP::AgentConnection::Client handle the agent uses to talk back to the client.
 class ACP::AgentConnection
   @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
 
@@ -29,8 +25,6 @@ class ACP::AgentConnection
   # @rbs return: void
   def initialize: (transport: ACP::AgentConnection::_Transport, capabilities: ACP::Types::AgentCapabilities, ?agent_info: ACP::Types::Implementation?, ?auth_methods: Array[ACP::Types::AuthMethod::t]) { (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent } -> void
 
-  # Builds the agent and returns the transport's reader thread.
-  #
   # @rbs return: Thread
   def start: () -> Thread
 
@@ -39,9 +33,6 @@ class ACP::AgentConnection
   # @rbs return: Array[String]
   def unadvertised: () -> Array[String]
 
-  # Handlers for session/load and session/list assume the agent defines them;
-  # start drops each one the capabilities do not advertise and checks the rest.
-  #
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs client: ACP::AgentConnection::Client
   # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)]

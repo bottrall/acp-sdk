@@ -1,9 +1,5 @@
 # frozen_string_literal: true
 
-# Serves an agent over a transport: answers initialize itself, converts each
-# inbound request into its generated type, calls the agent and converts the
-# answer back. The agent is built by the factory block, which receives the
-# ACP::AgentConnection::Client handle the agent uses to talk back to the client.
 class ACP::AgentConnection
   # @rbs @transport: ACP::AgentConnection::_Transport
   # @rbs @capabilities: ACP::Types::AgentCapabilities
@@ -29,8 +25,6 @@ class ACP::AgentConnection
     @factory = factory
   end
 
-  # Builds the agent and returns the transport's reader thread.
-  #
   # @rbs return: Thread
   def start
     client = ACP::AgentConnection::Client.new(peer: @transport)
@@ -52,13 +46,12 @@ class ACP::AgentConnection
     }.reject { |_, capability| capability }.keys
   end
 
-  # Handlers for session/load and session/list assume the agent defines them;
-  # start drops each one the capabilities do not advertise and checks the rest.
-  #
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs client: ACP::AgentConnection::Client
   # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)]
   def requests(agent, client)
+    # Safe: start drops the load/list handlers the capabilities do not
+    # advertise and checks the agent defines the rest.
     full = agent #: ACP::AgentConnection::_Agent & ACP::AgentConnection::_LoadSession & ACP::AgentConnection::_ListSessions
     {
       'initialize' => route(ACP::Types::InitializeRequest) { |request| connect(client, request) },
