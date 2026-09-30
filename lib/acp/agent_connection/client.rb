@@ -33,7 +33,33 @@ class ACP::AgentConnection::Client
   # @rbs request: ACP::Types::RequestPermissionRequest
   # @rbs return: ACP::Types::RequestPermissionResponse | ACP::Transport::ResponseError
   def request_permission(request)
-    result = @peer.request('session/request_permission', request.to_h)
-    result.error || ACP::Types::RequestPermissionResponse.from_h(result.value)
+    call('session/request_permission', ACP::Types::RequestPermissionResponse, request)
+  end
+
+  # @rbs request: ACP::Types::ReadTextFileRequest
+  # @rbs return: ACP::Types::ReadTextFileResponse | ACP::Transport::ResponseError
+  def read_text_file(request)
+    return ACP::Transport::Stdio::METHOD_NOT_FOUND unless capabilities&.fs&.read_text_file
+
+    call('fs/read_text_file', ACP::Types::ReadTextFileResponse, request)
+  end
+
+  # @rbs request: ACP::Types::WriteTextFileRequest
+  # @rbs return: ACP::Types::WriteTextFileResponse | ACP::Transport::ResponseError
+  def write_text_file(request)
+    return ACP::Transport::Stdio::METHOD_NOT_FOUND unless capabilities&.fs&.write_text_file
+
+    call('fs/write_text_file', ACP::Types::WriteTextFileResponse, request)
+  end
+
+  private
+
+  # @rbs rpc_method: String
+  # @rbs type: ACP::AgentConnection::_Parser
+  # @rbs request: ACP::AgentConnection::_Response
+  # @rbs return: untyped
+  def call(rpc_method, type, request)
+    result = @peer.request(rpc_method, request.to_h)
+    result.error || type.from_h(result.value)
   end
 end

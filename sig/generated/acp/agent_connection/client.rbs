@@ -26,4 +26,20 @@ class ACP::AgentConnection::Client
   # @rbs request: ACP::Types::RequestPermissionRequest
   # @rbs return: ACP::Types::RequestPermissionResponse | ACP::Transport::ResponseError
   def request_permission: (ACP::Types::RequestPermissionRequest request) -> (ACP::Types::RequestPermissionResponse | ACP::Transport::ResponseError)
+
+  # @rbs request: ACP::Types::ReadTextFileRequest
+  # @rbs return: ACP::Types::ReadTextFileResponse | ACP::Transport::ResponseError
+  def read_text_file: (ACP::Types::ReadTextFileRequest request) -> (ACP::Types::ReadTextFileResponse | ACP::Transport::ResponseError)
+
+  # @rbs request: ACP::Types::WriteTextFileRequest
+  # @rbs return: ACP::Types::WriteTextFileResponse | ACP::Transport::ResponseError
+  def write_text_file: (ACP::Types::WriteTextFileRequest request) -> (ACP::Types::WriteTextFileResponse | ACP::Transport::ResponseError)
+
+  private
+
+  # @rbs rpc_method: String
+  # @rbs type: ACP::AgentConnection::_Parser
+  # @rbs request: ACP::AgentConnection::_Response
+  # @rbs return: untyped
+  def call: (String rpc_method, ACP::AgentConnection::_Parser type, ACP::AgentConnection::_Response request) -> untyped
 end

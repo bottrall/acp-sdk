@@ -33,7 +33,7 @@ require 'acp/sdk'
 
 ## Serving an agent
 
-An agent is a plain Ruby object. `ACP::AgentConnection` answers `initialize` itself, turns each request into its generated `ACP::Types` object, calls the agent, and sends back what it returns. The factory block receives an `ACP::AgentConnection::Client` handle, which the agent keeps for sending session updates and asking permission.
+An agent is a plain Ruby object. `ACP::AgentConnection` answers `initialize` itself, turns each request into its generated `ACP::Types` object, calls the agent, and sends back what it returns. The factory block receives an `ACP::AgentConnection::Client` handle, which the agent keeps for sending session updates, asking permission, and reading and writing files.
 
 ```ruby
 require 'acp/sdk'
@@ -53,8 +53,9 @@ The agent's contract:
 - `cancel` runs on the transport's reader thread, so it must return quickly: set a flag and let the prompt notice it.
 - After a cancel, the agent must itself end the turn with `stopReason: cancelled`. `ACP::AgentConnection` does not enforce it.
 - `client.capabilities` is `nil` until the client sends `initialize`.
+- `client.read_text_file` and `client.write_text_file` take an `ACP::Types::ReadTextFileRequest` or `ACP::Types::WriteTextFileRequest` and return the response type or an `ACP::Transport::ResponseError`. Unless `client.capabilities` advertises `fs.read_text_file` or `fs.write_text_file`, they return `-32601` without sending anything to the client.
 
-[`examples/echo_agent.rb`](https://github.com/bottrall/acp-sdk/blob/main/examples/echo_agent.rb) is a complete agent that streams updates, asks permission, handles cancellation, and supports `session/load` and `session/list`.
+[`examples/echo_agent.rb`](https://github.com/bottrall/acp-sdk/blob/main/examples/echo_agent.rb) is a complete agent that streams updates, asks permission, handles cancellation, reads and writes files through the client (`/read <path>` and `/write <path> <text>`), and supports `session/load` and `session/list`.
 
 ## Driving an agent
 
