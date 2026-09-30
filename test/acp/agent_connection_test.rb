@@ -5,7 +5,15 @@ require 'json'
 require 'timeout'
 require_relative '../../examples/echo_agent'
 
+class AuthenticatingAgent < SimpleDelegator
+  def authenticate(_request)
+    ACP::Types::AuthenticateResponse.new
+  end
+end
+
 describe ACP::AgentConnection do
+  let(:token) { ACP::Types::AuthMethodAgent.new(id: 'token', name: 'Token') }
+
   before do
     @input, @peer_writer = IO.pipe
     @peer_reader, @output = IO.pipe
@@ -19,11 +27,11 @@ describe ACP::AgentConnection do
     [@input, @output, @peer_reader].each(&:close)
   end
 
-  def start(capabilities: EchoAgent::CAPABILITIES)
+  def start(capabilities: EchoAgent::CAPABILITIES, auth_methods: [])
     agent_info = ACP::Types::Implementation.new(name: 'echo-agent', version: '1.0.0')
-    connection = ACP::AgentConnection.new(transport: @transport, capabilities:, agent_info:) do |client|
+    connection = ACP::AgentConnection.new(transport: @transport, capabilities:, agent_info:, auth_methods:) do |client|
       @client = client
-      EchoAgent.new(client:)
+      AuthenticatingAgent.new(EchoAgent.new(client:))
     end
     @reader = connection.start
   end
@@ -307,14 +315,26 @@ describe ACP::AgentConnection do
     assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, reply['error'])
   end
 
-  it 'answers unknown methods and authenticate with method not found' do
+  it 'answers unknown methods with method not found' do
     start
-    replies = [
-      call('session/set_mode', { 'sessionId' => 's', 'modeId' => 'm' }),
-      call('authenticate', { 'methodId' => 'x' })
-    ]
+    reply = call('session/set_mode', { 'sessionId' => 's', 'modeId' => 'm' })
 
-    assert_equal([-32_601, -32_601], replies.map { |reply| reply.dig('error', 'code') })
+    assert_equal(-32_601, reply.dig('error', 'code'))
+  end
+
+  it 'advertises its auth methods in initialize and authenticates' do
+    start(auth_methods: [token])
+    advertised = connect({}).dig('result', 'authMethods')
+    reply = call('authenticate', { 'methodId' => 'token' })
+
+    assert_equal([[{ 'id' => 'token', 'name' => 'Token' }], {}], [advertised, reply['result']])
+  end
+
+  it 'answers authenticate with method not found unless an auth method is advertised' do
+    start
+    reply = call('authenticate', { 'methodId' => 'token' })
+
+    assert_equal({ 'code' => -32_601, 'message' => 'Method not found' }, reply['error'])
   end
 
   it 'answers session/load and session/list with method not found unless advertised' do
@@ -336,6 +356,13 @@ describe ACP::AgentConnection do
 
   it 'refuses to start when a capability is advertised without its method' do
     connection = ACP::AgentConnection.new(transport: @transport, capabilities: EchoAgent::CAPABILITIES) { Object.new }
+
+    assert_raises(ArgumentError) { connection.start }
+  end
+
+  it 'refuses to start when an auth method is advertised without authenticate' do
+    capabilities = ACP::Types::AgentCapabilities.new
+    connection = ACP::AgentConnection.new(transport: @transport, capabilities:, auth_methods: [token]) { Object.new }
 
     assert_raises(ArgumentError) { connection.start }
   end
