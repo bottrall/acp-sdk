@@ -90,7 +90,9 @@ class ACP::AgentConnection::Client
   # @rbs return: untyped
   def call(rpc_method, type, request)
     result = @peer.request(rpc_method, request.to_h)
-    result.error || type.from_h(result.value)
+    return result if result.is_a?(ACP::RequestError)
+
+    type.from_h(result)
   end
 
   # @rbs rpc_method: String

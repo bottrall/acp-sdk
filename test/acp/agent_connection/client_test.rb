@@ -5,14 +5,14 @@ require 'test_helper'
 class RecordingPeer
   attr_reader :requests
 
-  def initialize(result)
-    @result = result
+  def initialize(response)
+    @response = response
     @requests = []
   end
 
   def request(method, params = nil)
     @requests << [method, params]
-    @result
+    @response
   end
 
   def notify(_method, _params = nil); end
@@ -29,7 +29,7 @@ describe ACP::AgentConnection::Client do
   let(:write) { ACP::Types::WriteTextFileRequest.new(session_id: 's', path: '/a.txt', content: 'hi') }
 
   it 'reads a text file from a client that advertises it' do
-    peer = RecordingPeer.new(ACP::Transport::Result.ok({ 'content' => 'hello' }))
+    peer = RecordingPeer.new({ 'content' => 'hello' })
     response = client(peer, ACP::Types::FileSystemCapabilities.new(read_text_file: true)).read_text_file(read)
 
     assert_equal(
@@ -39,7 +39,7 @@ describe ACP::AgentConnection::Client do
   end
 
   it 'writes a text file to a client that advertises it' do
-    peer = RecordingPeer.new(ACP::Transport::Result.ok({}))
+    peer = RecordingPeer.new({})
     response = client(peer, ACP::Types::FileSystemCapabilities.new(write_text_file: true)).write_text_file(write)
 
     assert_equal(
@@ -50,14 +50,14 @@ describe ACP::AgentConnection::Client do
 
   it 'returns the client\'s error response' do
     error = ACP::RequestError.new(code: -32_002, message: 'Resource not found')
-    peer = RecordingPeer.new(ACP::Transport::Result.error(error))
+    peer = RecordingPeer.new(error)
     response = client(peer, ACP::Types::FileSystemCapabilities.new(read_text_file: true)).read_text_file(read)
 
     assert_same error, response
   end
 
   it 'refuses without a round trip what the client did not advertise' do
-    peer = RecordingPeer.new(ACP::Transport::Result.ok({}))
+    peer = RecordingPeer.new({})
     only_read = client(peer, ACP::Types::FileSystemCapabilities.new(read_text_file: true))
     before_initialize = ACP::AgentConnection::Client.new(peer:)
     refusals = [
@@ -89,7 +89,7 @@ describe ACP::AgentConnection::Client do
 
     it 'sends each terminal request to a client that advertises terminal' do
       result = { 'terminalId' => 't', 'output' => 'x', 'truncated' => false }
-      peer = RecordingPeer.new(ACP::Transport::Result.ok(result))
+      peer = RecordingPeer.new(result)
       handle = client(peer, nil, terminal: true)
       responses = calls.map { |method, request| handle.public_send(method, request).class }
       ids = { 'sessionId' => 's', 'terminalId' => 't' }
@@ -112,7 +112,7 @@ describe ACP::AgentConnection::Client do
     end
 
     it 'refuses every terminal request without a round trip unless the client advertised terminal' do
-      peer = RecordingPeer.new(ACP::Transport::Result.ok({}))
+      peer = RecordingPeer.new({})
       handles = [client(peer, nil, terminal: false), ACP::AgentConnection::Client.new(peer:)]
       refusals = handles.flat_map { |handle| calls.map { |method, request| handle.public_send(method, request) } }
 

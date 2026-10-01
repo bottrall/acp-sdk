@@ -31,8 +31,8 @@ class ACP::AgentConnection
 
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs client: ACP::AgentConnection::Client
-  # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)]
-  def requests: (ACP::AgentConnection::_Agent agent, ACP::AgentConnection::Client client) -> Hash[String, ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)]
+  # @rbs return: Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
+  def requests: (ACP::AgentConnection::_Agent agent, ACP::AgentConnection::Client client) -> Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
 
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs return: Hash[String, ^(untyped) -> void]
@@ -41,24 +41,20 @@ class ACP::AgentConnection
   # Generated from_h raises on a missing key or a value of the wrong shape.
   #
   # @rbs type: ACP::AgentConnection::_Parser
-  # @rbs &handle: (untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)
-  # @rbs return: ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)
-  def route: (ACP::AgentConnection::_Parser type) { (untyped) -> (ACP::Transport::Result | ACP::Transport::Reply) } -> ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)
-
-  # @rbs response: ACP::AgentConnection::_Response | ACP::RequestError
-  # @rbs return: ACP::Transport::Result
-  def respond: (ACP::AgentConnection::_Response | ACP::RequestError response) -> ACP::Transport::Result
+  # @rbs &handle: (untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)
+  # @rbs return: ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)
+  def route: (ACP::AgentConnection::_Parser type) { (untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply) } -> ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)
 
   # @rbs client: ACP::AgentConnection::Client
   # @rbs request: ACP::Types::InitializeRequest
-  # @rbs return: ACP::Transport::Result
-  def connect: (ACP::AgentConnection::Client client, ACP::Types::InitializeRequest request) -> ACP::Transport::Result
+  # @rbs return: ACP::Types::InitializeResponse
+  def connect: (ACP::AgentConnection::Client client, ACP::Types::InitializeRequest request) -> ACP::Types::InitializeResponse
 
   # session_created runs after the reply because the client must know the
   # session id before updates for it (e.g. available commands) arrive.
   #
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs request: ACP::Types::NewSessionRequest
-  # @rbs return: ACP::Transport::Result | ACP::Transport::Reply
-  def new_session: (ACP::AgentConnection::_Agent agent, ACP::Types::NewSessionRequest request) -> (ACP::Transport::Result | ACP::Transport::Reply)
+  # @rbs return: (ACP::Types::NewSessionResponse | ACP::RequestError | ACP::Transport::Reply)
+  def new_session: (ACP::AgentConnection::_Agent agent, ACP::Types::NewSessionRequest request) -> (ACP::Types::NewSessionResponse | ACP::RequestError | ACP::Transport::Reply)
 end

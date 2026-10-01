@@ -1,4 +1,10 @@
 class ACP::Transport::Stdio
+  # The success arm of a request handler's return: the transport serializes it
+  # with to_h into the reply's result.
+  interface _ToH
+    def to_h: () -> Hash[String, untyped]
+  end
+
   interface _Reader
     def each_line: () { (String) -> void } -> untyped
   end
@@ -9,7 +15,7 @@ class ACP::Transport::Stdio
   end
 
   interface _Handler
-    def call: (untyped params) -> (ACP::Transport::Result | ACP::Transport::Reply)
+    def call: (untyped params) -> (_ToH | ACP::RequestError | ACP::Transport::Reply)
   end
 
   interface _NotificationHandler

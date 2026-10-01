@@ -78,7 +78,7 @@ class ACP::AgentConnection
   end
 
   interface _Peer
-    def request: (String method, ?untyped params) -> ACP::Transport::Result
+    def request: (String method, ?untyped params) -> (Hash[String, untyped] | ACP::RequestError)
     def notify: (String method, ?untyped params) -> void
   end
 
