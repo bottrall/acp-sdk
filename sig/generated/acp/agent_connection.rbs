@@ -45,9 +45,9 @@ class ACP::AgentConnection
   # @rbs return: ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)
   def route: (ACP::AgentConnection::_Parser type) { (untyped) -> (ACP::Transport::Result | ACP::Transport::Reply) } -> ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)
 
-  # @rbs response: ACP::AgentConnection::_Response | ACP::Transport::ResponseError
+  # @rbs response: ACP::AgentConnection::_Response | ACP::RequestError
   # @rbs return: ACP::Transport::Result
-  def respond: (ACP::AgentConnection::_Response | ACP::Transport::ResponseError response) -> ACP::Transport::Result
+  def respond: (ACP::AgentConnection::_Response | ACP::RequestError response) -> ACP::Transport::Result
 
   # @rbs client: ACP::AgentConnection::Client
   # @rbs request: ACP::Types::InitializeRequest

@@ -16,9 +16,9 @@ class ACP::Transport::Stdio
   # @rbs @next_id: Integer
   # @rbs @closed: bool
 
-  CONNECTION_CLOSED = ACP::Transport::ResponseError.new(
+  CONNECTION_CLOSED = ACP::RequestError.new(
     code: ACP::RequestError::INTERNAL_ERROR, message: 'Connection closed'
-  ) #: ACP::Transport::ResponseError
+  ) #: ACP::RequestError
 
   # @rbs input: _Reader
   # @rbs output: _Writer
@@ -76,7 +76,7 @@ class ACP::Transport::Stdio
   def receive(line, requests, notifications)
     message = parse(line)
     case message
-    when ACP::Transport::ResponseError then reply(nil, ACP::Transport::Result.error(message))
+    when ACP::RequestError then reply(nil, ACP::Transport::Result.error(message))
     else route(message, requests, notifications)
     end
   end
@@ -99,15 +99,15 @@ class ACP::Transport::Stdio
       settle(message['id'], ACP::Transport::Result.ok(message['result']))
     elsif error.is_a?(Hash) && error['code'].is_a?(Integer) && error['message'].is_a?(String)
       code, text, data = error.values_at('code', 'message', 'data')
-      response_error = ACP::Transport::ResponseError.new(code:, message: text, data:)
-      settle(message['id'], ACP::Transport::Result.error(response_error))
+      decoded = ACP::RequestError.new(code:, message: text, data:)
+      settle(message['id'], ACP::Transport::Result.error(decoded))
     else
       reply(nil, ACP::Transport::Result.error(ACP::RequestError.invalid_request))
     end
   end
 
   # @rbs line: String
-  # @rbs return: Hash[String, untyped] | ACP::Transport::ResponseError
+  # @rbs return: Hash[String, untyped] | ACP::RequestError
   def parse(line)
     return ACP::RequestError.parse_error unless line.valid_encoding?
 
@@ -154,12 +154,7 @@ class ACP::Transport::Stdio
   def invoke(handler, params)
     handler.call(params)
   rescue StandardError => e
-    ACP::Transport::Result.error(
-      ACP::Transport::ResponseError.new(
-        code: ACP::RequestError::INTERNAL_ERROR,
-        message: e.message
-      )
-    )
+    ACP::Transport::Result.error(ACP::RequestError.new(code: ACP::RequestError::INTERNAL_ERROR, message: e.message))
   end
 
   # @rbs id: untyped

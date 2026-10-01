@@ -1,7 +1,7 @@
 class ACP::ClientConnection
   interface _PermissionHandler
     # Runs on its own thread, so it may block while the user decides.
-    def call: (ACP::Types::RequestPermissionRequest) -> (ACP::Types::RequestPermissionResponse | ACP::Transport::ResponseError)
+    def call: (ACP::Types::RequestPermissionRequest) -> (ACP::Types::RequestPermissionResponse | ACP::RequestError)
   end
 
   # Receives the session/update notifications that arrive outside a

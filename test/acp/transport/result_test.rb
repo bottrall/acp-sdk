@@ -10,7 +10,7 @@ describe ACP::Transport::Result do
   end
 
   it 'is not ok with an error and no value' do
-    error = ACP::Transport::ResponseError.new(code: -32_002, message: 'Resource not found')
+    error = ACP::RequestError.new(code: -32_002, message: 'Resource not found')
     result = ACP::Transport::Result.error(error)
 
     assert_equal [false, nil, error], [result.ok?, result.value, result.error]

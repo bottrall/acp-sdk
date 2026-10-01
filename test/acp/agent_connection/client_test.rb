@@ -49,7 +49,7 @@ describe ACP::AgentConnection::Client do
   end
 
   it 'returns the client\'s error response' do
-    error = ACP::Transport::ResponseError.new(code: -32_002, message: 'Resource not found')
+    error = ACP::RequestError.new(code: -32_002, message: 'Resource not found')
     peer = RecordingPeer.new(ACP::Transport::Result.error(error))
     response = client(peer, ACP::Types::FileSystemCapabilities.new(read_text_file: true)).read_text_file(read)
 

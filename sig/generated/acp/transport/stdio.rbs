@@ -20,7 +20,7 @@ class ACP::Transport::Stdio
 
   @input: _Reader
 
-  CONNECTION_CLOSED: ACP::Transport::ResponseError
+  CONNECTION_CLOSED: ACP::RequestError
 
   # @rbs input: _Reader
   # @rbs output: _Writer
@@ -60,8 +60,8 @@ class ACP::Transport::Stdio
   def route: (Hash[String, untyped] message, Hash[String, _Handler] requests, Hash[String, _NotificationHandler] notifications) -> void
 
   # @rbs line: String
-  # @rbs return: Hash[String, untyped] | ACP::Transport::ResponseError
-  def parse: (String line) -> (Hash[String, untyped] | ACP::Transport::ResponseError)
+  # @rbs return: Hash[String, untyped] | ACP::RequestError
+  def parse: (String line) -> (Hash[String, untyped] | ACP::RequestError)
 
   # @rbs handler: _Handler?
   # @rbs id: untyped

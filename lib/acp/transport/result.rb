@@ -5,7 +5,7 @@ class ACP::Transport::Result
   attr_reader :value #: untyped
 
   # @dynamic error
-  attr_reader :error #: ACP::Transport::ResponseError?
+  attr_reader :error #: ACP::RequestError?
 
   # @rbs value: untyped
   # @rbs return: ACP::Transport::Result
@@ -13,14 +13,14 @@ class ACP::Transport::Result
     new(value:, error: nil)
   end
 
-  # @rbs error: ACP::Transport::ResponseError
+  # @rbs error: ACP::RequestError
   # @rbs return: ACP::Transport::Result
   def self.error(error)
     new(value: nil, error:)
   end
 
   # @rbs value: untyped
-  # @rbs error: ACP::Transport::ResponseError?
+  # @rbs error: ACP::RequestError?
   # @rbs return: void
   def initialize(value:, error:)
     @value = value

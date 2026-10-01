@@ -24,36 +24,36 @@ class ACP::AgentConnection::Client
   # closes.
   #
   # @rbs request: ACP::Types::RequestPermissionRequest
-  # @rbs return: ACP::Types::RequestPermissionResponse | ACP::Transport::ResponseError
-  def request_permission: (ACP::Types::RequestPermissionRequest request) -> (ACP::Types::RequestPermissionResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::RequestPermissionResponse | ACP::RequestError
+  def request_permission: (ACP::Types::RequestPermissionRequest request) -> (ACP::Types::RequestPermissionResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::ReadTextFileRequest
-  # @rbs return: ACP::Types::ReadTextFileResponse | ACP::Transport::ResponseError
-  def read_text_file: (ACP::Types::ReadTextFileRequest request) -> (ACP::Types::ReadTextFileResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::ReadTextFileResponse | ACP::RequestError
+  def read_text_file: (ACP::Types::ReadTextFileRequest request) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::WriteTextFileRequest
-  # @rbs return: ACP::Types::WriteTextFileResponse | ACP::Transport::ResponseError
-  def write_text_file: (ACP::Types::WriteTextFileRequest request) -> (ACP::Types::WriteTextFileResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::WriteTextFileResponse | ACP::RequestError
+  def write_text_file: (ACP::Types::WriteTextFileRequest request) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::CreateTerminalRequest
-  # @rbs return: ACP::Types::CreateTerminalResponse | ACP::Transport::ResponseError
-  def create_terminal: (ACP::Types::CreateTerminalRequest request) -> (ACP::Types::CreateTerminalResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::CreateTerminalResponse | ACP::RequestError
+  def create_terminal: (ACP::Types::CreateTerminalRequest request) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::TerminalOutputRequest
-  # @rbs return: ACP::Types::TerminalOutputResponse | ACP::Transport::ResponseError
-  def terminal_output: (ACP::Types::TerminalOutputRequest request) -> (ACP::Types::TerminalOutputResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::TerminalOutputResponse | ACP::RequestError
+  def terminal_output: (ACP::Types::TerminalOutputRequest request) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::WaitForTerminalExitRequest
-  # @rbs return: ACP::Types::WaitForTerminalExitResponse | ACP::Transport::ResponseError
-  def wait_for_terminal_exit: (ACP::Types::WaitForTerminalExitRequest request) -> (ACP::Types::WaitForTerminalExitResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::WaitForTerminalExitResponse | ACP::RequestError
+  def wait_for_terminal_exit: (ACP::Types::WaitForTerminalExitRequest request) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::KillTerminalRequest
-  # @rbs return: ACP::Types::KillTerminalResponse | ACP::Transport::ResponseError
-  def kill_terminal: (ACP::Types::KillTerminalRequest request) -> (ACP::Types::KillTerminalResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::KillTerminalResponse | ACP::RequestError
+  def kill_terminal: (ACP::Types::KillTerminalRequest request) -> (ACP::Types::KillTerminalResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::ReleaseTerminalRequest
-  # @rbs return: ACP::Types::ReleaseTerminalResponse | ACP::Transport::ResponseError
-  def release_terminal: (ACP::Types::ReleaseTerminalRequest request) -> (ACP::Types::ReleaseTerminalResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::ReleaseTerminalResponse | ACP::RequestError
+  def release_terminal: (ACP::Types::ReleaseTerminalRequest request) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
 
   private
 
@@ -73,6 +73,6 @@ class ACP::AgentConnection::Client
   # the refusal was local, so logs can tell the two cases apart.
   #
   # @rbs capability: String
-  # @rbs return: ACP::Transport::ResponseError
-  def unadvertised: (String capability) -> ACP::Transport::ResponseError
+  # @rbs return: ACP::RequestError
+  def unadvertised: (String capability) -> ACP::RequestError
 end

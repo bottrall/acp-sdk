@@ -5,20 +5,20 @@ class ACP::Transport::Result
   attr_reader value: untyped
 
   # @dynamic error
-  attr_reader error: ACP::Transport::ResponseError?
+  attr_reader error: ACP::RequestError?
 
   # @rbs value: untyped
   # @rbs return: ACP::Transport::Result
   def self.ok: (untyped value) -> ACP::Transport::Result
 
-  # @rbs error: ACP::Transport::ResponseError
+  # @rbs error: ACP::RequestError
   # @rbs return: ACP::Transport::Result
-  def self.error: (ACP::Transport::ResponseError error) -> ACP::Transport::Result
+  def self.error: (ACP::RequestError error) -> ACP::Transport::Result
 
   # @rbs value: untyped
-  # @rbs error: ACP::Transport::ResponseError?
+  # @rbs error: ACP::RequestError?
   # @rbs return: void
-  def initialize: (value: untyped, error: ACP::Transport::ResponseError?) -> void
+  def initialize: (value: untyped, error: ACP::RequestError?) -> void
 
   # @rbs return: bool
   def ok?: () -> bool

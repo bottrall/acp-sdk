@@ -1,8 +1,9 @@
 # Generated from lib/acp/request_error.rb with RBS::Inline
 
-# Transport-agnostic names for the schema's ErrorCode, with factories matching
-# the official SDKs' RequestError.*.
-module ACP::RequestError
+# The schema's JSON-RPC Error object, named after the official SDKs'
+# RequestError: built by handlers and local refusals, and decoded from a
+# peer's error replies by the transport.
+class ACP::RequestError
   PARSE_ERROR: Integer
 
   INVALID_REQUEST: Integer
@@ -19,34 +20,46 @@ module ACP::RequestError
 
   RESOURCE_NOT_FOUND: Integer
 
-  # @rbs return: ACP::Transport::ResponseError
-  def self.parse_error: () -> ACP::Transport::ResponseError
-
-  # @rbs return: ACP::Transport::ResponseError
-  def self.invalid_request: () -> ACP::Transport::ResponseError
-
-  # @rbs return: ACP::Transport::ResponseError
-  def self.method_not_found: () -> ACP::Transport::ResponseError
-
-  # @rbs return: ACP::Transport::ResponseError
-  def self.invalid_params: () -> ACP::Transport::ResponseError
-
-  # @rbs return: ACP::Transport::ResponseError
-  def self.internal_error: () -> ACP::Transport::ResponseError
-
-  # @rbs return: ACP::Transport::ResponseError
-  def self.request_cancelled: () -> ACP::Transport::ResponseError
-
-  # @rbs return: ACP::Transport::ResponseError
-  def self.auth_required: () -> ACP::Transport::ResponseError
-
-  # @rbs uri: String?
-  # @rbs return: ACP::Transport::ResponseError
-  def self.resource_not_found: (?String? uri) -> ACP::Transport::ResponseError
-
   # @rbs code: Integer
   # @rbs message: String
   # @rbs data: untyped
-  # @rbs return: ACP::Transport::ResponseError
-  def self.build: (Integer code, String message, ?untyped data) -> ACP::Transport::ResponseError
+  # @rbs return: void
+  def initialize: (code: Integer, message: String, ?data: untyped) -> void
+
+  # @dynamic code
+  attr_reader code: Integer
+
+  # @dynamic message
+  attr_reader message: String
+
+  # @dynamic data
+  attr_reader data: untyped
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+
+  # @rbs return: ACP::RequestError
+  def self.parse_error: () -> ACP::RequestError
+
+  # @rbs return: ACP::RequestError
+  def self.invalid_request: () -> ACP::RequestError
+
+  # @rbs return: ACP::RequestError
+  def self.method_not_found: () -> ACP::RequestError
+
+  # @rbs return: ACP::RequestError
+  def self.invalid_params: () -> ACP::RequestError
+
+  # @rbs return: ACP::RequestError
+  def self.internal_error: () -> ACP::RequestError
+
+  # @rbs return: ACP::RequestError
+  def self.request_cancelled: () -> ACP::RequestError
+
+  # @rbs return: ACP::RequestError
+  def self.auth_required: () -> ACP::RequestError
+
+  # @rbs uri: String?
+  # @rbs return: ACP::RequestError
+  def self.resource_not_found: (?String? uri) -> ACP::RequestError
 end

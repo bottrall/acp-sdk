@@ -1,7 +1,7 @@
 class ACP::AgentConnection
   interface _Agent
-    def new_session: (ACP::Types::NewSessionRequest) -> (ACP::Types::NewSessionResponse | ACP::Transport::ResponseError)
-    def prompt: (ACP::Types::PromptRequest) -> (ACP::Types::PromptResponse | ACP::Transport::ResponseError)
+    def new_session: (ACP::Types::NewSessionRequest) -> (ACP::Types::NewSessionResponse | ACP::RequestError)
+    def prompt: (ACP::Types::PromptRequest) -> (ACP::Types::PromptResponse | ACP::RequestError)
     # Runs on the transport's reader thread, so it must return quickly.
     def cancel: (ACP::Types::CancelNotification) -> void
     # AgentConnection probes for the optional methods below.
@@ -9,35 +9,35 @@ class ACP::AgentConnection
   end
 
   interface _LoadSession
-    def load_session: (ACP::Types::LoadSessionRequest) -> (ACP::Types::LoadSessionResponse | ACP::Transport::ResponseError)
+    def load_session: (ACP::Types::LoadSessionRequest) -> (ACP::Types::LoadSessionResponse | ACP::RequestError)
   end
 
   interface _ListSessions
-    def list_sessions: (ACP::Types::ListSessionsRequest) -> (ACP::Types::ListSessionsResponse | ACP::Transport::ResponseError)
+    def list_sessions: (ACP::Types::ListSessionsRequest) -> (ACP::Types::ListSessionsResponse | ACP::RequestError)
   end
 
   interface _Authenticate
-    def authenticate: (ACP::Types::AuthenticateRequest) -> (ACP::Types::AuthenticateResponse | ACP::Transport::ResponseError)
+    def authenticate: (ACP::Types::AuthenticateRequest) -> (ACP::Types::AuthenticateResponse | ACP::RequestError)
   end
 
   interface _ResumeSession
-    def resume_session: (ACP::Types::ResumeSessionRequest) -> (ACP::Types::ResumeSessionResponse | ACP::Transport::ResponseError)
+    def resume_session: (ACP::Types::ResumeSessionRequest) -> (ACP::Types::ResumeSessionResponse | ACP::RequestError)
   end
 
   interface _CloseSession
-    def close_session: (ACP::Types::CloseSessionRequest) -> (ACP::Types::CloseSessionResponse | ACP::Transport::ResponseError)
+    def close_session: (ACP::Types::CloseSessionRequest) -> (ACP::Types::CloseSessionResponse | ACP::RequestError)
   end
 
   interface _DeleteSession
-    def delete_session: (ACP::Types::DeleteSessionRequest) -> (ACP::Types::DeleteSessionResponse | ACP::Transport::ResponseError)
+    def delete_session: (ACP::Types::DeleteSessionRequest) -> (ACP::Types::DeleteSessionResponse | ACP::RequestError)
   end
 
   interface _ChangeSessionMode
-    def change_session_mode: (ACP::Types::SetSessionModeRequest) -> (ACP::Types::SetSessionModeResponse | ACP::Transport::ResponseError)
+    def change_session_mode: (ACP::Types::SetSessionModeRequest) -> (ACP::Types::SetSessionModeResponse | ACP::RequestError)
   end
 
   interface _ChangeSessionConfigOption
-    def change_session_config_option: (ACP::Types::SetSessionConfigOptionRequest) -> (ACP::Types::SetSessionConfigOptionResponse | ACP::Transport::ResponseError)
+    def change_session_config_option: (ACP::Types::SetSessionConfigOptionRequest) -> (ACP::Types::SetSessionConfigOptionResponse | ACP::RequestError)
   end
 
   interface _FullAgent
@@ -66,14 +66,14 @@ class ACP::AgentConnection
   interface _Client
     def update: (String session_id, ACP::Types::SessionUpdate::t update) -> void
     def available_commands: (String session_id, Array[ACP::Types::AvailableCommand] commands) -> void
-    def request_permission: (ACP::Types::RequestPermissionRequest) -> (ACP::Types::RequestPermissionResponse | ACP::Transport::ResponseError)
-    def read_text_file: (ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::Transport::ResponseError)
-    def write_text_file: (ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::Transport::ResponseError)
-    def create_terminal: (ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::Transport::ResponseError)
-    def terminal_output: (ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::Transport::ResponseError)
-    def wait_for_terminal_exit: (ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::Transport::ResponseError)
-    def kill_terminal: (ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::Transport::ResponseError)
-    def release_terminal: (ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::Transport::ResponseError)
+    def request_permission: (ACP::Types::RequestPermissionRequest) -> (ACP::Types::RequestPermissionResponse | ACP::RequestError)
+    def read_text_file: (ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError)
+    def write_text_file: (ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError)
+    def create_terminal: (ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError)
+    def terminal_output: (ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError)
+    def wait_for_terminal_exit: (ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError)
+    def kill_terminal: (ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError)
+    def release_terminal: (ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
     def capabilities: () -> ACP::Types::ClientCapabilities?
   end
 

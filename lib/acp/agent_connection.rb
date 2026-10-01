@@ -100,11 +100,11 @@ class ACP::AgentConnection
     end
   end
 
-  # @rbs response: ACP::AgentConnection::_Response | ACP::Transport::ResponseError
+  # @rbs response: ACP::AgentConnection::_Response | ACP::RequestError
   # @rbs return: ACP::Transport::Result
   def respond(response)
     case response
-    when ACP::Transport::ResponseError then ACP::Transport::Result.error(response)
+    when ACP::RequestError then ACP::Transport::Result.error(response)
     else ACP::Transport::Result.ok(response.to_h)
     end
   end

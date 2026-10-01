@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
-# Transport-agnostic names for the schema's ErrorCode, with factories matching
-# the official SDKs' RequestError.*.
-module ACP::RequestError
+# The schema's JSON-RPC Error object, named after the official SDKs'
+# RequestError: built by handlers and local refusals, and decoded from a
+# peer's error replies by the transport.
+class ACP::RequestError
   PARSE_ERROR = -32_700 #: Integer
   INVALID_REQUEST = -32_600 #: Integer
   METHOD_NOT_FOUND = -32_601 #: Integer
@@ -12,53 +13,69 @@ module ACP::RequestError
   AUTH_REQUIRED = -32_000 #: Integer
   RESOURCE_NOT_FOUND = -32_002 #: Integer
 
-  # @rbs return: ACP::Transport::ResponseError
-  def self.parse_error
-    build(PARSE_ERROR, 'Parse error')
-  end
-
-  # @rbs return: ACP::Transport::ResponseError
-  def self.invalid_request
-    build(INVALID_REQUEST, 'Invalid request')
-  end
-
-  # @rbs return: ACP::Transport::ResponseError
-  def self.method_not_found
-    build(METHOD_NOT_FOUND, 'Method not found')
-  end
-
-  # @rbs return: ACP::Transport::ResponseError
-  def self.invalid_params
-    build(INVALID_PARAMS, 'Invalid params')
-  end
-
-  # @rbs return: ACP::Transport::ResponseError
-  def self.internal_error
-    build(INTERNAL_ERROR, 'Internal error')
-  end
-
-  # @rbs return: ACP::Transport::ResponseError
-  def self.request_cancelled
-    build(REQUEST_CANCELLED, 'Request cancelled')
-  end
-
-  # @rbs return: ACP::Transport::ResponseError
-  def self.auth_required
-    build(AUTH_REQUIRED, 'Authentication required')
-  end
-
-  # @rbs uri: String?
-  # @rbs return: ACP::Transport::ResponseError
-  def self.resource_not_found(uri = nil)
-    build(RESOURCE_NOT_FOUND, 'Resource not found', uri && { uri: uri })
-  end
-
   # @rbs code: Integer
   # @rbs message: String
   # @rbs data: untyped
-  # @rbs return: ACP::Transport::ResponseError
-  def self.build(code, message, data = nil)
-    ACP::Transport::ResponseError.new(code:, message:, data:)
+  # @rbs return: void
+  def initialize(code:, message:, data: nil)
+    @code = code
+    @message = message
+    @data = data
+    freeze
   end
-  private_class_method :build
+
+  # @dynamic code
+  attr_reader :code #: Integer
+
+  # @dynamic message
+  attr_reader :message #: String
+
+  # @dynamic data
+  attr_reader :data #: untyped
+
+  # @rbs return: Hash[String, untyped]
+  def to_h
+    { 'code' => code, 'message' => message, 'data' => data }.compact
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.parse_error
+    new(code: PARSE_ERROR, message: 'Parse error')
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.invalid_request
+    new(code: INVALID_REQUEST, message: 'Invalid request')
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.method_not_found
+    new(code: METHOD_NOT_FOUND, message: 'Method not found')
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.invalid_params
+    new(code: INVALID_PARAMS, message: 'Invalid params')
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.internal_error
+    new(code: INTERNAL_ERROR, message: 'Internal error')
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.request_cancelled
+    new(code: REQUEST_CANCELLED, message: 'Request cancelled')
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.auth_required
+    new(code: AUTH_REQUIRED, message: 'Authentication required')
+  end
+
+  # @rbs uri: String?
+  # @rbs return: ACP::RequestError
+  def self.resource_not_found(uri = nil)
+    new(code: RESOURCE_NOT_FOUND, message: 'Resource not found', data: uri && { uri: uri })
+  end
 end
