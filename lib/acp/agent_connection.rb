@@ -6,7 +6,6 @@ class ACP::AgentConnection
   # @rbs @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
 
   PROTOCOL_VERSION = 1 #: Integer
-  INVALID_PARAMS = ACP::Transport::ResponseError.new(code: -32_602, message: 'Invalid params') #: ACP::Transport::ResponseError
   OPTIONAL = [
     ACP::AgentConnection::OptionalMethod::LoadSession,
     ACP::AgentConnection::OptionalMethod::ListSessions,
@@ -95,7 +94,7 @@ class ACP::AgentConnection
     lambda do |params|
       request = type.from_h(params)
     rescue KeyError, TypeError, NoMethodError
-      ACP::Transport::Result.error(INVALID_PARAMS)
+      ACP::Transport::Result.error(ACP::RequestError.invalid_params)
     else
       yield(request)
     end

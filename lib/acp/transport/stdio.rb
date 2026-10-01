@@ -16,11 +16,9 @@ class ACP::Transport::Stdio
   # @rbs @next_id: Integer
   # @rbs @closed: bool
 
-  INTERNAL_ERROR = -32_603 #: Integer
-  PARSE_ERROR = ACP::Transport::ResponseError.new(code: -32_700, message: 'Parse error') #: ACP::Transport::ResponseError
-  INVALID_REQUEST = ACP::Transport::ResponseError.new(code: -32_600, message: 'Invalid request') #: ACP::Transport::ResponseError
-  METHOD_NOT_FOUND = ACP::Transport::ResponseError.new(code: -32_601, message: 'Method not found') #: ACP::Transport::ResponseError
-  CONNECTION_CLOSED = ACP::Transport::ResponseError.new(code: INTERNAL_ERROR, message: 'Connection closed') #: ACP::Transport::ResponseError
+  CONNECTION_CLOSED = ACP::Transport::ResponseError.new(
+    code: ACP::RequestError::INTERNAL_ERROR, message: 'Connection closed'
+  ) #: ACP::Transport::ResponseError
 
   # @rbs input: _Reader
   # @rbs output: _Writer
@@ -104,19 +102,19 @@ class ACP::Transport::Stdio
       response_error = ACP::Transport::ResponseError.new(code:, message: text, data:)
       settle(message['id'], ACP::Transport::Result.error(response_error))
     else
-      reply(nil, ACP::Transport::Result.error(INVALID_REQUEST))
+      reply(nil, ACP::Transport::Result.error(ACP::RequestError.invalid_request))
     end
   end
 
   # @rbs line: String
   # @rbs return: Hash[String, untyped] | ACP::Transport::ResponseError
   def parse(line)
-    return PARSE_ERROR unless line.valid_encoding?
+    return ACP::RequestError.parse_error unless line.valid_encoding?
 
     message = JSON.parse(line)
-    message.is_a?(Hash) ? message : INVALID_REQUEST
+    message.is_a?(Hash) ? message : ACP::RequestError.invalid_request
   rescue JSON::ParserError
-    PARSE_ERROR
+    ACP::RequestError.parse_error
   end
 
   # @rbs handler: _Handler?
@@ -125,7 +123,7 @@ class ACP::Transport::Stdio
   # @rbs return: void
   def serve(handler, id, params)
     Thread.new do
-      outcome = handler ? invoke(handler, params) : ACP::Transport::Result.error(METHOD_NOT_FOUND)
+      outcome = handler ? invoke(handler, params) : ACP::Transport::Result.error(ACP::RequestError.method_not_found)
       case outcome
       when ACP::Transport::Reply
         reply(id, outcome.result)
@@ -156,7 +154,12 @@ class ACP::Transport::Stdio
   def invoke(handler, params)
     handler.call(params)
   rescue StandardError => e
-    ACP::Transport::Result.error(ACP::Transport::ResponseError.new(code: INTERNAL_ERROR, message: e.message))
+    ACP::Transport::Result.error(
+      ACP::Transport::ResponseError.new(
+        code: ACP::RequestError::INTERNAL_ERROR,
+        message: e.message
+      )
+    )
   end
 
   # @rbs id: untyped

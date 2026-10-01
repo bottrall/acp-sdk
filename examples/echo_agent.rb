@@ -30,7 +30,7 @@ class EchoAgent
     ACP::Types::PermissionOption.new(option_id: ALLOW, name: 'Allow', kind: ACP::Types::PermissionOptionKind::ALLOW_ONCE),
     ACP::Types::PermissionOption.new(option_id: 'reject', name: 'Reject', kind: ACP::Types::PermissionOptionKind::REJECT_ONCE)
   ].freeze
-  NOT_FOUND = ACP::Transport::ResponseError.new(code: -32_002, message: 'Resource not found')
+  NOT_FOUND = ACP::RequestError.resource_not_found
 
   class Session
     attr_reader :cwd, :history
@@ -173,7 +173,7 @@ class EchoAgent
       begin
         Shellwords.split(command_line)
       rescue ArgumentError
-        return ACP::AgentConnection::INVALID_PARAMS
+        return ACP::RequestError.invalid_params
       end
 
     terminal = @client.create_terminal(ACP::Types::CreateTerminalRequest.new(session_id:, command:, args:))

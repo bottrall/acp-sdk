@@ -20,14 +20,6 @@ class ACP::Transport::Stdio
 
   @input: _Reader
 
-  INTERNAL_ERROR: Integer
-
-  PARSE_ERROR: ACP::Transport::ResponseError
-
-  INVALID_REQUEST: ACP::Transport::ResponseError
-
-  METHOD_NOT_FOUND: ACP::Transport::ResponseError
-
   CONNECTION_CLOSED: ACP::Transport::ResponseError
 
   # @rbs input: _Reader

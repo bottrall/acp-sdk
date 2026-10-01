@@ -118,7 +118,7 @@ class ACP::ClientConnection
   def request_permission(params)
     request = ACP::Types::RequestPermissionRequest.from_h(params)
   rescue KeyError, TypeError, NoMethodError
-    ACP::Transport::Result.error(ACP::AgentConnection::INVALID_PARAMS)
+    ACP::Transport::Result.error(ACP::RequestError.invalid_params)
   else
     response = @permission.call(request)
     case response

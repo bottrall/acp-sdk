@@ -1,0 +1,52 @@
+# Generated from lib/acp/request_error.rb with RBS::Inline
+
+# Transport-agnostic names for the schema's ErrorCode, with factories matching
+# the official SDKs' RequestError.*.
+module ACP::RequestError
+  PARSE_ERROR: Integer
+
+  INVALID_REQUEST: Integer
+
+  METHOD_NOT_FOUND: Integer
+
+  INVALID_PARAMS: Integer
+
+  INTERNAL_ERROR: Integer
+
+  REQUEST_CANCELLED: Integer
+
+  AUTH_REQUIRED: Integer
+
+  RESOURCE_NOT_FOUND: Integer
+
+  # @rbs return: ACP::Transport::ResponseError
+  def self.parse_error: () -> ACP::Transport::ResponseError
+
+  # @rbs return: ACP::Transport::ResponseError
+  def self.invalid_request: () -> ACP::Transport::ResponseError
+
+  # @rbs return: ACP::Transport::ResponseError
+  def self.method_not_found: () -> ACP::Transport::ResponseError
+
+  # @rbs return: ACP::Transport::ResponseError
+  def self.invalid_params: () -> ACP::Transport::ResponseError
+
+  # @rbs return: ACP::Transport::ResponseError
+  def self.internal_error: () -> ACP::Transport::ResponseError
+
+  # @rbs return: ACP::Transport::ResponseError
+  def self.request_cancelled: () -> ACP::Transport::ResponseError
+
+  # @rbs return: ACP::Transport::ResponseError
+  def self.auth_required: () -> ACP::Transport::ResponseError
+
+  # @rbs uri: String?
+  # @rbs return: ACP::Transport::ResponseError
+  def self.resource_not_found: (?String? uri) -> ACP::Transport::ResponseError
+
+  # @rbs code: Integer
+  # @rbs message: String
+  # @rbs data: untyped
+  # @rbs return: ACP::Transport::ResponseError
+  def self.build: (Integer code, String message, ?untyped data) -> ACP::Transport::ResponseError
+end

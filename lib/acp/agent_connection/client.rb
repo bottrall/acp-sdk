@@ -39,7 +39,7 @@ class ACP::AgentConnection::Client
   # @rbs request: ACP::Types::ReadTextFileRequest
   # @rbs return: ACP::Types::ReadTextFileResponse | ACP::Transport::ResponseError
   def read_text_file(request)
-    return ACP::Transport::Stdio::METHOD_NOT_FOUND unless capabilities&.fs&.read_text_file
+    return unadvertised('fs.readTextFile') unless capabilities&.fs&.read_text_file
 
     call('fs/read_text_file', ACP::Types::ReadTextFileResponse, request)
   end
@@ -47,7 +47,7 @@ class ACP::AgentConnection::Client
   # @rbs request: ACP::Types::WriteTextFileRequest
   # @rbs return: ACP::Types::WriteTextFileResponse | ACP::Transport::ResponseError
   def write_text_file(request)
-    return ACP::Transport::Stdio::METHOD_NOT_FOUND unless capabilities&.fs&.write_text_file
+    return unadvertised('fs.writeTextFile') unless capabilities&.fs&.write_text_file
 
     call('fs/write_text_file', ACP::Types::WriteTextFileResponse, request)
   end
@@ -98,8 +98,19 @@ class ACP::AgentConnection::Client
   # @rbs request: ACP::AgentConnection::_Response
   # @rbs return: untyped
   def terminal_call(rpc_method, type, request)
-    return ACP::Transport::Stdio::METHOD_NOT_FOUND unless capabilities&.terminal
+    return unadvertised('terminal') unless capabilities&.terminal
 
     call(rpc_method, type, request)
+  end
+
+  # Same method-not-found code a peer would send, but with a message that says
+  # the refusal was local, so logs can tell the two cases apart.
+  #
+  # @rbs capability: String
+  # @rbs return: ACP::Transport::ResponseError
+  def unadvertised(capability)
+    ACP::Transport::ResponseError.new(
+      code: ACP::RequestError::METHOD_NOT_FOUND, message: "Client does not advertise #{capability}"
+    )
   end
 end

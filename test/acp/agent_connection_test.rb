@@ -240,7 +240,10 @@ describe ACP::AgentConnection do
     allowed_turn(session_id, '/read /work/notes.txt')
 
     assert_equal(
-      [{ 'code' => -32_601, 'message' => 'Method not found' }] * 2,
+      [
+        { 'code' => -32_601, 'message' => 'Client does not advertise fs.writeTextFile' },
+        { 'code' => -32_601, 'message' => 'Client does not advertise fs.readTextFile' }
+      ],
       [write_reply['error'], receive_message['error']]
     )
   end
@@ -284,7 +287,7 @@ describe ACP::AgentConnection do
     session_id = new_session
     allowed_turn(session_id, '/run echo hi')
 
-    assert_equal({ 'code' => -32_601, 'message' => 'Method not found' }, receive_message['error'])
+    assert_equal({ 'code' => -32_601, 'message' => 'Client does not advertise terminal' }, receive_message['error'])
   end
 
   it 'rejects a command line with an unmatched quote without a round trip' do

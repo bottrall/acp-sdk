@@ -60,13 +60,19 @@ describe ACP::AgentConnection::Client do
     peer = RecordingPeer.new(ACP::Transport::Result.ok({}))
     only_read = client(peer, ACP::Types::FileSystemCapabilities.new(read_text_file: true))
     before_initialize = ACP::AgentConnection::Client.new(peer:)
-    responses = [
+    refusals = [
       only_read.write_text_file(write),
       client(peer, nil).read_text_file(read),
       before_initialize.read_text_file(read)
     ]
 
-    assert_equal [[ACP::Transport::Stdio::METHOD_NOT_FOUND] * 3, []], [responses, peer.requests]
+    assert_equal(
+      [[-32_601] * 3,
+       ['Client does not advertise fs.writeTextFile', 'Client does not advertise fs.readTextFile',
+        'Client does not advertise fs.readTextFile'],
+       []],
+      [refusals.map(&:code), refusals.map(&:message), peer.requests]
+    )
   end
 
   describe 'terminals' do
@@ -108,9 +114,12 @@ describe ACP::AgentConnection::Client do
     it 'refuses every terminal request without a round trip unless the client advertised terminal' do
       peer = RecordingPeer.new(ACP::Transport::Result.ok({}))
       handles = [client(peer, nil, terminal: false), ACP::AgentConnection::Client.new(peer:)]
-      responses = handles.flat_map { |handle| calls.map { |method, request| handle.public_send(method, request) } }
+      refusals = handles.flat_map { |handle| calls.map { |method, request| handle.public_send(method, request) } }
 
-      assert_equal [[ACP::Transport::Stdio::METHOD_NOT_FOUND] * 10, []], [responses, peer.requests]
+      assert_equal(
+        [[-32_601] * 10, ['Client does not advertise terminal'] * 10, []],
+        [refusals.map(&:code), refusals.map(&:message), peer.requests]
+      )
     end
   end
 end

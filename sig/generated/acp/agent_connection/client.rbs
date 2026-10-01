@@ -68,4 +68,11 @@ class ACP::AgentConnection::Client
   # @rbs request: ACP::AgentConnection::_Response
   # @rbs return: untyped
   def terminal_call: (String rpc_method, ACP::AgentConnection::_Parser type, ACP::AgentConnection::_Response request) -> untyped
+
+  # Same method-not-found code a peer would send, but with a message that says
+  # the refusal was local, so logs can tell the two cases apart.
+  #
+  # @rbs capability: String
+  # @rbs return: ACP::Transport::ResponseError
+  def unadvertised: (String capability) -> ACP::Transport::ResponseError
 end
