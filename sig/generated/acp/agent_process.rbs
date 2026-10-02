@@ -1,0 +1,72 @@
+# Generated from lib/acp/agent_process.rb with RBS::Inline
+
+# A child agent process and the ACP::ClientConnection wired to its stdio.
+# Spawn one with ACP::AgentProcess.spawn.
+class ACP::AgentProcess
+  @stderr: String?
+
+  @err_reader: Thread?
+
+  @err_r: IO?
+
+  @waiter: Process::Waiter
+
+  @stdout: IO
+
+  @stdin: IO
+
+  @pid: Integer
+
+  @reader: Thread
+
+  @connection: ACP::ClientConnection
+
+  # @dynamic pid
+  attr_reader pid: Integer
+
+  # @dynamic connection
+  attr_reader connection: ACP::ClientConnection
+
+  # Child stderr captured when spawn was given stderr: :capture, else nil.
+  #
+  # @dynamic stderr
+  attr_reader stderr: String?
+
+  # Starts a command with args, env and cwd, wires its stdio to a new
+  # ACP::ClientConnection and starts it. With a block, yields the connection
+  # and this process, then terminates the child when the block exits; without
+  # one, returns the process and terminate is the caller's job.
+  #
+  # @rbs command: String
+  # @rbs *args: String
+  # @rbs env: Hash[String, String]?
+  # @rbs cwd: String?
+  # @rbs stderr: (:inherit | :capture)
+  # @rbs permission: ACP::ClientConnection::_PermissionHandler
+  # @rbs updates: ACP::ClientConnection::_UpdateHandler
+  # @rbs &block: ? (ACP::ClientConnection, ACP::AgentProcess) -> untyped
+  # @rbs return: (untyped | ACP::AgentProcess)
+  def self.spawn: (String command, *String args, permission: ACP::ClientConnection::_PermissionHandler, ?env: Hash[String, String]?, ?cwd: String?, ?stderr: :inherit | :capture, ?updates: ACP::ClientConnection::_UpdateHandler) ?{ (ACP::ClientConnection, ACP::AgentProcess) -> untyped } -> (untyped | ACP::AgentProcess)
+
+  # Closes stdin, waits for the child to exit — sending TERM and then KILL if
+  # it will not — and joins the transport reader before closing the pipe it
+  # reads.
+  #
+  # @rbs return: void
+  def terminate: () -> void
+
+  private
+
+  # @rbs connection: ACP::ClientConnection
+  # @rbs reader: Thread
+  # @rbs stdin: IO
+  # @rbs stdout: IO
+  # @rbs waiter: Process::Waiter
+  # @rbs err_r: IO?
+  # @rbs return: void
+  def initialize: (connection: ACP::ClientConnection, reader: Thread, stdin: IO, stdout: IO, waiter: Process::Waiter, err_r: IO?) -> void
+
+  # @rbs sig: String
+  # @rbs return: void
+  def signal: (String sig) -> void
+end

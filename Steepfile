@@ -10,6 +10,7 @@ target :lib do
   check 'lib'
 
   library 'json'
+  library 'open3'
 
   collection_config 'rbs_collection.yaml'
 

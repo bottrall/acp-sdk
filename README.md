@@ -62,23 +62,36 @@ The agent's contract:
 
 `ACP::ClientConnection` is the other side of the same transport. Each method takes the request's generated `ACP::Types` object and returns its response type or the agent's `ACP::RequestError`. `connect` sends `initialize`, since Ruby reserves that name for the constructor.
 
+`ACP::AgentProcess.spawn` starts a command with args, env and cwd, wires its stdio to a new `ACP::ClientConnection` and starts it. The block receives the connection and the process handle (`pid`, plus `stderr` when captured), and the child is terminated — after its stdin is closed, with TERM and then KILL if it will not exit — when the block exits, so a raised block cannot leak the process. Without a block, `spawn` returns the process and calling `terminate` is yours. `stderr` is `:inherit` by default, so the child writes to your stderr; pass `:capture` to collect it on the process instead.
+
 ```ruby
 require 'acp/sdk'
-require 'open3'
 
-stdin, stdout, = Open3.popen2('my-agent')
+response = ACP::AgentProcess.spawn(
+  'my-agent', '--flag',
+  env: { 'API_KEY' => '...' },
+  cwd: Dir.pwd,
+  stderr: :capture,
+  permission: ->(request) { ask_the_user(request) },
+  updates: ->(notification) { show(notification) }
+) do |connection|
+  connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1))
+  session = connection.session_new(ACP::Types::NewSessionRequest.new(cwd: Dir.pwd, mcp_servers: []))
+  prompt = [ACP::Types::ContentBlock::Text.new(text: 'hello')]
+  connection.session_prompt(ACP::Types::PromptRequest.new(session_id: session.session_id, prompt:)) do |update|
+    print update.content.text if update.is_a?(ACP::Types::SessionUpdate::AgentMessageChunk)
+  end
+end
+```
+
+Any transport over a pair of IOs works too, so the connection can still be wired by hand when the agent is not a child process:
+
+```ruby
 connection = ACP::ClientConnection.new(
-  transport: ACP::Transport::Stdio.new(input: stdout, output: stdin),
+  transport: ACP::Transport::Stdio.new(input: some_io, output: other_io),
   permission: ->(request) { ask_the_user(request) },
   updates: ->(notification) { show(notification) }
 )
-connection.start
-connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1))
-session = connection.session_new(ACP::Types::NewSessionRequest.new(cwd: Dir.pwd, mcp_servers: []))
-prompt = [ACP::Types::ContentBlock::Text.new(text: 'hello')]
-response = connection.session_prompt(ACP::Types::PromptRequest.new(session_id: session.session_id, prompt:)) do |update|
-  print update.content.text if update.is_a?(ACP::Types::SessionUpdate::AgentMessageChunk)
-end
 ```
 
 - `session_prompt` and `session_load` yield the session's updates on the calling thread as they arrive and return once the agent replies. Updates outside those calls, such as the available commands after `session/new`, go to `updates`, which runs on the reader thread and must return quickly.
