@@ -22,6 +22,10 @@ class FullAgent < SimpleDelegator
     ACP::Types::DeleteSessionResponse.new
   end
 
+  def logout(_request)
+    ACP::Types::LogoutResponse.new
+  end
+
   def change_session_mode(_request)
     ACP::Types::SetSessionModeResponse.new
   end
@@ -412,6 +416,23 @@ describe ACP::AgentConnection do
     assert_equal({ 'code' => -32_601, 'message' => 'Method not found' }, reply['error'])
   end
 
+  it 'routes logout when auth logout is advertised' do
+    capabilities = ACP::Types::AgentCapabilities.new(
+      auth: ACP::Types::AgentAuthCapabilities.new(logout: ACP::Types::LogoutCapabilities.new)
+    )
+    start(capabilities:)
+    reply = call('logout', {})
+
+    assert_equal({}, reply['result'])
+  end
+
+  it 'answers logout with method not found unless advertised' do
+    start
+    reply = call('logout', {})
+
+    assert_equal({ 'code' => -32_601, 'message' => 'Method not found' }, reply['error'])
+  end
+
   it 'answers session/load and session/list with method not found unless advertised' do
     start(capabilities: ACP::Types::AgentCapabilities.new)
     replies = [
@@ -444,6 +465,15 @@ describe ACP::AgentConnection do
   it 'refuses to start when an auth method is advertised without authenticate' do
     capabilities = ACP::Types::AgentCapabilities.new
     connection = ACP::AgentConnection.new(transport: @transport, capabilities:, auth_methods: [token]) { Object.new }
+
+    assert_raises(ArgumentError) { connection.start }
+  end
+
+  it 'refuses to start when auth logout is advertised without logout' do
+    capabilities = ACP::Types::AgentCapabilities.new(
+      auth: ACP::Types::AgentAuthCapabilities.new(logout: ACP::Types::LogoutCapabilities.new)
+    )
+    connection = ACP::AgentConnection.new(transport: @transport, capabilities:) { Object.new }
 
     assert_raises(ArgumentError) { connection.start }
   end
