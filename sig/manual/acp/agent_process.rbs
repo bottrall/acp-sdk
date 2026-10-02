@@ -1,0 +1,7 @@
+class ACP::AgentProcess
+  # The stdlib RBS for Open3#popen2 models neither the leading env hash nor
+  # the err: option, so spawn calls it through this narrower type.
+  interface _Spawner
+    def call: (*untyped, **untyped) -> [IO, IO, Process::Waiter]
+  end
+end
