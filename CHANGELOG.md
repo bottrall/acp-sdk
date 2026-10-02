@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/bottrall/acp-sdk/compare/v0.2.0...v0.3.0) (2026-10-02)
+
+
+### Features
+
+* named protocol error codes ([#52](https://github.com/bottrall/acp-sdk/issues/52)) ([0a81700](https://github.com/bottrall/acp-sdk/commit/0a81700e3fa095279a77e2f161a7d6369c46792f))
+* spawn an agent process for ACP::ClientConnection ([#54](https://github.com/bottrall/acp-sdk/issues/54)) ([e01d2d2](https://github.com/bottrall/acp-sdk/commit/e01d2d280e9cfd08c203f6dccd1ce602979e21c8))
+
 ## [0.2.0](https://github.com/bottrall/acp-sdk/compare/v0.1.0...v0.2.0) (2026-09-30)
 
 
