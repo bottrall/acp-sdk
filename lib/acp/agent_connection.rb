@@ -12,7 +12,8 @@ class ACP::AgentConnection
     ACP::AgentConnection::OptionalMethod::Authenticate,
     ACP::AgentConnection::OptionalMethod::ResumeSession,
     ACP::AgentConnection::OptionalMethod::CloseSession,
-    ACP::AgentConnection::OptionalMethod::DeleteSession
+    ACP::AgentConnection::OptionalMethod::DeleteSession,
+    ACP::AgentConnection::OptionalMethod::Logout
   ].freeze #: Array[ACP::AgentConnection::_OptionalMethod]
   # The schema has no initialize capability for modes or config options: an
   # agent offers them per session, in its session responses, so they are
@@ -70,6 +71,7 @@ class ACP::AgentConnection
       'session/resume' => route(ACP::Types::ResumeSessionRequest) { |request| full.resume_session(request) },
       'session/close' => route(ACP::Types::CloseSessionRequest) { |request| full.close_session(request) },
       'session/delete' => route(ACP::Types::DeleteSessionRequest) { |request| full.delete_session(request) },
+      'logout' => route(ACP::Types::LogoutRequest) { |request| full.logout(request) },
       'session/set_mode' => route(ACP::Types::SetSessionModeRequest) { |request| full.change_session_mode(request) },
       'session/set_config_option' => route(ACP::Types::SetSessionConfigOptionRequest) do |request|
         full.change_session_config_option(request)

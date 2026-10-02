@@ -32,6 +32,10 @@ class ACP::AgentConnection
     def delete_session: (ACP::Types::DeleteSessionRequest) -> (ACP::Types::DeleteSessionResponse | ACP::RequestError)
   end
 
+  interface _Logout
+    def logout: (ACP::Types::LogoutRequest) -> (ACP::Types::LogoutResponse | ACP::RequestError)
+  end
+
   interface _ChangeSessionMode
     def change_session_mode: (ACP::Types::SetSessionModeRequest) -> (ACP::Types::SetSessionModeResponse | ACP::RequestError)
   end
@@ -48,6 +52,7 @@ class ACP::AgentConnection
     include _ResumeSession
     include _CloseSession
     include _DeleteSession
+    include _Logout
     include _ChangeSessionMode
     include _ChangeSessionConfigOption
   end
