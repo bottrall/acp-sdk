@@ -53,6 +53,13 @@ class ACP::RequestError
   # @rbs return: ACP::RequestError
   def self.internal_error: () -> ACP::RequestError
 
+  # The message tells a malformed peer reply apart from an internal error a
+  # handler raised, though both use the -32603 code.
+  #
+  # @rbs response: untyped
+  # @rbs return: ACP::RequestError
+  def self.invalid_response: (untyped response) -> ACP::RequestError
+
   # @rbs return: ACP::RequestError
   def self.request_cancelled: () -> ACP::RequestError
 

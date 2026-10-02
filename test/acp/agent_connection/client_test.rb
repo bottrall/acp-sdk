@@ -25,6 +25,14 @@ describe ACP::AgentConnection::Client do
     end
   end
 
+  def permission_request
+    ACP::Types::RequestPermissionRequest.new(
+      session_id: 's',
+      tool_call: ACP::Types::ToolCallUpdate.new(tool_call_id: 't'),
+      options: []
+    )
+  end
+
   let(:read) { ACP::Types::ReadTextFileRequest.new(session_id: 's', path: '/a.txt', line: 2) }
   let(:write) { ACP::Types::WriteTextFileRequest.new(session_id: 's', path: '/a.txt', content: 'hi') }
 
@@ -54,6 +62,26 @@ describe ACP::AgentConnection::Client do
     response = client(peer, ACP::Types::FileSystemCapabilities.new(read_text_file: true)).read_text_file(read)
 
     assert_same error, response
+  end
+
+  it 'answers a reply missing a required key with invalid response' do
+    error = client(RecordingPeer.new({}), nil).request_permission(permission_request)
+
+    assert_equal [-32_603, 'Invalid response', {}], [error.code, error.message, error.data]
+  end
+
+  it 'answers a reply with a wrongly shaped value with invalid response' do
+    response = { 'outcome' => [] }
+    error = client(RecordingPeer.new(response), nil).request_permission(permission_request)
+
+    assert_same response, error.data
+    assert_equal [-32_603, 'Invalid response'], [error.code, error.message]
+  end
+
+  it 'answers a null result with invalid response' do
+    error = client(RecordingPeer.new(nil), nil).request_permission(permission_request)
+
+    assert_equal [-32_603, 'Invalid response', nil], [error.code, error.message, error.data]
   end
 
   it 'refuses without a round trip what the client did not advertise' do
