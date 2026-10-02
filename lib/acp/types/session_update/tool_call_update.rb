@@ -15,6 +15,9 @@ class ACP::Types::SessionUpdate::ToolCallUpdate
   # @dynamic title
   attr_reader :title #: String?
 
+  # @dynamic name
+  attr_reader :name #: String?
+
   # @dynamic content
   attr_reader :content #: Array[ACP::Types::ToolCallContent::t]?
 
@@ -34,6 +37,7 @@ class ACP::Types::SessionUpdate::ToolCallUpdate
   # @rbs kind: String?
   # @rbs status: String?
   # @rbs title: String?
+  # @rbs name: String?
   # @rbs content: Array[ACP::Types::ToolCallContent::t]?
   # @rbs locations: Array[ACP::Types::ToolCallLocation]?
   # @rbs raw_input: untyped
@@ -45,6 +49,7 @@ class ACP::Types::SessionUpdate::ToolCallUpdate
     kind: nil,
     status: nil,
     title: nil,
+    name: nil,
     content: nil,
     locations: nil,
     raw_input: nil,
@@ -55,6 +60,7 @@ class ACP::Types::SessionUpdate::ToolCallUpdate
     @kind = kind
     @status = status
     @title = title
+    @name = name
     @content = content
     @locations = locations
     @raw_input = raw_input
@@ -71,6 +77,7 @@ class ACP::Types::SessionUpdate::ToolCallUpdate
       kind: hash['kind'],
       status: hash['status'],
       title: hash['title'],
+      name: hash['name'],
       content: hash['content']&.map { |item| ACP::Types::ToolCallContent.from_h(item) },
       locations: hash['locations']&.map { |item| ACP::Types::ToolCallLocation.from_h(item) },
       raw_input: hash['rawInput'],
@@ -87,6 +94,7 @@ class ACP::Types::SessionUpdate::ToolCallUpdate
       'kind' => kind,
       'status' => status,
       'title' => title,
+      'name' => name,
       'content' => content&.map(&:to_h),
       'locations' => locations&.map(&:to_h),
       'rawInput' => raw_input,

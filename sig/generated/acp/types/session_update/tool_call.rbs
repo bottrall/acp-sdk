@@ -7,6 +7,9 @@ class ACP::Types::SessionUpdate::ToolCall
   # @dynamic title
   attr_reader title: String
 
+  # @dynamic name
+  attr_reader name: String?
+
   # @dynamic kind
   attr_reader kind: String?
 
@@ -30,6 +33,7 @@ class ACP::Types::SessionUpdate::ToolCall
 
   # @rbs tool_call_id: String
   # @rbs title: String
+  # @rbs name: String?
   # @rbs kind: String?
   # @rbs status: String?
   # @rbs content: Array[ACP::Types::ToolCallContent::t]?
@@ -38,7 +42,7 @@ class ACP::Types::SessionUpdate::ToolCall
   # @rbs raw_output: untyped
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize: (tool_call_id: String, title: String, ?kind: String?, ?status: String?, ?content: Array[ACP::Types::ToolCallContent::t]?, ?locations: Array[ACP::Types::ToolCallLocation]?, ?raw_input: untyped, ?raw_output: untyped, ?meta: Hash[String, untyped]?) -> void
+  def initialize: (tool_call_id: String, title: String, ?name: String?, ?kind: String?, ?status: String?, ?content: Array[ACP::Types::ToolCallContent::t]?, ?locations: Array[ACP::Types::ToolCallLocation]?, ?raw_input: untyped, ?raw_output: untyped, ?meta: Hash[String, untyped]?) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SessionUpdate::ToolCall
