@@ -6,6 +6,22 @@ require 'rbconfig'
 require 'timeout'
 require_relative '../../examples/echo_agent'
 
+class StubTransport
+  def initialize(response)
+    @response = response
+  end
+
+  def start(*)
+    Thread.new { nil }
+  end
+
+  def request(_method, _params = nil)
+    @response
+  end
+
+  def notify(_method, _params = nil); end
+end
+
 describe ACP::ClientConnection do
   def within(seconds = 2, &)
     Timeout.timeout(seconds, &)
@@ -202,6 +218,32 @@ describe ACP::ClientConnection do
       response = within { connection.session_prompt(prompt_request('sess_missing', 'hello')) { nil } }
 
       assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
+    end
+  end
+
+  describe 'a malformed agent response' do
+    def connection(result)
+      ACP::ClientConnection.new(transport: StubTransport.new(result), permission: ->(_request) {})
+    end
+
+    it 'answers a reply missing a required key with invalid response' do
+      error = within { connection({}).session_new(new_session_request) }
+
+      assert_equal [-32_603, 'Invalid response', {}], [error.code, error.message, error.data]
+    end
+
+    it 'answers a reply with a wrongly shaped value with invalid response' do
+      response = { 'sessionId' => 's', 'modes' => [] }
+      error = within { connection(response).session_new(new_session_request) }
+
+      assert_same response, error.data
+      assert_equal [-32_603, 'Invalid response'], [error.code, error.message]
+    end
+
+    it 'answers a null result with invalid response' do
+      error = within { connection(nil).session_new(new_session_request) }
+
+      assert_equal [-32_603, 'Invalid response', nil], [error.code, error.message, error.data]
     end
   end
 

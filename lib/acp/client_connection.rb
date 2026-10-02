@@ -79,6 +79,8 @@ class ACP::ClientConnection
     return result if result.is_a?(ACP::RequestError)
 
     type.from_h(result)
+  rescue KeyError, TypeError, NoMethodError
+    ACP::RequestError.invalid_response(result)
   end
 
   # The request waits on its own thread so the caller's thread can yield each

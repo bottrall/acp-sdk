@@ -93,6 +93,8 @@ class ACP::AgentConnection::Client
     return result if result.is_a?(ACP::RequestError)
 
     type.from_h(result)
+  rescue KeyError, TypeError, NoMethodError
+    ACP::RequestError.invalid_response(result)
   end
 
   # @rbs rpc_method: String
