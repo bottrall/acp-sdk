@@ -9,6 +9,7 @@ describe ACP::Types::RequestPermissionRequest do
       'toolCall' => {
         'toolCallId' => 'call_switch_mode_001',
         'title' => 'Ready for implementation',
+        'name' => 'switch_mode',
         'kind' => 'switch_mode',
         'status' => 'pending',
         'content' => [{ 'type' => 'content', 'content' => { 'type' => 'text', 'text' => '## Implementation Plan...' } }]

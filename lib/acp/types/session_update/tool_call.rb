@@ -9,6 +9,9 @@ class ACP::Types::SessionUpdate::ToolCall
   # @dynamic title
   attr_reader :title #: String
 
+  # @dynamic name
+  attr_reader :name #: String?
+
   # @dynamic kind
   attr_reader :kind #: String?
 
@@ -32,6 +35,7 @@ class ACP::Types::SessionUpdate::ToolCall
 
   # @rbs tool_call_id: String
   # @rbs title: String
+  # @rbs name: String?
   # @rbs kind: String?
   # @rbs status: String?
   # @rbs content: Array[ACP::Types::ToolCallContent::t]?
@@ -43,6 +47,7 @@ class ACP::Types::SessionUpdate::ToolCall
   def initialize(
     tool_call_id:,
     title:,
+    name: nil,
     kind: nil,
     status: nil,
     content: nil,
@@ -53,6 +58,7 @@ class ACP::Types::SessionUpdate::ToolCall
   )
     @tool_call_id = tool_call_id
     @title = title
+    @name = name
     @kind = kind
     @status = status
     @content = content
@@ -69,6 +75,7 @@ class ACP::Types::SessionUpdate::ToolCall
     new(
       tool_call_id: hash.fetch('toolCallId'),
       title: hash.fetch('title'),
+      name: hash['name'],
       kind: hash['kind'],
       status: hash['status'],
       content: hash['content']&.map { |item| ACP::Types::ToolCallContent.from_h(item) },
@@ -85,6 +92,7 @@ class ACP::Types::SessionUpdate::ToolCall
       'sessionUpdate' => 'tool_call',
       'toolCallId' => tool_call_id,
       'title' => title,
+      'name' => name,
       'kind' => kind,
       'status' => status,
       'content' => content&.map(&:to_h),

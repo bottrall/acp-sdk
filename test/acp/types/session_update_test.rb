@@ -22,6 +22,7 @@ describe ACP::Types::SessionUpdate do
       'sessionUpdate' => 'tool_call',
       'toolCallId' => 'call_001',
       'title' => 'Reading configuration file',
+      'name' => 'read_file',
       'kind' => 'read',
       'status' => 'pending',
       'locations' => [{ 'path' => '/home/user/project/src/main.py', 'line' => 42 }],
@@ -30,6 +31,7 @@ describe ACP::Types::SessionUpdate do
     ACP::Types::SessionUpdate::ToolCallUpdate => {
       'sessionUpdate' => 'tool_call_update',
       'toolCallId' => 'call_001',
+      'name' => 'read_file',
       'status' => 'completed',
       'content' => [
         { 'type' => 'content', 'content' => { 'type' => 'text', 'text' => 'Analysis complete. Found 3 issues.' } },
