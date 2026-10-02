@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/bottrall/acp-sdk/compare/v0.3.0...v0.4.0) (2026-10-02)
+
+
+### Features
+
+* bump the vendored schema to v1.24.1 ([#58](https://github.com/bottrall/acp-sdk/issues/58)) ([56d8505](https://github.com/bottrall/acp-sdk/commit/56d85057a1c34f1a089580a78b7b66973c92a9e8))
+
+
+### Bug Fixes
+
+* return a RequestError for malformed peer responses ([#57](https://github.com/bottrall/acp-sdk/issues/57)) ([e52d479](https://github.com/bottrall/acp-sdk/commit/e52d479ce8cd6de37f753e7580d5562f1ace2d7d)), closes [#27](https://github.com/bottrall/acp-sdk/issues/27)
+* route logout on ACP::AgentConnection ([#55](https://github.com/bottrall/acp-sdk/issues/55)) ([3b2b144](https://github.com/bottrall/acp-sdk/commit/3b2b1444c502380a058231884c66efe26bb3770a)), closes [#26](https://github.com/bottrall/acp-sdk/issues/26)
+
 ## [0.3.0](https://github.com/bottrall/acp-sdk/compare/v0.2.0...v0.3.0) (2026-10-02)
 
 
