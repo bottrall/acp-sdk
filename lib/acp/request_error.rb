@@ -1,0 +1,81 @@
+# frozen_string_literal: true
+
+# The schema's JSON-RPC Error object, named after the official SDKs'
+# RequestError: built by handlers and local refusals, and decoded from a
+# peer's error replies by the transport.
+class ACP::RequestError
+  PARSE_ERROR = -32_700 #: Integer
+  INVALID_REQUEST = -32_600 #: Integer
+  METHOD_NOT_FOUND = -32_601 #: Integer
+  INVALID_PARAMS = -32_602 #: Integer
+  INTERNAL_ERROR = -32_603 #: Integer
+  REQUEST_CANCELLED = -32_800 #: Integer
+  AUTH_REQUIRED = -32_000 #: Integer
+  RESOURCE_NOT_FOUND = -32_002 #: Integer
+
+  # @rbs code: Integer
+  # @rbs message: String
+  # @rbs data: untyped
+  # @rbs return: void
+  def initialize(code:, message:, data: nil)
+    @code = code
+    @message = message
+    @data = data
+    freeze
+  end
+
+  # @dynamic code
+  attr_reader :code #: Integer
+
+  # @dynamic message
+  attr_reader :message #: String
+
+  # @dynamic data
+  attr_reader :data #: untyped
+
+  # @rbs return: Hash[String, untyped]
+  def to_h
+    { 'code' => code, 'message' => message, 'data' => data }.compact
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.parse_error
+    new(code: PARSE_ERROR, message: 'Parse error')
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.invalid_request
+    new(code: INVALID_REQUEST, message: 'Invalid request')
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.method_not_found
+    new(code: METHOD_NOT_FOUND, message: 'Method not found')
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.invalid_params
+    new(code: INVALID_PARAMS, message: 'Invalid params')
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.internal_error
+    new(code: INTERNAL_ERROR, message: 'Internal error')
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.request_cancelled
+    new(code: REQUEST_CANCELLED, message: 'Request cancelled')
+  end
+
+  # @rbs return: ACP::RequestError
+  def self.auth_required
+    new(code: AUTH_REQUIRED, message: 'Authentication required')
+  end
+
+  # @rbs uri: String?
+  # @rbs return: ACP::RequestError
+  def self.resource_not_found(uri = nil)
+    new(code: RESOURCE_NOT_FOUND, message: 'Resource not found', data: uri && { uri: uri })
+  end
+end

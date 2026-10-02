@@ -31,7 +31,7 @@ describe ACP::Transport::Stdio do
 
   def outcome(thread)
     result = thread.join(2)&.value
-    result.ok? ? [:ok, result.value] : [:error, result.error.to_h]
+    result.is_a?(ACP::RequestError) ? [:error, result.to_h] : [:ok, result]
   end
 
   it 'correlates responses to outbound requests by id' do
@@ -57,7 +57,7 @@ describe ACP::Transport::Stdio do
   end
 
   it 'serves an inbound request with its handler' do
-    start(requests: { 'echo' => ->(params) { ACP::Transport::Result.ok(params) } })
+    start(requests: { 'echo' => ->(params) { params } })
     send_message({ 'jsonrpc' => '2.0', 'id' => 7, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
 
     assert_equal({ 'jsonrpc' => '2.0', 'id' => 7, 'result' => { 'text' => 'hi' } }, receive_message)
@@ -65,12 +65,12 @@ describe ACP::Transport::Stdio do
 
   it 'runs a reply\'s after callback once the reply is written' do
     after = -> { @transport.notify('session/update', { 'after' => true }) }
-    start(requests: { 'echo' => ->(params) { ACP::Transport::Reply.new(ACP::Transport::Result.ok(params), after:) } })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'echo', 'params' => 'hi' })
+    start(requests: { 'echo' => ->(params) { ACP::Transport::Reply.new(params, after:) } })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
 
     assert_equal(
       [
-        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => 'hi' },
+        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'text' => 'hi' } },
         { 'jsonrpc' => '2.0', 'method' => 'session/update', 'params' => { 'after' => true } }
       ],
       [receive_message, receive_message]
@@ -79,17 +79,17 @@ describe ACP::Transport::Stdio do
 
   it 'keeps serving after a reply\'s after callback raises' do
     requests = {
-      'boom' => ->(_) { ACP::Transport::Reply.new(ACP::Transport::Result.ok('sent'), after: -> { raise 'kaboom' }) },
-      'echo' => ->(params) { ACP::Transport::Result.ok(params) }
+      'boom' => ->(_) { ACP::Transport::Reply.new({ 'echo' => 'sent' }, after: -> { raise 'kaboom' }) },
+      'echo' => ->(params) { params }
     }
     start(requests:)
     send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'boom' })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => 'still here' })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => { 'text' => 'still here' } })
 
     assert_equal(
       [
-        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => 'sent' },
-        { 'jsonrpc' => '2.0', 'id' => 2, 'result' => 'still here' }
+        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'echo' => 'sent' } },
+        { 'jsonrpc' => '2.0', 'id' => 2, 'result' => { 'text' => 'still here' } }
       ],
       [receive_message, receive_message].sort_by { |message| message['id'] }
     )
@@ -135,8 +135,8 @@ describe ACP::Transport::Stdio do
     session = { 'sessionId' => 'sess_1' }
     cancels = Thread::Queue.new
     prompt = lambda do |params|
-      permission = @transport.request('session/request_permission', params).value
-      ACP::Transport::Result.ok({ 'permission' => permission, 'cancelled' => cancels.pop(timeout: 2) })
+      permission = @transport.request('session/request_permission', params)
+      { 'permission' => permission, 'cancelled' => cancels.pop(timeout: 2) }
     end
     start(requests: { 'session/prompt' => prompt }, notifications: { 'session/cancel' => cancels.method(:push) })
 
@@ -156,28 +156,28 @@ describe ACP::Transport::Stdio do
   end
 
   it 'answers a malformed line with a parse error and keeps reading' do
-    start(requests: { 'echo' => ->(params) { ACP::Transport::Result.ok(params) } })
+    start(requests: { 'echo' => ->(params) { params } })
     @peer_writer.puts('{"jsonrpc": "2.0", "id": 1, "method"')
-    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => 'still here' })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => { 'text' => 'still here' } })
 
     assert_equal(
       [
         { 'jsonrpc' => '2.0', 'id' => nil, 'error' => { 'code' => -32_700, 'message' => 'Parse error' } },
-        { 'jsonrpc' => '2.0', 'id' => 2, 'result' => 'still here' }
+        { 'jsonrpc' => '2.0', 'id' => 2, 'result' => { 'text' => 'still here' } }
       ],
       [receive_message, receive_message]
     )
   end
 
   it 'answers a line of invalid UTF-8 with a parse error and keeps reading' do
-    start(requests: { 'echo' => ->(params) { ACP::Transport::Result.ok(params) } })
+    start(requests: { 'echo' => ->(params) { params } })
     @peer_writer.puts("{\"jsonrpc\": \"2.0\", \"method\": \"\xFF\"}")
-    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => 'still here' })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => { 'text' => 'still here' } })
 
     assert_equal(
       [
         { 'jsonrpc' => '2.0', 'id' => nil, 'error' => { 'code' => -32_700, 'message' => 'Parse error' } },
-        { 'jsonrpc' => '2.0', 'id' => 2, 'result' => 'still here' }
+        { 'jsonrpc' => '2.0', 'id' => 2, 'result' => { 'text' => 'still here' } }
       ],
       [receive_message, receive_message]
     )
@@ -208,6 +208,6 @@ describe ACP::Transport::Stdio do
 
     closed = ACP::Transport::Stdio::CONNECTION_CLOSED
 
-    assert_equal [@reader, closed], [@reader.join(2), @transport.request('session/request_permission').error]
+    assert_equal [@reader, closed], [@reader.join(2), @transport.request('session/request_permission')]
   end
 end

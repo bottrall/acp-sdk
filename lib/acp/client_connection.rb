@@ -33,33 +33,33 @@ class ACP::ClientConnection
   # sent by connect.
   #
   # @rbs request: ACP::Types::InitializeRequest
-  # @rbs return: ACP::Types::InitializeResponse | ACP::Transport::ResponseError
+  # @rbs return: ACP::Types::InitializeResponse | ACP::RequestError
   def connect(request)
     parse(ACP::Types::InitializeResponse, @transport.request('initialize', request.to_h))
   end
 
   # @rbs request: ACP::Types::NewSessionRequest
-  # @rbs return: ACP::Types::NewSessionResponse | ACP::Transport::ResponseError
+  # @rbs return: ACP::Types::NewSessionResponse | ACP::RequestError
   def session_new(request)
     parse(ACP::Types::NewSessionResponse, @transport.request('session/new', request.to_h))
   end
 
   # @rbs request: ACP::Types::PromptRequest
   # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
-  # @rbs return: ACP::Types::PromptResponse | ACP::Transport::ResponseError
+  # @rbs return: ACP::Types::PromptResponse | ACP::RequestError
   def session_prompt(request, &)
     parse(ACP::Types::PromptResponse, stream(request.session_id, 'session/prompt', request.to_h, &))
   end
 
   # @rbs request: ACP::Types::LoadSessionRequest
   # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
-  # @rbs return: ACP::Types::LoadSessionResponse | ACP::Transport::ResponseError
+  # @rbs return: ACP::Types::LoadSessionResponse | ACP::RequestError
   def session_load(request, &)
     parse(ACP::Types::LoadSessionResponse, stream(request.session_id, 'session/load', request.to_h, &))
   end
 
   # @rbs request: ACP::Types::ListSessionsRequest
-  # @rbs return: ACP::Types::ListSessionsResponse | ACP::Transport::ResponseError
+  # @rbs return: ACP::Types::ListSessionsResponse | ACP::RequestError
   def session_list(request)
     parse(ACP::Types::ListSessionsResponse, @transport.request('session/list', request.to_h))
   end
@@ -73,10 +73,12 @@ class ACP::ClientConnection
   private
 
   # @rbs type: ACP::AgentConnection::_Parser
-  # @rbs result: ACP::Transport::Result
+  # @rbs result: (Hash[String, untyped] | ACP::RequestError)
   # @rbs return: untyped
   def parse(type, result)
-    result.error || type.from_h(result.value)
+    return result if result.is_a?(ACP::RequestError)
+
+    type.from_h(result)
   end
 
   # The request waits on its own thread so the caller's thread can yield each
@@ -87,7 +89,7 @@ class ACP::ClientConnection
   # @rbs method: String
   # @rbs params: Hash[String, untyped]
   # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
-  # @rbs return: ACP::Transport::Result
+  # @rbs return: (Hash[String, untyped] | ACP::RequestError)
   def stream(session_id, method, params)
     queue = Thread::Queue.new
     @lock.synchronize { @streams[session_id] = queue }
@@ -114,16 +116,12 @@ class ACP::ClientConnection
   end
 
   # @rbs params: untyped
-  # @rbs return: ACP::Transport::Result
+  # @rbs return: (ACP::Types::RequestPermissionResponse | ACP::RequestError)
   def request_permission(params)
     request = ACP::Types::RequestPermissionRequest.from_h(params)
   rescue KeyError, TypeError, NoMethodError
-    ACP::Transport::Result.error(ACP::AgentConnection::INVALID_PARAMS)
+    ACP::RequestError.invalid_params
   else
-    response = @permission.call(request)
-    case response
-    when ACP::Transport::ResponseError then ACP::Transport::Result.error(response)
-    else ACP::Transport::Result.ok(response.to_h)
-    end
+    @permission.call(request)
   end
 end

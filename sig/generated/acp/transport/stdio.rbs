@@ -20,15 +20,7 @@ class ACP::Transport::Stdio
 
   @input: _Reader
 
-  INTERNAL_ERROR: Integer
-
-  PARSE_ERROR: ACP::Transport::ResponseError
-
-  INVALID_REQUEST: ACP::Transport::ResponseError
-
-  METHOD_NOT_FOUND: ACP::Transport::ResponseError
-
-  CONNECTION_CLOSED: ACP::Transport::ResponseError
+  CONNECTION_CLOSED: ACP::RequestError
 
   # @rbs input: _Reader
   # @rbs output: _Writer
@@ -45,8 +37,8 @@ class ACP::Transport::Stdio
 
   # @rbs method: String
   # @rbs params: untyped
-  # @rbs return: ACP::Transport::Result
-  def request: (String method, ?untyped params) -> ACP::Transport::Result
+  # @rbs return: (Hash[String, untyped] | ACP::RequestError)
+  def request: (String method, ?untyped params) -> (Hash[String, untyped] | ACP::RequestError)
 
   # @rbs method: String
   # @rbs params: untyped
@@ -68,8 +60,8 @@ class ACP::Transport::Stdio
   def route: (Hash[String, untyped] message, Hash[String, _Handler] requests, Hash[String, _NotificationHandler] notifications) -> void
 
   # @rbs line: String
-  # @rbs return: Hash[String, untyped] | ACP::Transport::ResponseError
-  def parse: (String line) -> (Hash[String, untyped] | ACP::Transport::ResponseError)
+  # @rbs return: Hash[String, untyped] | ACP::RequestError
+  def parse: (String line) -> (Hash[String, untyped] | ACP::RequestError)
 
   # @rbs handler: _Handler?
   # @rbs id: untyped
@@ -90,22 +82,25 @@ class ACP::Transport::Stdio
   #
   # @rbs handler: _Handler
   # @rbs params: untyped
-  # @rbs return: ACP::Transport::Result | ACP::Transport::Reply
-  def invoke: (_Handler handler, untyped params) -> (ACP::Transport::Result | ACP::Transport::Reply)
+  # @rbs return: (_ToH | ACP::RequestError | ACP::Transport::Reply)
+  def invoke: (_Handler handler, untyped params) -> (_ToH | ACP::RequestError | ACP::Transport::Reply)
 
+  # The success arm is whatever the handler returned, which the transport only
+  # knows serializes with to_h; RequestError picks the error arm of the reply.
+  #
   # @rbs id: untyped
-  # @rbs result: ACP::Transport::Result
+  # @rbs outcome: (_ToH | ACP::RequestError)
   # @rbs return: void
-  def reply: (untyped id, ACP::Transport::Result result) -> void
+  def reply: (untyped id, _ToH | ACP::RequestError outcome) -> void
 
   # @rbs queue: Thread::Queue
   # @rbs return: Integer?
   def register: (Thread::Queue queue) -> Integer?
 
   # @rbs id: untyped
-  # @rbs result: ACP::Transport::Result
+  # @rbs result: (Hash[String, untyped] | ACP::RequestError)
   # @rbs return: void
-  def settle: (untyped id, ACP::Transport::Result result) -> void
+  def settle: (untyped id, Hash[String, untyped] | ACP::RequestError result) -> void
 
   # @rbs return: void
   def close: () -> void

@@ -149,7 +149,7 @@ describe ACP::ClientConnection do
     end
 
     it 'returns the error a permission handler answers with as the prompt error' do
-      error = ACP::Transport::ResponseError.new(code: -32_000, message: 'No user')
+      error = ACP::RequestError.new(code: -32_000, message: 'No user')
       connection = start { error }
       session_id = new_session(connection)
       response = within { connection.session_prompt(prompt_request(session_id, 'hello')) { nil } }

@@ -26,26 +26,26 @@ class ACP::ClientConnection
   # sent by connect.
   #
   # @rbs request: ACP::Types::InitializeRequest
-  # @rbs return: ACP::Types::InitializeResponse | ACP::Transport::ResponseError
-  def connect: (ACP::Types::InitializeRequest request) -> (ACP::Types::InitializeResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::InitializeResponse | ACP::RequestError
+  def connect: (ACP::Types::InitializeRequest request) -> (ACP::Types::InitializeResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::NewSessionRequest
-  # @rbs return: ACP::Types::NewSessionResponse | ACP::Transport::ResponseError
-  def session_new: (ACP::Types::NewSessionRequest request) -> (ACP::Types::NewSessionResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::NewSessionResponse | ACP::RequestError
+  def session_new: (ACP::Types::NewSessionRequest request) -> (ACP::Types::NewSessionResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::PromptRequest
   # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
-  # @rbs return: ACP::Types::PromptResponse | ACP::Transport::ResponseError
-  def session_prompt: (ACP::Types::PromptRequest request) { (ACP::Types::SessionUpdate::t) -> void } -> (ACP::Types::PromptResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::PromptResponse | ACP::RequestError
+  def session_prompt: (ACP::Types::PromptRequest request) { (ACP::Types::SessionUpdate::t) -> void } -> (ACP::Types::PromptResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::LoadSessionRequest
   # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
-  # @rbs return: ACP::Types::LoadSessionResponse | ACP::Transport::ResponseError
-  def session_load: (ACP::Types::LoadSessionRequest request) { (ACP::Types::SessionUpdate::t) -> void } -> (ACP::Types::LoadSessionResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::LoadSessionResponse | ACP::RequestError
+  def session_load: (ACP::Types::LoadSessionRequest request) { (ACP::Types::SessionUpdate::t) -> void } -> (ACP::Types::LoadSessionResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::ListSessionsRequest
-  # @rbs return: ACP::Types::ListSessionsResponse | ACP::Transport::ResponseError
-  def session_list: (ACP::Types::ListSessionsRequest request) -> (ACP::Types::ListSessionsResponse | ACP::Transport::ResponseError)
+  # @rbs return: ACP::Types::ListSessionsResponse | ACP::RequestError
+  def session_list: (ACP::Types::ListSessionsRequest request) -> (ACP::Types::ListSessionsResponse | ACP::RequestError)
 
   # @rbs notification: ACP::Types::CancelNotification
   # @rbs return: void
@@ -54,9 +54,9 @@ class ACP::ClientConnection
   private
 
   # @rbs type: ACP::AgentConnection::_Parser
-  # @rbs result: ACP::Transport::Result
+  # @rbs result: (Hash[String, untyped] | ACP::RequestError)
   # @rbs return: untyped
-  def parse: (ACP::AgentConnection::_Parser type, ACP::Transport::Result result) -> untyped
+  def parse: (ACP::AgentConnection::_Parser type, Hash[String, untyped] | ACP::RequestError result) -> untyped
 
   # The request waits on its own thread so the caller's thread can yield each
   # update as it arrives. The reader thread queues an update before it settles
@@ -66,8 +66,8 @@ class ACP::ClientConnection
   # @rbs method: String
   # @rbs params: Hash[String, untyped]
   # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
-  # @rbs return: ACP::Transport::Result
-  def stream: (String session_id, String method, Hash[String, untyped] params) { (ACP::Types::SessionUpdate::t) -> void } -> ACP::Transport::Result
+  # @rbs return: (Hash[String, untyped] | ACP::RequestError)
+  def stream: (String session_id, String method, Hash[String, untyped] params) { (ACP::Types::SessionUpdate::t) -> void } -> (Hash[String, untyped] | ACP::RequestError)
 
   # Pushes under the lock so a stream cannot close its queue between the
   # lookup and the push.
@@ -77,6 +77,6 @@ class ACP::ClientConnection
   def dispatch: (untyped params) -> void
 
   # @rbs params: untyped
-  # @rbs return: ACP::Transport::Result
-  def request_permission: (untyped params) -> ACP::Transport::Result
+  # @rbs return: (ACP::Types::RequestPermissionResponse | ACP::RequestError)
+  def request_permission: (untyped params) -> (ACP::Types::RequestPermissionResponse | ACP::RequestError)
 end

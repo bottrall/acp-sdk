@@ -16,11 +16,9 @@ class ACP::Transport::Stdio
   # @rbs @next_id: Integer
   # @rbs @closed: bool
 
-  INTERNAL_ERROR = -32_603 #: Integer
-  PARSE_ERROR = ACP::Transport::ResponseError.new(code: -32_700, message: 'Parse error') #: ACP::Transport::ResponseError
-  INVALID_REQUEST = ACP::Transport::ResponseError.new(code: -32_600, message: 'Invalid request') #: ACP::Transport::ResponseError
-  METHOD_NOT_FOUND = ACP::Transport::ResponseError.new(code: -32_601, message: 'Method not found') #: ACP::Transport::ResponseError
-  CONNECTION_CLOSED = ACP::Transport::ResponseError.new(code: INTERNAL_ERROR, message: 'Connection closed') #: ACP::Transport::ResponseError
+  CONNECTION_CLOSED = ACP::RequestError.new(
+    code: ACP::RequestError::INTERNAL_ERROR, message: 'Connection closed'
+  ) #: ACP::RequestError
 
   # @rbs input: _Reader
   # @rbs output: _Writer
@@ -52,14 +50,14 @@ class ACP::Transport::Stdio
 
   # @rbs method: String
   # @rbs params: untyped
-  # @rbs return: ACP::Transport::Result
+  # @rbs return: (Hash[String, untyped] | ACP::RequestError)
   def request(method, params = nil)
     queue = Thread::Queue.new
     id = register(queue)
-    return ACP::Transport::Result.error(CONNECTION_CLOSED) unless id
+    return CONNECTION_CLOSED unless id
 
     write({ 'jsonrpc' => '2.0', 'id' => id, 'method' => method, 'params' => params }.compact)
-    queue.pop || ACP::Transport::Result.error(CONNECTION_CLOSED)
+    queue.pop || CONNECTION_CLOSED
   end
 
   # @rbs method: String
@@ -78,7 +76,7 @@ class ACP::Transport::Stdio
   def receive(line, requests, notifications)
     message = parse(line)
     case message
-    when ACP::Transport::ResponseError then reply(nil, ACP::Transport::Result.error(message))
+    when ACP::RequestError then reply(nil, message)
     else route(message, requests, notifications)
     end
   end
@@ -98,25 +96,24 @@ class ACP::Transport::Stdio
       handler = notifications[method]
       quietly { handler.call(message['params']) } if handler
     elsif message.key?('result')
-      settle(message['id'], ACP::Transport::Result.ok(message['result']))
+      settle(message['id'], message['result'])
     elsif error.is_a?(Hash) && error['code'].is_a?(Integer) && error['message'].is_a?(String)
       code, text, data = error.values_at('code', 'message', 'data')
-      response_error = ACP::Transport::ResponseError.new(code:, message: text, data:)
-      settle(message['id'], ACP::Transport::Result.error(response_error))
+      settle(message['id'], ACP::RequestError.new(code:, message: text, data:))
     else
-      reply(nil, ACP::Transport::Result.error(INVALID_REQUEST))
+      reply(nil, ACP::RequestError.invalid_request)
     end
   end
 
   # @rbs line: String
-  # @rbs return: Hash[String, untyped] | ACP::Transport::ResponseError
+  # @rbs return: Hash[String, untyped] | ACP::RequestError
   def parse(line)
-    return PARSE_ERROR unless line.valid_encoding?
+    return ACP::RequestError.parse_error unless line.valid_encoding?
 
     message = JSON.parse(line)
-    message.is_a?(Hash) ? message : INVALID_REQUEST
+    message.is_a?(Hash) ? message : ACP::RequestError.invalid_request
   rescue JSON::ParserError
-    PARSE_ERROR
+    ACP::RequestError.parse_error
   end
 
   # @rbs handler: _Handler?
@@ -125,7 +122,7 @@ class ACP::Transport::Stdio
   # @rbs return: void
   def serve(handler, id, params)
     Thread.new do
-      outcome = handler ? invoke(handler, params) : ACP::Transport::Result.error(METHOD_NOT_FOUND)
+      outcome = handler ? invoke(handler, params) : ACP::RequestError.method_not_found
       case outcome
       when ACP::Transport::Reply
         reply(id, outcome.result)
@@ -152,19 +149,25 @@ class ACP::Transport::Stdio
   #
   # @rbs handler: _Handler
   # @rbs params: untyped
-  # @rbs return: ACP::Transport::Result | ACP::Transport::Reply
+  # @rbs return: (_ToH | ACP::RequestError | ACP::Transport::Reply)
   def invoke(handler, params)
     handler.call(params)
   rescue StandardError => e
-    ACP::Transport::Result.error(ACP::Transport::ResponseError.new(code: INTERNAL_ERROR, message: e.message))
+    ACP::RequestError.new(code: ACP::RequestError::INTERNAL_ERROR, message: e.message)
   end
 
+  # The success arm is whatever the handler returned, which the transport only
+  # knows serializes with to_h; RequestError picks the error arm of the reply.
+  #
   # @rbs id: untyped
-  # @rbs result: ACP::Transport::Result
+  # @rbs outcome: (_ToH | ACP::RequestError)
   # @rbs return: void
-  def reply(id, result)
-    error = result.error
-    write({ 'jsonrpc' => '2.0', 'id' => id }.merge(error ? { 'error' => error.to_h } : { 'result' => result.value }))
+  def reply(id, outcome)
+    payload = case outcome
+              when ACP::RequestError then { 'error' => outcome.to_h }
+              else { 'result' => outcome.to_h }
+              end
+    write({ 'jsonrpc' => '2.0', 'id' => id }.merge(payload))
   end
 
   # @rbs queue: Thread::Queue
@@ -180,7 +183,7 @@ class ACP::Transport::Stdio
   end
 
   # @rbs id: untyped
-  # @rbs result: ACP::Transport::Result
+  # @rbs result: (Hash[String, untyped] | ACP::RequestError)
   # @rbs return: void
   def settle(id, result)
     @lock.synchronize { @pending.delete(id) }&.push(result)

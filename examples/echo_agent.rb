@@ -30,7 +30,7 @@ class EchoAgent
     ACP::Types::PermissionOption.new(option_id: ALLOW, name: 'Allow', kind: ACP::Types::PermissionOptionKind::ALLOW_ONCE),
     ACP::Types::PermissionOption.new(option_id: 'reject', name: 'Reject', kind: ACP::Types::PermissionOptionKind::REJECT_ONCE)
   ].freeze
-  NOT_FOUND = ACP::Transport::ResponseError.new(code: -32_002, message: 'Resource not found')
+  NOT_FOUND = ACP::RequestError.resource_not_found
 
   class Session
     attr_reader :cwd, :history
@@ -70,14 +70,14 @@ class EchoAgent
     blocks = request.prompt.grep(ACP::Types::ContentBlock::Text)
     record(session_id, blocks.map { |block| ACP::Types::SessionUpdate::UserMessageChunk.new(content: block) })
     permission = ask_permission(session_id)
-    return permission if permission.is_a?(ACP::Transport::ResponseError)
+    return permission if permission.is_a?(ACP::RequestError)
     return ACP::Types::PromptResponse.new(stop_reason: ACP::Types::StopReason::CANCELLED) if cancelled?(
       session_id,
       permission
     )
 
     reply = respond(session_id, blocks) if allowed?(permission)
-    return reply if reply.is_a?(ACP::Transport::ResponseError)
+    return reply if reply.is_a?(ACP::RequestError)
 
     ACP::Types::PromptResponse.new(stop_reason: ACP::Types::StopReason::END_TURN)
   end
@@ -159,7 +159,7 @@ class EchoAgent
 
   def read(session_id, path)
     file = @client.read_text_file(ACP::Types::ReadTextFileRequest.new(session_id:, path:))
-    return file if file.is_a?(ACP::Transport::ResponseError)
+    return file if file.is_a?(ACP::RequestError)
 
     echo(session_id, [ACP::Types::ContentBlock::Text.new(text: file.content)])
   end
@@ -173,14 +173,14 @@ class EchoAgent
       begin
         Shellwords.split(command_line)
       rescue ArgumentError
-        return ACP::AgentConnection::INVALID_PARAMS
+        return ACP::RequestError.invalid_params
       end
 
     terminal = @client.create_terminal(ACP::Types::CreateTerminalRequest.new(session_id:, command:, args:))
-    return terminal if terminal.is_a?(ACP::Transport::ResponseError)
+    return terminal if terminal.is_a?(ACP::RequestError)
 
     output = finish(session_id, terminal.terminal_id)
-    return output if output.is_a?(ACP::Transport::ResponseError)
+    return output if output.is_a?(ACP::RequestError)
 
     echo(session_id, [ACP::Types::ContentBlock::Text.new(text: output.output)])
   end
@@ -189,7 +189,7 @@ class EchoAgent
   def finish(session_id, terminal_id)
     status = @client.wait_for_terminal_exit(ACP::Types::WaitForTerminalExitRequest.new(session_id:, terminal_id:))
     output =
-      if status.is_a?(ACP::Transport::ResponseError) then status
+      if status.is_a?(ACP::RequestError) then status
       else @client.terminal_output(ACP::Types::TerminalOutputRequest.new(session_id:, terminal_id:))
       end
     @client.release_terminal(ACP::Types::ReleaseTerminalRequest.new(session_id:, terminal_id:))

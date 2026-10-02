@@ -6,7 +6,6 @@ class ACP::AgentConnection
   # @rbs @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
 
   PROTOCOL_VERSION = 1 #: Integer
-  INVALID_PARAMS = ACP::Transport::ResponseError.new(code: -32_602, message: 'Invalid params') #: ACP::Transport::ResponseError
   OPTIONAL = [
     ACP::AgentConnection::OptionalMethod::LoadSession,
     ACP::AgentConnection::OptionalMethod::ListSessions,
@@ -56,26 +55,24 @@ class ACP::AgentConnection
 
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs client: ACP::AgentConnection::Client
-  # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)]
+  # @rbs return: Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
   def requests(agent, client)
     # Safe: start drops the optional handlers initialize does not advertise
     # or the agent does not define, and checks the agent defines the rest.
     full = agent #: ACP::AgentConnection::_FullAgent
     {
       'initialize' => route(ACP::Types::InitializeRequest) { |request| connect(client, request) },
-      'authenticate' => route(ACP::Types::AuthenticateRequest) { |request| respond(full.authenticate(request)) },
+      'authenticate' => route(ACP::Types::AuthenticateRequest) { |request| full.authenticate(request) },
       'session/new' => route(ACP::Types::NewSessionRequest) { |request| new_session(agent, request) },
-      'session/prompt' => route(ACP::Types::PromptRequest) { |request| respond(agent.prompt(request)) },
-      'session/load' => route(ACP::Types::LoadSessionRequest) { |request| respond(full.load_session(request)) },
-      'session/list' => route(ACP::Types::ListSessionsRequest) { |request| respond(full.list_sessions(request)) },
-      'session/resume' => route(ACP::Types::ResumeSessionRequest) { |request| respond(full.resume_session(request)) },
-      'session/close' => route(ACP::Types::CloseSessionRequest) { |request| respond(full.close_session(request)) },
-      'session/delete' => route(ACP::Types::DeleteSessionRequest) { |request| respond(full.delete_session(request)) },
-      'session/set_mode' => route(ACP::Types::SetSessionModeRequest) do |request|
-        respond(full.change_session_mode(request))
-      end,
+      'session/prompt' => route(ACP::Types::PromptRequest) { |request| agent.prompt(request) },
+      'session/load' => route(ACP::Types::LoadSessionRequest) { |request| full.load_session(request) },
+      'session/list' => route(ACP::Types::ListSessionsRequest) { |request| full.list_sessions(request) },
+      'session/resume' => route(ACP::Types::ResumeSessionRequest) { |request| full.resume_session(request) },
+      'session/close' => route(ACP::Types::CloseSessionRequest) { |request| full.close_session(request) },
+      'session/delete' => route(ACP::Types::DeleteSessionRequest) { |request| full.delete_session(request) },
+      'session/set_mode' => route(ACP::Types::SetSessionModeRequest) { |request| full.change_session_mode(request) },
       'session/set_config_option' => route(ACP::Types::SetSessionConfigOptionRequest) do |request|
-        respond(full.change_session_config_option(request))
+        full.change_session_config_option(request)
       end
     }
   end
@@ -89,33 +86,24 @@ class ACP::AgentConnection
   # Generated from_h raises on a missing key or a value of the wrong shape.
   #
   # @rbs type: ACP::AgentConnection::_Parser
-  # @rbs &handle: (untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)
-  # @rbs return: ^(untyped) -> (ACP::Transport::Result | ACP::Transport::Reply)
+  # @rbs &handle: (untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)
+  # @rbs return: ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)
   def route(type, &)
     lambda do |params|
       request = type.from_h(params)
     rescue KeyError, TypeError, NoMethodError
-      ACP::Transport::Result.error(INVALID_PARAMS)
+      ACP::RequestError.invalid_params
     else
       yield(request)
     end
   end
 
-  # @rbs response: ACP::AgentConnection::_Response | ACP::Transport::ResponseError
-  # @rbs return: ACP::Transport::Result
-  def respond(response)
-    case response
-    when ACP::Transport::ResponseError then ACP::Transport::Result.error(response)
-    else ACP::Transport::Result.ok(response.to_h)
-    end
-  end
-
   # @rbs client: ACP::AgentConnection::Client
   # @rbs request: ACP::Types::InitializeRequest
-  # @rbs return: ACP::Transport::Result
+  # @rbs return: ACP::Types::InitializeResponse
   def connect(client, request)
     client.capabilities = request.client_capabilities || ACP::Types::ClientCapabilities.new
-    respond(@initialize_response)
+    @initialize_response
   end
 
   # session_created runs after the reply because the client must know the
@@ -123,13 +111,12 @@ class ACP::AgentConnection
   #
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs request: ACP::Types::NewSessionRequest
-  # @rbs return: ACP::Transport::Result | ACP::Transport::Reply
+  # @rbs return: (ACP::Types::NewSessionResponse | ACP::RequestError | ACP::Transport::Reply)
   def new_session(agent, request)
     response = agent.new_session(request)
-    result = respond(response)
-    return result unless response.is_a?(ACP::Types::NewSessionResponse) && agent.respond_to?(:session_created)
+    return response unless response.is_a?(ACP::Types::NewSessionResponse) && agent.respond_to?(:session_created)
 
     hook = agent #: ACP::AgentConnection::_Agent & ACP::AgentConnection::_SessionCreated
-    ACP::Transport::Reply.new(result, after: -> { hook.session_created(response) })
+    ACP::Transport::Reply.new(response, after: -> { hook.session_created(response) })
   end
 end
