@@ -1,13 +1,17 @@
 # Generated from lib/acp/agent_connection.rb with RBS::Inline
 
 class ACP::AgentConnection
-  @transport: ACP::AgentConnection::_Transport
-
-  @initialize_response: ACP::Types::InitializeResponse
+  @logger: ACP::Transport::_Logger
 
   @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
 
-  @logger: ACP::Transport::_Logger
+  @auth_methods: Array[ACP::Types::AuthMethod::t]
+
+  @agent_info: ACP::Types::Implementation?
+
+  @capabilities: ACP::Types::AgentCapabilities
+
+  @transport: ACP::AgentConnection::_Transport
 
   PROTOCOL_VERSION: Integer
 
@@ -59,6 +63,18 @@ class ACP::AgentConnection
   # @rbs request: ACP::Types::InitializeRequest
   # @rbs return: ACP::Types::InitializeResponse
   def connect: (ACP::AgentConnection::Client client, ACP::Types::InitializeRequest request) -> ACP::Types::InitializeResponse
+
+  # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]
+  # @rbs return: ACP::Types::InitializeResponse
+  def initialize_response: (Array[ACP::Types::AuthMethod::t] auth_methods) -> ACP::Types::InitializeResponse
+
+  # @rbs capabilities: ACP::Types::ClientCapabilities
+  # @rbs return: Array[ACP::Types::AuthMethod::t]
+  def auth_methods: (ACP::Types::ClientCapabilities capabilities) -> Array[ACP::Types::AuthMethod::t]
+
+  # @rbs method: ACP::Types::AuthMethod::t
+  # @rbs return: bool
+  def terminal_auth_method?: (ACP::Types::AuthMethod::t method) -> bool
 
   # session_created runs after the reply because the client must know the
   # session id before updates for it (e.g. available commands) arrive.

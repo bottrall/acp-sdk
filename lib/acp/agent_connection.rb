@@ -2,7 +2,9 @@
 
 class ACP::AgentConnection
   # @rbs @transport: ACP::AgentConnection::_Transport
-  # @rbs @initialize_response: ACP::Types::InitializeResponse
+  # @rbs @capabilities: ACP::Types::AgentCapabilities
+  # @rbs @agent_info: ACP::Types::Implementation?
+  # @rbs @auth_methods: Array[ACP::Types::AuthMethod::t]
   # @rbs @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
   # @rbs @logger: ACP::Transport::_Logger
 
@@ -41,12 +43,9 @@ class ACP::AgentConnection
   )
     @transport = transport
     @logger = logger
-    @initialize_response = ACP::Types::InitializeResponse.new(
-      protocol_version: PROTOCOL_VERSION,
-      agent_capabilities: capabilities,
-      auth_methods:,
-      agent_info:
-    )
+    @capabilities = capabilities
+    @agent_info = agent_info
+    @auth_methods = auth_methods
     @factory = factory
   end
 
@@ -54,7 +53,10 @@ class ACP::AgentConnection
   def start
     client = ACP::AgentConnection::Client.new(peer: @transport)
     agent = @factory.call(client)
-    advertised, unadvertised = OPTIONAL.partition { |method| method.advertised?(@initialize_response) }
+    # Routes are fixed before a client connects, so the check sees the
+    # unfiltered auth methods: a terminal-capable client still needs
+    # authenticate routed.
+    advertised, unadvertised = OPTIONAL.partition { |method| method.advertised?(initialize_response(@auth_methods)) }
     missing = advertised.map(&:agent_method).reject { |name| agent.respond_to?(name) }
     raise ArgumentError, "initialize advertises methods the agent lacks: #{missing.join(', ')}" unless missing.empty?
 
@@ -127,8 +129,34 @@ class ACP::AgentConnection
   # @rbs request: ACP::Types::InitializeRequest
   # @rbs return: ACP::Types::InitializeResponse
   def connect(client, request)
-    client.capabilities = request.client_capabilities || ACP::Types::ClientCapabilities.new
-    @initialize_response
+    capabilities = request.client_capabilities || ACP::Types::ClientCapabilities.new
+    client.capabilities = capabilities
+    initialize_response(auth_methods(capabilities))
+  end
+
+  # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]
+  # @rbs return: ACP::Types::InitializeResponse
+  def initialize_response(auth_methods)
+    ACP::Types::InitializeResponse.new(
+      protocol_version: PROTOCOL_VERSION,
+      agent_capabilities: @capabilities,
+      auth_methods:,
+      agent_info: @agent_info
+    )
+  end
+
+  # @rbs capabilities: ACP::Types::ClientCapabilities
+  # @rbs return: Array[ACP::Types::AuthMethod::t]
+  def auth_methods(capabilities)
+    return @auth_methods if capabilities.auth&.terminal
+
+    @auth_methods.reject { |method| terminal_auth_method?(method) }
+  end
+
+  # @rbs method: ACP::Types::AuthMethod::t
+  # @rbs return: bool
+  def terminal_auth_method?(method)
+    method.is_a?(ACP::Types::AuthMethod::Terminal) || (method.is_a?(Hash) && method['type'] == 'terminal')
   end
 
   # session_created runs after the reply because the client must know the

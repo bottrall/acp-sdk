@@ -37,6 +37,7 @@ end
 
 describe ACP::AgentConnection do
   let(:token) { ACP::Types::AuthMethodAgent.new(id: 'token', name: 'Token') }
+  let(:terminal_method) { ACP::Types::AuthMethod::Terminal.new(id: 'terminal', name: 'Terminal') }
   let(:session_capabilities) do
     ACP::Types::AgentCapabilities.new(
       session_capabilities: ACP::Types::SessionCapabilities.new(
@@ -137,6 +138,26 @@ describe ACP::AgentConnection do
     }
 
     assert_equal [nil, expected, capabilities], [before_initialize, reply['result'], @client.capabilities.to_h]
+  end
+
+  it 'advertises terminal auth methods to clients that support them' do
+    start(auth_methods: [token, terminal_method])
+    reply = call('initialize', { 'protocolVersion' => 1, 'clientCapabilities' => { 'auth' => { 'terminal' => true } } })
+
+    assert_equal %w[token terminal], auth_method_ids(reply)
+  end
+
+  it 'leaves terminal auth methods out for clients without terminal support' do
+    start(auth_methods: [token, terminal_method])
+    capabilities = { 'fs' => { 'readTextFile' => true, 'writeTextFile' => false } }
+    reply = call('initialize', { 'protocolVersion' => 1, 'clientCapabilities' => capabilities })
+
+    assert_equal %w[token], auth_method_ids(reply)
+  end
+
+  def auth_method_ids(reply)
+    methods = reply['result']['authMethods']
+    methods.map { |method| method['id'] }
   end
 
   it 'replies to session/new before sending the available commands' do
