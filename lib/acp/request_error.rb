@@ -72,6 +72,17 @@ class ACP::RequestError
     new(code: INTERNAL_ERROR, message: 'Invalid response', data: response)
   end
 
+  # A local refusal of an initialize reply that names a version the SDK does
+  # not speak; the message names both versions so logs can tell it from a
+  # peer's error.
+  #
+  # @rbs requested: Integer
+  # @rbs returned: Integer
+  # @rbs return: ACP::RequestError
+  def self.unsupported_protocol_version(requested:, returned:)
+    new(code: INTERNAL_ERROR, message: "Unsupported protocol version: requested #{requested}, returned #{returned}")
+  end
+
   # @rbs return: ACP::RequestError
   def self.request_cancelled
     new(code: REQUEST_CANCELLED, message: 'Request cancelled')

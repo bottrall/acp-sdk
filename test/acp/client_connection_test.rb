@@ -251,6 +251,17 @@ describe ACP::ClientConnection do
     end
   end
 
+  describe 'an unsupported protocol version' do
+    it 'answers an initialize reply naming a version the SDK does not speak with an error naming both' do
+      connection = ACP::ClientConnection.new(
+        transport: StubTransport.new({ 'protocolVersion' => 2 }), permission: ->(_request) {}
+      )
+      error = within { connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1)) }
+
+      assert_equal([-32_603, 'Unsupported protocol version: requested 1, returned 2'], [error.code, error.message])
+    end
+  end
+
   describe 'a malformed session/update notification' do
     def connection
       transport = StubTransport.new({})

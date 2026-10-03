@@ -60,6 +60,15 @@ class ACP::RequestError
   # @rbs return: ACP::RequestError
   def self.invalid_response: (untyped response) -> ACP::RequestError
 
+  # A local refusal of an initialize reply that names a version the SDK does
+  # not speak; the message names both versions so logs can tell it from a
+  # peer's error.
+  #
+  # @rbs requested: Integer
+  # @rbs returned: Integer
+  # @rbs return: ACP::RequestError
+  def self.unsupported_protocol_version: (requested: Integer, returned: Integer) -> ACP::RequestError
+
   # @rbs return: ACP::RequestError
   def self.request_cancelled: () -> ACP::RequestError
 

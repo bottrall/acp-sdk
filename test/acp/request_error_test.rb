@@ -56,4 +56,13 @@ describe ACP::RequestError do
 
     assert_equal [-32_002, 'Resource not found', nil], [error.code, error.message, error.data]
   end
+
+  it 'builds unsupported protocol version errors naming the requested and returned versions' do
+    error = ACP::RequestError.unsupported_protocol_version(requested: 1, returned: 2)
+
+    assert_equal(
+      [-32_603, 'Unsupported protocol version: requested 1, returned 2', nil],
+      [error.code, error.message, error.data]
+    )
+  end
 end
