@@ -52,6 +52,21 @@ class ACP::ClientConnection
   # @rbs return: ACP::Types::ListSessionsResponse | ACP::RequestError
   def session_list: (ACP::Types::ListSessionsRequest request) -> (ACP::Types::ListSessionsResponse | ACP::RequestError)
 
+  # The agent does not replay history on resume, so unlike session_load there
+  # is nothing to stream and no block is taken.
+  #
+  # @rbs request: ACP::Types::ResumeSessionRequest
+  # @rbs return: ACP::Types::ResumeSessionResponse | ACP::RequestError
+  def session_resume: (ACP::Types::ResumeSessionRequest request) -> (ACP::Types::ResumeSessionResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::CloseSessionRequest
+  # @rbs return: ACP::Types::CloseSessionResponse | ACP::RequestError
+  def session_close: (ACP::Types::CloseSessionRequest request) -> (ACP::Types::CloseSessionResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::DeleteSessionRequest
+  # @rbs return: ACP::Types::DeleteSessionResponse | ACP::RequestError
+  def session_delete: (ACP::Types::DeleteSessionRequest request) -> (ACP::Types::DeleteSessionResponse | ACP::RequestError)
+
   # @rbs notification: ACP::Types::CancelNotification
   # @rbs return: void
   def session_cancel: (ACP::Types::CancelNotification notification) -> void

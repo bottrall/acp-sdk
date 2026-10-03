@@ -132,7 +132,10 @@ describe ACP::AgentConnection do
     reply = call('initialize', { 'protocolVersion' => 1, 'clientCapabilities' => capabilities })
     expected = {
       'protocolVersion' => 1,
-      'agentCapabilities' => { 'loadSession' => true, 'sessionCapabilities' => { 'list' => {} } },
+      'agentCapabilities' => {
+        'loadSession' => true,
+        'sessionCapabilities' => { 'list' => {}, 'delete' => {}, 'resume' => {}, 'close' => {} }
+      },
       'authMethods' => [],
       'agentInfo' => { 'name' => 'echo-agent', 'version' => '1.0.0' }
     }
@@ -407,7 +410,8 @@ describe ACP::AgentConnection do
   end
 
   it 'answers session/resume, session/close and session/delete with method not found unless advertised' do
-    start
+    # Not the echo agent's capabilities: it advertises all three now.
+    start(capabilities: ACP::Types::AgentCapabilities.new(load_session: true))
     replies = [
       call('session/resume', { 'sessionId' => 's', 'cwd' => '/work' }),
       call('session/close', { 'sessionId' => 's' }),
