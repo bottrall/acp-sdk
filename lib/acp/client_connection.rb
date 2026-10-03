@@ -8,6 +8,8 @@ class ACP::ClientConnection
   # @rbs @streams: Hash[String, Thread::Queue]
   # @rbs @logger: ACP::Transport::_Logger
 
+  PROTOCOL_VERSION = ACP::AgentConnection::PROTOCOL_VERSION #: Integer
+
   IGNORE = ->(_notification) {} #: ^(ACP::Types::SessionNotification) -> void
 
   # @rbs transport: ACP::AgentConnection::_Transport
@@ -38,7 +40,16 @@ class ACP::ClientConnection
   # @rbs request: ACP::Types::InitializeRequest
   # @rbs return: ACP::Types::InitializeResponse | ACP::RequestError
   def connect(request)
-    parse(ACP::Types::InitializeResponse, @transport.request('initialize', request.to_h))
+    parse(ACP::Types::InitializeResponse, @transport.request('initialize', request.to_h)).then do |response|
+      next response if response.is_a?(ACP::RequestError)
+
+      next response if response.protocol_version == PROTOCOL_VERSION
+
+      ACP::RequestError.unsupported_protocol_version(
+        requested: request.protocol_version,
+        returned: response.protocol_version
+      )
+    end
   end
 
   # @rbs request: ACP::Types::NewSessionRequest
