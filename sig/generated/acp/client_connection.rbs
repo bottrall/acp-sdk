@@ -56,6 +56,14 @@ class ACP::ClientConnection
   # @rbs return: void
   def session_cancel: (ACP::Types::CancelNotification notification) -> void
 
+  # @rbs request: ACP::Types::AuthenticateRequest
+  # @rbs return: ACP::Types::AuthenticateResponse | ACP::RequestError
+  def authenticate: (ACP::Types::AuthenticateRequest request) -> (ACP::Types::AuthenticateResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::LogoutRequest
+  # @rbs return: ACP::Types::LogoutResponse | ACP::RequestError
+  def logout: (ACP::Types::LogoutRequest request) -> (ACP::Types::LogoutResponse | ACP::RequestError)
+
   private
 
   # @rbs type: ACP::AgentConnection::_Parser

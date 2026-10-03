@@ -84,6 +84,18 @@ class ACP::ClientConnection
     @transport.notify('session/cancel', notification.to_h)
   end
 
+  # @rbs request: ACP::Types::AuthenticateRequest
+  # @rbs return: ACP::Types::AuthenticateResponse | ACP::RequestError
+  def authenticate(request)
+    parse(ACP::Types::AuthenticateResponse, @transport.request('authenticate', request.to_h))
+  end
+
+  # @rbs request: ACP::Types::LogoutRequest
+  # @rbs return: ACP::Types::LogoutResponse | ACP::RequestError
+  def logout(request)
+    parse(ACP::Types::LogoutResponse, @transport.request('logout', request.to_h))
+  end
+
   private
 
   # @rbs type: ACP::AgentConnection::_Parser
