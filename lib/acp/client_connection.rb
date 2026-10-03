@@ -120,7 +120,21 @@ class ACP::ClientConnection
   # @rbs return: (Hash[String, untyped] | ACP::RequestError)
   def stream(session_id, method, params)
     queue = Thread::Queue.new
-    @lock.synchronize { @streams[session_id] = queue }
+    # The check and the insert share one lock acquisition so a concurrent
+    # stream cannot register between them.
+    claimed = @lock.synchronize do
+      if @streams.key?(session_id)
+        false
+      else
+        @streams[session_id] = queue
+        true
+      end
+    end
+    unless claimed
+      return ACP::RequestError.new(
+        code: ACP::RequestError::INVALID_REQUEST, message: "A stream is already open for session #{session_id}"
+      )
+    end
     requester = Thread.new do
       @transport.request(method, params)
     ensure
