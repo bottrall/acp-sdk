@@ -45,6 +45,36 @@ class AuthAgent
   end
 end
 
+# Holds each request on @gate until released, so a stream stays open between
+# two threads.
+class GatedTransport
+  attr_reader :entered, :notifications
+
+  def initialize(response)
+    @response = response
+    @entered = Thread::Queue.new
+    @gate = Thread::Queue.new
+  end
+
+  def start(requests: {}, notifications: {})
+    @requests = requests
+    @notifications = notifications
+    Thread.new { nil }
+  end
+
+  def request(_method, _params = nil)
+    @entered << true
+    @gate.pop
+    @response
+  end
+
+  def notify(_method, _params = nil); end
+
+  def release
+    @gate << true
+  end
+end
+
 describe ACP::ClientConnection do
   def within(seconds = 2, &)
     Timeout.timeout(seconds, &)
@@ -301,6 +331,61 @@ describe ACP::ClientConnection do
       response = logout
 
       assert_equal({ 'code' => -32_000, 'message' => 'Authentication required' }, response.to_h)
+    end
+  end
+
+  describe 'two overlapping streams for one session' do
+    def connection(transport)
+      connection = ACP::ClientConnection.new(transport:, permission: ->(_request) {})
+      connection.start
+      connection
+    end
+
+    it 'refuses the second call and leaves the first stream intact' do
+      transport = GatedTransport.new({})
+      conn = connection(transport)
+      first_updates = []
+      second_updates = []
+      first = Thread.new do
+        conn.session_prompt(prompt_request('s1', 'hello')) { |update| first_updates << update }
+      end
+      transport.entered.pop
+      error = within { conn.session_prompt(prompt_request('s1', 'again')) { |update| second_updates << update } }
+
+      assert_equal [-32_600, 'A stream is already open for session s1'], [error.code, error.message]
+
+      transport.notifications['session/update'].call(
+        'sessionId' => 's1',
+        'update' => { 'sessionUpdate' => 'agent_message_chunk', 'content' => { 'type' => 'text', 'text' => 'hello' } }
+      )
+      transport.release
+      response = within { first.value }
+
+      assert_equal(
+        [[-32_603, 'Invalid response', {}], [%w[agent_message_chunk hello]], []],
+        [
+          [response.code, response.message, response.data],
+          first_updates.map { |update| summary(update) },
+          second_updates
+        ]
+      )
+    end
+
+    it 'accepts a new stream for the session once the first one ends' do
+      transport = GatedTransport.new({})
+      conn = connection(transport)
+      first = Thread.new do
+        conn.session_prompt(prompt_request('s1', 'hello')) { nil }
+      end
+      transport.entered.pop
+      transport.release
+      within { first.value }
+      # first cannot return before its requester thread removed the session
+      # from @streams, so the next call must be accepted.
+      transport.release
+      response = within { conn.session_prompt(prompt_request('s1', 'again')) { nil } }
+
+      assert_equal [-32_603, 'Invalid response', {}], [response.code, response.message, response.data]
     end
   end
 
