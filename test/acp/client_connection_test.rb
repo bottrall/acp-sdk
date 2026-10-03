@@ -26,6 +26,25 @@ class StubTransport
   def notify(_method, _params = nil); end
 end
 
+class AuthAgent
+  def initialize
+    @authenticated = false
+  end
+
+  def authenticate(request)
+    return ACP::RequestError.auth_required unless request.method_id == 'token'
+
+    @authenticated = true
+    ACP::Types::AuthenticateResponse.new
+  end
+
+  def logout(_request)
+    return ACP::RequestError.auth_required unless @authenticated
+
+    ACP::Types::LogoutResponse.new
+  end
+end
+
 describe ACP::ClientConnection do
   def within(seconds = 2, &)
     Timeout.timeout(seconds, &)
@@ -222,6 +241,66 @@ describe ACP::ClientConnection do
       response = within { connection.session_prompt(prompt_request('sess_missing', 'hello')) { nil } }
 
       assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
+    end
+  end
+
+  describe 'driving an agent with auth over pipes' do
+    before do
+      agent_input, @client_output = IO.pipe
+      @client_input, @agent_output = IO.pipe
+      @pipes = [agent_input, @client_output, @client_input, @agent_output]
+      agent = ACP::AgentConnection.new(
+        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
+        capabilities: ACP::Types::AgentCapabilities.new(
+          auth: ACP::Types::AgentAuthCapabilities.new(logout: ACP::Types::LogoutCapabilities.new)
+        ),
+        agent_info: ACP::Types::Implementation.new(name: 'auth-agent', version: '1.0.0'),
+        auth_methods: [ACP::Types::AuthMethodAgent.new(id: 'token', name: 'Token')]
+      ) { AuthAgent.new }
+      @agent_reader = agent.start
+      @connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
+        permission: ->(_request) {}
+      )
+      @client_reader = @connection.start
+    end
+
+    after do
+      @client_output.close
+      @agent_reader.join(2)
+      @agent_output.close
+      @client_reader.join(2)
+      @pipes.reject(&:closed?).each(&:close)
+    end
+
+    def authenticate(method_id = 'token')
+      within { @connection.authenticate(ACP::Types::AuthenticateRequest.new(method_id:)) }
+    end
+
+    def logout
+      within { @connection.logout(ACP::Types::LogoutRequest.new) }
+    end
+
+    it 'authenticates' do
+      assert_equal({}, authenticate.to_h)
+    end
+
+    it 'returns the agent\'s error when it rejects the auth method' do
+      response = authenticate('bad')
+
+      assert_equal({ 'code' => -32_000, 'message' => 'Authentication required' }, response.to_h)
+    end
+
+    it 'logs out after authenticating' do
+      authenticate
+
+      assert_equal({}, logout.to_h)
+    end
+
+    it 'returns the agent\'s error when logout comes before authenticate' do
+      response = logout
+
+      assert_equal({ 'code' => -32_000, 'message' => 'Authentication required' }, response.to_h)
     end
   end
 

@@ -60,7 +60,7 @@ The agent's contract:
 
 ## Driving an agent
 
-`ACP::ClientConnection` is the other side of the same transport. Each method takes the request's generated `ACP::Types` object and returns its response type or the agent's `ACP::RequestError`. `connect` sends `initialize`, since Ruby reserves that name for the constructor.
+`ACP::ClientConnection` is the other side of the same transport. Each method takes the request's generated `ACP::Types` object and returns its response type or the agent's `ACP::RequestError`. `connect` sends `initialize`, since Ruby reserves that name for the constructor, and `authenticate` and `logout` send their namesake methods.
 
 `ACP::AgentProcess.spawn` starts a command with args, env and cwd, wires its stdio to a new `ACP::ClientConnection` and starts it. The block receives the connection and the process handle (`pid`, plus `stderr` when captured), and the child is terminated — after its stdin is closed, with TERM and then KILL if it will not exit — when the block exits, so a raised block cannot leak the process. Without a block, `spawn` returns the process and calling `terminate` is yours. `stderr` is `:inherit` by default, so the child writes to your stderr; pass `:capture` to collect it on the process instead.
 
