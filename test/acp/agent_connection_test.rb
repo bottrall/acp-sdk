@@ -50,7 +50,8 @@ describe ACP::AgentConnection do
   before do
     @input, @peer_writer = IO.pipe
     @peer_reader, @output = IO.pipe
-    @transport = ACP::Transport::Stdio.new(input: @input, output: @output)
+    @logger = FakeLogger.new
+    @transport = ACP::Transport::Stdio.new(input: @input, output: @output, logger: @logger)
     @next_id = 0
   end
 
@@ -62,7 +63,13 @@ describe ACP::AgentConnection do
 
   def start(capabilities: EchoAgent::CAPABILITIES, auth_methods: [], full: true)
     agent_info = ACP::Types::Implementation.new(name: 'echo-agent', version: '1.0.0')
-    connection = ACP::AgentConnection.new(transport: @transport, capabilities:, agent_info:, auth_methods:) do |client|
+    connection = ACP::AgentConnection.new(
+      transport: @transport,
+      capabilities:,
+      agent_info:,
+      auth_methods:,
+      logger: @logger
+    ) do |client|
       @client = client
       agent = EchoAgent.new(client:)
       full ? FullAgent.new(agent) : agent
@@ -314,6 +321,14 @@ describe ACP::AgentConnection do
     send_message({ 'jsonrpc' => '2.0', 'id' => permission['id'], 'result' => cancelled })
 
     assert_equal({ 'stopReason' => 'cancelled' }, receive_message['result'])
+  end
+
+  it 'logs and drops a malformed session/cancel and keeps serving' do
+    start
+    send_message({ 'jsonrpc' => '2.0', 'method' => 'session/cancel', 'params' => {} })
+    call('initialize', { 'protocolVersion' => 1, 'clientCapabilities' => {} })
+
+    assert_equal [:warn, 'dropped malformed session/cancel: KeyError: key not found: "sessionId"'], @logger.pop
   end
 
   it 'lists sessions, filtered by cwd when given' do

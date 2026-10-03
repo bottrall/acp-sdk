@@ -1,6 +1,8 @@
 # Generated from lib/acp/client_connection.rb with RBS::Inline
 
 class ACP::ClientConnection
+  @logger: ACP::Transport::_Logger
+
   @streams: Hash[String, Thread::Queue]
 
   @lock: Thread::Mutex
@@ -16,8 +18,9 @@ class ACP::ClientConnection
   # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
+  # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
-  def initialize: (transport: ACP::AgentConnection::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?updates: ACP::ClientConnection::_UpdateHandler) -> void
+  def initialize: (transport: ACP::AgentConnection::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?updates: ACP::ClientConnection::_UpdateHandler, ?logger: ACP::Transport::_Logger) -> void
 
   # @rbs return: Thread
   def start: () -> Thread
@@ -70,7 +73,8 @@ class ACP::ClientConnection
   def stream: (String session_id, String method, Hash[String, untyped] params) { (ACP::Types::SessionUpdate::t) -> void } -> (Hash[String, untyped] | ACP::RequestError)
 
   # Pushes under the lock so a stream cannot close its queue between the
-  # lookup and the push.
+  # lookup and the push. A malformed notification has no reply to carry the
+  # failure.
   #
   # @rbs params: untyped
   # @rbs return: void

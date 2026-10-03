@@ -15,6 +15,7 @@ class ACP::Transport::Stdio
   # @rbs @pending: Hash[untyped, Thread::Queue]
   # @rbs @next_id: Integer
   # @rbs @closed: bool
+  # @rbs @logger: ACP::Transport::_Logger
 
   CONNECTION_CLOSED = ACP::RequestError.new(
     code: ACP::RequestError::INTERNAL_ERROR, message: 'Connection closed'
@@ -22,8 +23,9 @@ class ACP::Transport::Stdio
 
   # @rbs input: _Reader
   # @rbs output: _Writer
+  # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
-  def initialize(input:, output:)
+  def initialize(input:, output:, logger: ACP::Transport::StderrLogger.new)
     @input = input
     @output = output
     @write_lock = Mutex.new
@@ -31,6 +33,7 @@ class ACP::Transport::Stdio
     @pending = {}
     @next_id = 0
     @closed = false
+    @logger = logger
   end
 
   # Returns the reader thread, which ends at EOF on input after releasing any
@@ -94,7 +97,7 @@ class ACP::Transport::Stdio
       # Run on the reader thread so notifications (session/update) keep their
       # order; a JSON-RPC notification has no reply to carry a handler error.
       handler = notifications[method]
-      quietly { handler.call(message['params']) } if handler
+      quietly('notification handler') { handler.call(message['params']) } if handler
     elsif message.key?('result')
       settle(message['id'], message['result'])
     elsif error.is_a?(Hash) && error['code'].is_a?(Integer) && error['message'].is_a?(String)
@@ -126,7 +129,7 @@ class ACP::Transport::Stdio
       case outcome
       when ACP::Transport::Reply
         reply(id, outcome.result)
-        quietly(&outcome.after)
+        quietly('reply after callback', &outcome.after)
       else reply(id, outcome)
       end
     end
@@ -136,12 +139,13 @@ class ACP::Transport::Stdio
   # Reply's after once the reply is on the wire. An exception must not kill
   # the reader thread or print a thread report.
   #
+  # @rbs label: String
   # @rbs &block: () -> void
   # @rbs return: void
-  def quietly
+  def quietly(label)
     yield
-  rescue StandardError
-    nil
+  rescue StandardError => e
+    @logger.error("#{label} raised #{e.class}: #{e.message}")
   end
 
   # Handlers are application code at the protocol boundary: an exception
@@ -198,6 +202,9 @@ class ACP::Transport::Stdio
     end
   end
 
+  # A closed peer must not kill the thread writing the reply: the reader has
+  # to keep draining input so pending requests still settle at EOF.
+  #
   # @rbs message: Hash[String, untyped]
   # @rbs return: void
   def write(message)
@@ -206,5 +213,7 @@ class ACP::Transport::Stdio
       @output.write(line)
       @output.flush
     end
+  rescue Errno::EPIPE => e
+    @logger.warn("write to closed peer: #{e.class}: #{e.message}")
   end
 end

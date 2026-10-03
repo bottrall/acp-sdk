@@ -4,6 +4,7 @@ class ACP::AgentConnection
   # @rbs @transport: ACP::AgentConnection::_Transport
   # @rbs @initialize_response: ACP::Types::InitializeResponse
   # @rbs @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
+  # @rbs @logger: ACP::Transport::_Logger
 
   PROTOCOL_VERSION = 1 #: Integer
   OPTIONAL = [
@@ -27,10 +28,19 @@ class ACP::AgentConnection
   # @rbs capabilities: ACP::Types::AgentCapabilities
   # @rbs agent_info: ACP::Types::Implementation?
   # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]
+  # @rbs logger: ACP::Transport::_Logger
   # @rbs &factory: (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
   # @rbs return: void
-  def initialize(transport:, capabilities:, agent_info: nil, auth_methods: [], &factory)
+  def initialize(
+    transport:,
+    capabilities:,
+    agent_info: nil,
+    auth_methods: [],
+    logger: ACP::Transport::StderrLogger.new,
+    &factory
+  )
     @transport = transport
+    @logger = logger
     @initialize_response = ACP::Types::InitializeResponse.new(
       protocol_version: PROTOCOL_VERSION,
       agent_capabilities: capabilities,
@@ -82,7 +92,20 @@ class ACP::AgentConnection
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs return: Hash[String, ^(untyped) -> void]
   def notifications(agent)
-    { 'session/cancel' => ->(params) { agent.cancel(ACP::Types::CancelNotification.from_h(params)) } }
+    { 'session/cancel' => ->(params) { cancel(agent, params) } }
+  end
+
+  # A notification has no reply to carry a parse failure.
+  #
+  # @rbs agent: ACP::AgentConnection::_Agent
+  # @rbs params: untyped
+  # @rbs return: void
+  def cancel(agent, params)
+    notification = ACP::Types::CancelNotification.from_h(params)
+  rescue KeyError, TypeError, NoMethodError => e
+    @logger.warn("dropped malformed session/cancel: #{e.class}: #{e.message}")
+  else
+    agent.cancel(notification)
   end
 
   # Generated from_h raises on a missing key or a value of the wrong shape.
