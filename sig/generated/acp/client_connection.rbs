@@ -74,7 +74,7 @@ class ACP::ClientConnection
 
   # Pushes under the lock so a stream cannot close its queue between the
   # lookup and the push. A malformed notification has no reply to carry the
-  # failure, so it is logged and dropped.
+  # failure.
   #
   # @rbs params: untyped
   # @rbs return: void

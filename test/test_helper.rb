@@ -4,7 +4,6 @@ require 'minitest/autorun'
 require 'minitest/spec'
 require 'acp/sdk'
 
-# Collects what the code logs, one [severity, message] pair per report.
 class FakeLogger
   def initialize
     @events = Thread::Queue.new
@@ -18,13 +17,11 @@ class FakeLogger
     @events << [:error, message]
   end
 
-  # Blocks up to timeout seconds, so tests can synchronize with the threads
-  # that log.
+  # Lets tests synchronize with the threads that log.
   def pop(timeout = 2)
     @events.pop(timeout:)
   end
 
-  # Returns everything logged so far, leaving nothing behind.
   def drain
     events = []
     events << @events.pop(true) until @events.empty?

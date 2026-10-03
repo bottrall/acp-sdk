@@ -137,7 +137,7 @@ class ACP::Transport::Stdio
 
   # For code with no reply to carry an error: a notification handler, or a
   # Reply's after once the reply is on the wire. An exception must not kill
-  # the reader thread or print a thread report; it is logged instead.
+  # the reader thread or print a thread report.
   #
   # @rbs label: String
   # @rbs &block: () -> void

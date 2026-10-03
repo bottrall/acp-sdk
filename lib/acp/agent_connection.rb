@@ -95,8 +95,7 @@ class ACP::AgentConnection
     { 'session/cancel' => ->(params) { cancel(agent, params) } }
   end
 
-  # A notification has no reply to carry a parse failure, so the dropped
-  # message is logged instead.
+  # A notification has no reply to carry a parse failure.
   #
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs params: untyped
