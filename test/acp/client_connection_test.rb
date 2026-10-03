@@ -7,11 +7,15 @@ require 'timeout'
 require_relative '../../examples/echo_agent'
 
 class StubTransport
+  attr_reader :requests, :notifications
+
   def initialize(response)
     @response = response
   end
 
-  def start(*)
+  def start(requests: {}, notifications: {})
+    @requests = requests
+    @notifications = notifications
     Thread.new { nil }
   end
 
@@ -244,6 +248,22 @@ describe ACP::ClientConnection do
       error = within { connection(nil).session_new(new_session_request) }
 
       assert_equal [-32_603, 'Invalid response', nil], [error.code, error.message, error.data]
+    end
+  end
+
+  describe 'a malformed session/update notification' do
+    def connection
+      transport = StubTransport.new({})
+      logger = FakeLogger.new
+      ACP::ClientConnection.new(transport:, permission: ->(_request) {}, logger:).start
+      [transport, logger]
+    end
+
+    it 'logs and drops the notification' do
+      transport, logger = connection
+      transport.notifications['session/update'].call({ 'update' => { 'sessionUpdate' => 'agent_message_chunk' } })
+
+      assert_equal [:warn, 'dropped malformed session/update: KeyError: key not found: "sessionId"'], logger.pop
     end
   end
 

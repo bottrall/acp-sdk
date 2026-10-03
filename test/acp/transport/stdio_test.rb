@@ -8,7 +8,8 @@ describe ACP::Transport::Stdio do
   before do
     @input, @peer_writer = IO.pipe
     @peer_reader, @output = IO.pipe
-    @transport = ACP::Transport::Stdio.new(input: @input, output: @output)
+    @logger = FakeLogger.new
+    @transport = ACP::Transport::Stdio.new(input: @input, output: @output, logger: @logger)
   end
 
   after do
@@ -95,6 +96,20 @@ describe ACP::Transport::Stdio do
     )
   end
 
+  it 'logs an error when a reply\'s after callback raises' do
+    after = -> { raise 'kaboom' }
+    start(requests: { 'boom' => ->(_) { ACP::Transport::Reply.new({ 'echo' => 'sent' }, after:) } })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'boom' })
+
+    assert_equal(
+      [
+        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'echo' => 'sent' } },
+        [:error, 'reply after callback raised RuntimeError: kaboom']
+      ],
+      [receive_message, @logger.pop]
+    )
+  end
+
   it 'answers an inbound request for an unknown method with method not found' do
     start
     send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'nope' })
@@ -121,6 +136,18 @@ describe ACP::Transport::Stdio do
     send_message({ 'jsonrpc' => '2.0', 'method' => 'session/cancel', 'params' => { 'sessionId' => 'sess_1' } })
 
     assert_equal({ 'sessionId' => 'sess_1' }, seen.pop(timeout: 2))
+  end
+
+  it 'logs an error when a notification handler raises and keeps reading' do
+    seen = Thread::Queue.new
+    start(notifications: { 'boom' => ->(_) { raise 'kaboom' }, 'session/cancel' => seen.method(:push) })
+    send_message({ 'jsonrpc' => '2.0', 'method' => 'boom' })
+    send_message({ 'jsonrpc' => '2.0', 'method' => 'session/cancel', 'params' => { 'sessionId' => 'sess_1' } })
+
+    assert_equal(
+      [{ 'sessionId' => 'sess_1' }, [:error, 'notification handler raised RuntimeError: kaboom']],
+      [seen.pop(timeout: 2), @logger.pop]
+    )
   end
 
   it 'sends an outbound notification without an id' do
@@ -190,6 +217,21 @@ describe ACP::Transport::Stdio do
     assert_equal(
       { 'jsonrpc' => '2.0', 'id' => nil, 'error' => { 'code' => -32_600, 'message' => 'Invalid request' } },
       receive_message
+    )
+  end
+
+  it 'logs a write to a closed peer and keeps serving' do
+    start(requests: { 'echo' => ->(params) { params } })
+    @peer_reader.close
+    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => { 'text' => 'again' } })
+
+    assert_equal(
+      [
+        [:warn, 'write to closed peer: Errno::EPIPE: Broken pipe'],
+        [:warn, 'write to closed peer: Errno::EPIPE: Broken pipe']
+      ],
+      [@logger.pop, @logger.pop]
     )
   end
 

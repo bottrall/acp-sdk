@@ -1,0 +1,8 @@
+module ACP::Transport
+  # Receives the reports the SDK logs for dropped messages and swallowed
+  # errors; a log message is a single line with no trailing newline.
+  interface _Logger
+    def warn: (String message) -> void
+    def error: (String message) -> void
+  end
+end

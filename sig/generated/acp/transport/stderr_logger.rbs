@@ -1,0 +1,13 @@
+# Generated from lib/acp/transport/stderr_logger.rb with RBS::Inline
+
+# The default sink for dropped messages and swallowed errors: the spec
+# sanctions agents logging to stderr.
+class ACP::Transport::StderrLogger
+  # @rbs message: String
+  # @rbs return: void
+  def warn: (String message) -> void
+
+  # @rbs message: String
+  # @rbs return: void
+  def error: (String message) -> void
+end

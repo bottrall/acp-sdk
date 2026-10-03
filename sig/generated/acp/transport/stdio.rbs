@@ -6,6 +6,8 @@
 # outbound request mid-turn and still see notifications (e.g. session/cancel)
 # that arrive meanwhile.
 class ACP::Transport::Stdio
+  @logger: ACP::Transport::_Logger
+
   @closed: bool
 
   @next_id: Integer
@@ -24,8 +26,9 @@ class ACP::Transport::Stdio
 
   # @rbs input: _Reader
   # @rbs output: _Writer
+  # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
-  def initialize: (input: _Reader, output: _Writer) -> void
+  def initialize: (input: _Reader, output: _Writer, ?logger: ACP::Transport::_Logger) -> void
 
   # Returns the reader thread, which ends at EOF on input after releasing any
   # pending outbound requests.
@@ -71,11 +74,12 @@ class ACP::Transport::Stdio
 
   # For code with no reply to carry an error: a notification handler, or a
   # Reply's after once the reply is on the wire. An exception must not kill
-  # the reader thread or print a thread report.
+  # the reader thread or print a thread report; it is logged instead.
   #
+  # @rbs label: String
   # @rbs &block: () -> void
   # @rbs return: void
-  def quietly: () { () -> void } -> void
+  def quietly: (String label) { () -> void } -> void
 
   # Handlers are application code at the protocol boundary: an exception
   # becomes an error response instead of killing the thread serving it.
@@ -105,6 +109,9 @@ class ACP::Transport::Stdio
   # @rbs return: void
   def close: () -> void
 
+  # A closed peer must not kill the thread writing the reply: the reader has
+  # to keep draining input so pending requests still settle at EOF.
+  #
   # @rbs message: Hash[String, untyped]
   # @rbs return: void
   def write: (Hash[String, untyped] message) -> void

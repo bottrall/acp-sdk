@@ -7,6 +7,8 @@ class ACP::AgentConnection
 
   @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
 
+  @logger: ACP::Transport::_Logger
+
   PROTOCOL_VERSION: Integer
 
   OPTIONAL: Array[ACP::AgentConnection::_OptionalMethod]
@@ -20,9 +22,10 @@ class ACP::AgentConnection
   # @rbs capabilities: ACP::Types::AgentCapabilities
   # @rbs agent_info: ACP::Types::Implementation?
   # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]
+  # @rbs logger: ACP::Transport::_Logger
   # @rbs &factory: (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
   # @rbs return: void
-  def initialize: (transport: ACP::AgentConnection::_Transport, capabilities: ACP::Types::AgentCapabilities, ?agent_info: ACP::Types::Implementation?, ?auth_methods: Array[ACP::Types::AuthMethod::t]) { (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent } -> void
+  def initialize: (transport: ACP::AgentConnection::_Transport, capabilities: ACP::Types::AgentCapabilities, ?agent_info: ACP::Types::Implementation?, ?auth_methods: Array[ACP::Types::AuthMethod::t], ?logger: ACP::Transport::_Logger) { (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent } -> void
 
   # @rbs return: Thread
   def start: () -> Thread
@@ -37,6 +40,14 @@ class ACP::AgentConnection
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs return: Hash[String, ^(untyped) -> void]
   def notifications: (ACP::AgentConnection::_Agent agent) -> Hash[String, ^(untyped) -> void]
+
+  # A notification has no reply to carry a parse failure, so the dropped
+  # message is logged instead.
+  #
+  # @rbs agent: ACP::AgentConnection::_Agent
+  # @rbs params: untyped
+  # @rbs return: void
+  def cancel: (ACP::AgentConnection::_Agent agent, untyped params) -> void
 
   # Generated from_h raises on a missing key or a value of the wrong shape.
   #

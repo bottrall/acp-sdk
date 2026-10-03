@@ -6,19 +6,22 @@ class ACP::ClientConnection
   # @rbs @updates: ACP::ClientConnection::_UpdateHandler
   # @rbs @lock: Thread::Mutex
   # @rbs @streams: Hash[String, Thread::Queue]
+  # @rbs @logger: ACP::Transport::_Logger
 
   IGNORE = ->(_notification) {} #: ^(ACP::Types::SessionNotification) -> void
 
   # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
+  # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
-  def initialize(transport:, permission:, updates: IGNORE)
+  def initialize(transport:, permission:, updates: IGNORE, logger: ACP::Transport::StderrLogger.new)
     @transport = transport
     @permission = permission
     @updates = updates
     @lock = Mutex.new
     @streams = {}
+    @logger = logger
   end
 
   # @rbs return: Thread
@@ -107,12 +110,16 @@ class ACP::ClientConnection
   end
 
   # Pushes under the lock so a stream cannot close its queue between the
-  # lookup and the push.
+  # lookup and the push. A malformed notification has no reply to carry the
+  # failure, so it is logged and dropped.
   #
   # @rbs params: untyped
   # @rbs return: void
   def dispatch(params)
     notification = ACP::Types::SessionNotification.from_h(params)
+  rescue KeyError, TypeError, NoMethodError => e
+    @logger.warn("dropped malformed session/update: #{e.class}: #{e.message}")
+  else
     queue = @lock.synchronize { @streams[notification.session_id]&.push(notification.update) }
     @updates.call(notification) unless queue
   end
