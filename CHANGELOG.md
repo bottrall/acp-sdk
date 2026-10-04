@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.5.0](https://github.com/bottrall/acp-sdk/compare/v0.4.0...v0.5.0) (2026-10-04)
+
+
+### Features
+
+* add authenticate and logout to ACP::ClientConnection ([#63](https://github.com/bottrall/acp-sdk/issues/63)) ([460585a](https://github.com/bottrall/acp-sdk/commit/460585a9a9401e35725ea379432694d9b76f35b6))
+* add session_set_mode and session_set_config_option to ACP::ClientConnection ([#66](https://github.com/bottrall/acp-sdk/issues/66)) ([994179f](https://github.com/bottrall/acp-sdk/commit/994179f9ab51918bee7d29c8b473e0f05a55a7ad))
+* add session/resume, session/close and session/delete to the client ([#65](https://github.com/bottrall/acp-sdk/issues/65)) ([4af834a](https://github.com/bottrall/acp-sdk/commit/4af834a5bc519753bad36d41efba902bcddc296b)), closes [#37](https://github.com/bottrall/acp-sdk/issues/37)
+* elicitation on ACP::AgentConnection::Client ([#67](https://github.com/bottrall/acp-sdk/issues/67)) ([7d3212a](https://github.com/bottrall/acp-sdk/commit/7d3212a82ec6392351d8df1349b2fc21bf0bf030)), closes [#41](https://github.com/bottrall/acp-sdk/issues/41)
+* filesystem handlers on ACP::ClientConnection ([#68](https://github.com/bottrall/acp-sdk/issues/68)) ([053f091](https://github.com/bottrall/acp-sdk/commit/053f0910adc3a7016bf1769099a54655f41bb9a6))
+* injectable logger for dropped messages and swallowed errors ([#59](https://github.com/bottrall/acp-sdk/issues/59)) ([e66a306](https://github.com/bottrall/acp-sdk/commit/e66a30622922717d1be6d27c5b9a2931643fcd6b))
+
+
+### Bug Fixes
+
+* call ACP::RequestError.unadvertised in elicitation capability checks ([#69](https://github.com/bottrall/acp-sdk/issues/69)) ([fda6dad](https://github.com/bottrall/acp-sdk/commit/fda6dad13e7fe308b5ff63e4c9e6fa9eef6e8274))
+* only advertise terminal auth methods to clients that support them ([#61](https://github.com/bottrall/acp-sdk/issues/61)) ([1d2674a](https://github.com/bottrall/acp-sdk/commit/1d2674a978d938834d69d2c68df4f2c918ea801c)), closes [#33](https://github.com/bottrall/acp-sdk/issues/33)
+* refuse overlapping streaming calls for the same session ([#64](https://github.com/bottrall/acp-sdk/issues/64)) ([a3a5b34](https://github.com/bottrall/acp-sdk/commit/a3a5b343f0ba2555b62643577226166fada27485))
+* reject an unsupported protocol version in ACP::ClientConnection#connect ([#62](https://github.com/bottrall/acp-sdk/issues/62)) ([6980b32](https://github.com/bottrall/acp-sdk/commit/6980b328bcec997ae68c6af9077d623a73c15d39)), closes [#34](https://github.com/bottrall/acp-sdk/issues/34)
+
 ## [0.4.0](https://github.com/bottrall/acp-sdk/compare/v0.3.0...v0.4.0) (2026-10-02)
 
 
