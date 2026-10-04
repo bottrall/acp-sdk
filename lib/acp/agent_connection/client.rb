@@ -105,6 +105,26 @@ class ACP::AgentConnection::Client
     @peer.notify('elicitation/complete', notification.to_h)
   end
 
+  # Sends an extension request, keyed by its raw `_`-prefixed wire name, and
+  # returns the client's reply as-is: extension methods have no schema to
+  # parse the result into.
+  #
+  # @rbs method: String
+  # @rbs params: untyped
+  # @rbs return: (Hash[String, untyped] | ACP::RequestError)
+  def ext_request(method, params = nil)
+    ACP::Extensions.validate_name(method)
+    @peer.request(method, params)
+  end
+
+  # @rbs method: String
+  # @rbs params: untyped
+  # @rbs return: void
+  def ext_notify(method, params = nil)
+    ACP::Extensions.validate_name(method)
+    @peer.notify(method, params)
+  end
+
   private
 
   # @rbs rpc_method: String

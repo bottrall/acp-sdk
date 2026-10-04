@@ -62,13 +62,21 @@ describe ACP::AgentConnection do
     [@input, @output, @peer_reader].each(&:close)
   end
 
-  def start(capabilities: EchoAgent::CAPABILITIES, auth_methods: [], full: true)
+  def start(
+    capabilities: EchoAgent::CAPABILITIES,
+    auth_methods: [],
+    full: true,
+    extension_requests: {},
+    extension_notifications: {}
+  )
     agent_info = ACP::Types::Implementation.new(name: 'echo-agent', version: '1.0.0')
     connection = ACP::AgentConnection.new(
       transport: @transport,
       capabilities:,
       agent_info:,
       auth_methods:,
+      extension_requests:,
+      extension_notifications:,
       logger: @logger
     ) do |client|
       @client = client
@@ -516,5 +524,66 @@ describe ACP::AgentConnection do
     connection = ACP::AgentConnection.new(transport: @transport, capabilities:) { Object.new }
 
     assert_raises(ArgumentError) { connection.start }
+  end
+
+  describe 'extension methods' do
+    it 'routes an extension request to the registered handler' do
+      start(extension_requests: { '_myapp/double' => ->(params) { { 'doubled' => params.fetch('n') * 2 } } })
+
+      assert_equal(
+        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'doubled' => 42 } },
+        call('_myapp/double', { 'n' => 21 })
+      )
+    end
+
+    it 'routes an extension notification to the registered handler' do
+      notifications = Thread::Queue.new
+      start(extension_notifications: { '_myapp/tick' => ->(params) { notifications << params } })
+      send_message({ 'jsonrpc' => '2.0', 'method' => '_myapp/tick', 'params' => { 'n' => 1 } })
+
+      assert_equal({ 'n' => 1 }, Timeout.timeout(2) { notifications.pop })
+    end
+
+    it 'answers an unregistered extension request with method not found' do
+      start
+
+      assert_equal({ 'code' => -32_601, 'message' => 'Method not found' }, call('_myapp/unknown').fetch('error'))
+    end
+
+    it 'sends an extension request from the agent and returns the client\'s result' do
+      start
+      reply = Thread.new { @client.ext_request('_myapp/ping', { 'n' => 1 }) }
+      request = receive_message
+      send_message({ 'jsonrpc' => '2.0', 'id' => request.fetch('id'), 'result' => { 'pong' => 1 } })
+
+      assert_equal({ 'pong' => 1 }, Timeout.timeout(2) { reply.value })
+    end
+
+    it 'sends an extension notification from the agent' do
+      start
+      @client.ext_notify('_myapp/event', { 'n' => 1 })
+
+      assert_equal({ 'jsonrpc' => '2.0', 'method' => '_myapp/event', 'params' => { 'n' => 1 } }, receive_message)
+    end
+
+    it 'refuses extension handler names without the underscore prefix' do
+      assert_raises(ArgumentError) do
+        ACP::AgentConnection.new(
+          transport: @transport,
+          capabilities: ACP::Types::AgentCapabilities.new,
+          extension_requests: { 'myapp/double' => ->(_params) {} }
+        )
+      end
+      assert_raises(ArgumentError) do
+        ACP::AgentConnection.new(
+          transport: @transport,
+          capabilities: ACP::Types::AgentCapabilities.new,
+          extension_notifications: { 'myapp/tick' => ->(_params) {} }
+        )
+      end
+      start
+      assert_raises(ArgumentError) { @client.ext_request('myapp/ping') }
+      assert_raises(ArgumentError) { @client.ext_notify('myapp/tick') }
+    end
   end
 end

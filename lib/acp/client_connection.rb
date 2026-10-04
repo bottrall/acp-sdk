@@ -7,6 +7,8 @@ class ACP::ClientConnection
   # @rbs @write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
   # @rbs @updates: ACP::ClientConnection::_UpdateHandler
   # @rbs @fs_capabilities: ACP::Types::FileSystemCapabilities?
+  # @rbs @extension_requests: Hash[String, ^(untyped) -> untyped]
+  # @rbs @extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs @lock: Thread::Mutex
   # @rbs @streams: Hash[String, Thread::Queue]
   # @rbs @pending_permissions: Hash[String, Array[Thread::Queue]]
@@ -25,15 +27,30 @@ class ACP::ClientConnection
   # @rbs read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
   # @rbs write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
+  # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
+  # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
-  def initialize(transport:, permission:, read_text_file: nil, write_text_file: nil, updates: IGNORE, logger: ACP::Transport::StderrLogger.new)
+  def initialize(
+    transport:,
+    permission:,
+    read_text_file: nil,
+    write_text_file: nil,
+    updates: IGNORE,
+    extension_requests: {},
+    extension_notifications: {},
+    logger: ACP::Transport::StderrLogger.new
+  )
     @transport = transport
     @permission = permission
     @read_text_file = read_text_file
     @write_text_file = write_text_file
     @updates = updates
     @fs_capabilities = nil
+    @extension_requests = extension_requests
+    @extension_notifications = extension_notifications
+    extension_requests.each_key { |name| ACP::Extensions.validate_name(name) }
+    extension_notifications.each_key { |name| ACP::Extensions.validate_name(name) }
     @lock = Mutex.new
     @streams = {}
     @pending_permissions = {}
@@ -47,8 +64,8 @@ class ACP::ClientConnection
         'session/request_permission' => method(:request_permission),
         'fs/read_text_file' => method(:read_text_file),
         'fs/write_text_file' => method(:write_text_file)
-      },
-      notifications: { 'session/update' => method(:dispatch) }
+      }.merge(@extension_requests),
+      notifications: { 'session/update' => method(:dispatch) }.merge(@extension_notifications)
     )
   end
 
@@ -162,6 +179,26 @@ class ACP::ClientConnection
   # @rbs return: ACP::Types::LogoutResponse | ACP::RequestError
   def logout(request)
     parse(ACP::Types::LogoutResponse, @transport.request('logout', request.to_h))
+  end
+
+  # Sends an extension request, keyed by its raw `_`-prefixed wire name, and
+  # returns the agent's reply as-is: extension methods have no schema to
+  # parse the result into.
+  #
+  # @rbs method: String
+  # @rbs params: untyped
+  # @rbs return: (Hash[String, untyped] | ACP::RequestError)
+  def ext_request(method, params = nil)
+    ACP::Extensions.validate_name(method)
+    @transport.request(method, params)
+  end
+
+  # @rbs method: String
+  # @rbs params: untyped
+  # @rbs return: void
+  def ext_notify(method, params = nil)
+    ACP::Extensions.validate_name(method)
+    @transport.notify(method, params)
   end
 
   private
