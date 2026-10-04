@@ -82,6 +82,29 @@ class ACP::AgentConnection::Client
     terminal_call('terminal/release', ACP::Types::ReleaseTerminalResponse, request)
   end
 
+  # @rbs request: ACP::Types::CreateElicitationRequest
+  # @rbs return: ACP::Types::CreateElicitationResponse | ACP::RequestError
+  def create_elicitation(request)
+    case request.mode
+    when ACP::Types::CreateElicitationRequest::Mode::Form
+      return unadvertised('elicitation.form') unless capabilities&.elicitation&.form
+    when ACP::Types::CreateElicitationRequest::Mode::Url
+      return unadvertised('elicitation.url') unless capabilities&.elicitation&.url
+    else
+      return unadvertised("elicitation.#{request.mode['mode']}")
+    end
+
+    call('elicitation/create', ACP::Types::CreateElicitationResponse, request)
+  end
+
+  # @rbs notification: ACP::Types::CompleteElicitationNotification
+  # @rbs return: void
+  def complete_elicitation(notification)
+    return unadvertised('elicitation.url') unless capabilities&.elicitation&.url
+
+    @peer.notify('elicitation/complete', notification.to_h)
+  end
+
   private
 
   # @rbs rpc_method: String

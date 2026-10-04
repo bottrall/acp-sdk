@@ -79,6 +79,8 @@ class ACP::AgentConnection
     def wait_for_terminal_exit: (ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError)
     def kill_terminal: (ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError)
     def release_terminal: (ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
+    def create_elicitation: (ACP::Types::CreateElicitationRequest request) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError)
+    def complete_elicitation: (ACP::Types::CompleteElicitationNotification notification) -> void
     def capabilities: () -> ACP::Types::ClientCapabilities?
   end
 
