@@ -6,6 +6,8 @@ class ACP::AgentConnection
   # @rbs @agent_info: ACP::Types::Implementation?
   # @rbs @auth_methods: Array[ACP::Types::AuthMethod::t]
   # @rbs @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
+  # @rbs @extension_requests: Hash[String, ^(untyped) -> untyped]
+  # @rbs @extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs @logger: ACP::Transport::_Logger
 
   PROTOCOL_VERSION = 1 #: Integer
@@ -30,6 +32,8 @@ class ACP::AgentConnection
   # @rbs capabilities: ACP::Types::AgentCapabilities
   # @rbs agent_info: ACP::Types::Implementation?
   # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]
+  # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
+  # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs logger: ACP::Transport::_Logger
   # @rbs &factory: (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
   # @rbs return: void
@@ -38,6 +42,8 @@ class ACP::AgentConnection
     capabilities:,
     agent_info: nil,
     auth_methods: [],
+    extension_requests: {},
+    extension_notifications: {},
     logger: ACP::Transport::StderrLogger.new,
     &factory
   )
@@ -46,6 +52,10 @@ class ACP::AgentConnection
     @capabilities = capabilities
     @agent_info = agent_info
     @auth_methods = auth_methods
+    @extension_requests = extension_requests
+    @extension_notifications = extension_notifications
+    extension_requests.each_key { |name| ACP::Extensions.validate_name(name) }
+    extension_notifications.each_key { |name| ACP::Extensions.validate_name(name) }
     @factory = factory
   end
 
@@ -61,7 +71,10 @@ class ACP::AgentConnection
     raise ArgumentError, "initialize advertises methods the agent lacks: #{missing.join(', ')}" unless missing.empty?
 
     unrouted = unadvertised.map(&:rpc_method) + PER_SESSION.reject { |_, name| agent.respond_to?(name) }.keys
-    @transport.start(requests: requests(agent, client).except(*unrouted), notifications: notifications(agent))
+    @transport.start(
+      requests: requests(agent, client).except(*unrouted).merge(@extension_requests),
+      notifications: notifications(agent).merge(@extension_notifications)
+    )
   end
 
   private

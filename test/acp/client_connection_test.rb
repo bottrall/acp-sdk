@@ -796,4 +796,94 @@ describe ACP::ClientConnection do
       stdout.close
     end
   end
+
+  describe 'extension methods' do
+    before do
+      agent_input, @client_output = IO.pipe
+      @client_input, @agent_output = IO.pipe
+      @pipes = [agent_input, @client_output, @client_input, @agent_output]
+      @agent_notifications = Thread::Queue.new
+      @client_notifications = Thread::Queue.new
+      @agent_reader = ACP::AgentConnection.new(
+        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
+        capabilities: ACP::Types::AgentCapabilities.new,
+        extension_requests: { '_myapp/double' => ->(params) { { 'doubled' => params.fetch('n') * 2 } } },
+        extension_notifications: { '_myapp/tick' => ->(params) { @agent_notifications << params } }
+      ) { |client| @agent_client = client }.start
+    end
+
+    after do
+      @client_output.close
+      @agent_reader.join(2)
+      @agent_output.close
+      @client_reader&.join(2)
+      @pipes.reject(&:closed?).each(&:close)
+    end
+
+    def start
+      connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
+        permission: ->(_request) { raise 'no permission requests are expected' },
+        extension_requests: { '_myapp/ping' => ->(params) { { 'echo' => params.fetch('n') } } },
+        extension_notifications: { '_myapp/note' => ->(params) { @client_notifications << params } }
+      )
+      @client_reader = connection.start
+      connection
+    end
+
+    it 'sends an extension request to the agent and returns its result' do
+      connection = start
+
+      assert_equal({ 'doubled' => 42 }, within { connection.ext_request('_myapp/double', { 'n' => 21 }) })
+    end
+
+    it 'sends an extension notification to the agent' do
+      connection = start
+      within { connection.ext_notify('_myapp/tick', { 'n' => 1 }) }
+
+      assert_equal({ 'n' => 1 }, within { @agent_notifications.pop })
+    end
+
+    it "answers the agent's extension request through the registered handler" do
+      start
+      reply = Thread.new { @agent_client.ext_request('_myapp/ping', { 'n' => 'hello' }) }
+
+      assert_equal({ 'echo' => 'hello' }, within { reply.value })
+    end
+
+    it 'routes an extension notification from the agent to the registered handler' do
+      start
+      within { @agent_client.ext_notify('_myapp/note', { 'n' => 1 }) }
+
+      assert_equal({ 'n' => 1 }, within { @client_notifications.pop })
+    end
+
+    it 'answers an unregistered extension request with method not found' do
+      connection = start
+      error = within { connection.ext_request('_myapp/unknown') }
+      from_agent = Thread.new { @agent_client.ext_request('_myapp/unknown') }
+
+      assert_equal([-32_601, -32_601], [error.code, within { from_agent.value }.code])
+    end
+
+    it 'refuses extension handler names without the underscore prefix' do
+      assert_raises(ArgumentError) do
+        ACP::ClientConnection.new(
+          transport: StubTransport.new(nil),
+          permission: ->(_request) {},
+          extension_requests: { 'myapp/ping' => ->(_params) {} }
+        )
+      end
+      assert_raises(ArgumentError) do
+        ACP::ClientConnection.new(
+          transport: StubTransport.new(nil),
+          permission: ->(_request) {},
+          extension_notifications: { 'myapp/note' => ->(_params) {} }
+        )
+      end
+      connection = start
+      assert_raises(ArgumentError) { connection.ext_request('myapp/ping') }
+      assert_raises(ArgumentError) { connection.ext_notify('myapp/note') }
+    end
+  end
 end

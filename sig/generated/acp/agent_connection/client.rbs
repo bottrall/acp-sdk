@@ -63,6 +63,20 @@ class ACP::AgentConnection::Client
   # @rbs return: void
   def complete_elicitation: (ACP::Types::CompleteElicitationNotification notification) -> void
 
+  # Sends an extension request, keyed by its raw `_`-prefixed wire name, and
+  # returns the client's reply as-is: extension methods have no schema to
+  # parse the result into.
+  #
+  # @rbs method: String
+  # @rbs params: untyped
+  # @rbs return: (Hash[String, untyped] | ACP::RequestError)
+  def ext_request: (String method, ?untyped params) -> (Hash[String, untyped] | ACP::RequestError)
+
+  # @rbs method: String
+  # @rbs params: untyped
+  # @rbs return: void
+  def ext_notify: (String method, ?untyped params) -> void
+
   private
 
   # @rbs rpc_method: String

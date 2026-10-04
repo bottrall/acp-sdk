@@ -3,6 +3,10 @@
 class ACP::AgentConnection
   @logger: ACP::Transport::_Logger
 
+  @extension_notifications: Hash[String, ^(untyped) -> void]
+
+  @extension_requests: Hash[String, ^(untyped) -> untyped]
+
   @factory: ^(ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
 
   @auth_methods: Array[ACP::Types::AuthMethod::t]
@@ -26,10 +30,12 @@ class ACP::AgentConnection
   # @rbs capabilities: ACP::Types::AgentCapabilities
   # @rbs agent_info: ACP::Types::Implementation?
   # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]
+  # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
+  # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs logger: ACP::Transport::_Logger
   # @rbs &factory: (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
   # @rbs return: void
-  def initialize: (transport: ACP::AgentConnection::_Transport, capabilities: ACP::Types::AgentCapabilities, ?agent_info: ACP::Types::Implementation?, ?auth_methods: Array[ACP::Types::AuthMethod::t], ?logger: ACP::Transport::_Logger) { (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent } -> void
+  def initialize: (transport: ACP::AgentConnection::_Transport, capabilities: ACP::Types::AgentCapabilities, ?agent_info: ACP::Types::Implementation?, ?auth_methods: Array[ACP::Types::AuthMethod::t], ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) { (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent } -> void
 
   # @rbs return: Thread
   def start: () -> Thread

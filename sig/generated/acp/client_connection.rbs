@@ -7,6 +7,10 @@ class ACP::ClientConnection
 
   @lock: Thread::Mutex
 
+  @extension_notifications: Hash[String, ^(untyped) -> void]
+
+  @extension_requests: Hash[String, ^(untyped) -> untyped]
+
   @fs_capabilities: ACP::Types::FileSystemCapabilities?
 
   @updates: ACP::ClientConnection::_UpdateHandler
@@ -28,9 +32,11 @@ class ACP::ClientConnection
   # @rbs read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
   # @rbs write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
+  # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
+  # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
-  def initialize: (transport: ACP::AgentConnection::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?, ?write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?, ?updates: ACP::ClientConnection::_UpdateHandler, ?logger: ACP::Transport::_Logger) -> void
+  def initialize: (transport: ACP::AgentConnection::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?, ?write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?, ?updates: ACP::ClientConnection::_UpdateHandler, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) -> void
 
   # @rbs return: Thread
   def start: () -> Thread
@@ -97,6 +103,20 @@ class ACP::ClientConnection
   # @rbs request: ACP::Types::LogoutRequest
   # @rbs return: ACP::Types::LogoutResponse | ACP::RequestError
   def logout: (ACP::Types::LogoutRequest request) -> (ACP::Types::LogoutResponse | ACP::RequestError)
+
+  # Sends an extension request, keyed by its raw `_`-prefixed wire name, and
+  # returns the agent's reply as-is: extension methods have no schema to
+  # parse the result into.
+  #
+  # @rbs method: String
+  # @rbs params: untyped
+  # @rbs return: (Hash[String, untyped] | ACP::RequestError)
+  def ext_request: (String method, ?untyped params) -> (Hash[String, untyped] | ACP::RequestError)
+
+  # @rbs method: String
+  # @rbs params: untyped
+  # @rbs return: void
+  def ext_notify: (String method, ?untyped params) -> void
 
   private
 

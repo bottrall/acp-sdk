@@ -1,0 +1,10 @@
+# Generated from lib/acp/extensions.rb with RBS::Inline
+
+# Validates the `_`-prefixed wire names extension handlers are keyed by and
+# extension sends take, so a plain method name cannot slip into the extension
+# routes.
+module ACP::Extensions
+  # @rbs name: String
+  # @rbs return: void
+  def self.validate_name: (String name) -> void
+end
