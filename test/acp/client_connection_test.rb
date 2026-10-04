@@ -266,6 +266,54 @@ describe ACP::ClientConnection do
       assert_equal([[first, '/a']], response.sessions.map { |info| [info.session_id, info.cwd] })
     end
 
+    it 'resumes a session without replaying its history' do
+      connection = allowing
+      session_id = new_session(connection)
+      within { connection.session_prompt(prompt_request(session_id, 'hello')) { nil } }
+      response = within { connection.session_resume(ACP::Types::ResumeSessionRequest.new(session_id:, cwd: '/work')) }
+
+      assert_equal([{}, true], [response.to_h, @updates.empty?])
+    end
+
+    it 'answers resume of an unknown session with the agent\'s error' do
+      connection = allowing
+      response = within do
+        connection.session_resume(ACP::Types::ResumeSessionRequest.new(session_id: 'sess_missing', cwd: '/work'))
+      end
+
+      assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
+    end
+
+    it 'closes a session' do
+      connection = allowing
+      session_id = new_session(connection)
+      response = within { connection.session_close(ACP::Types::CloseSessionRequest.new(session_id:)) }
+
+      assert_equal({}, response.to_h)
+    end
+
+    it 'answers close of an unknown session with the agent\'s error' do
+      connection = allowing
+      response = within { connection.session_close(ACP::Types::CloseSessionRequest.new(session_id: 'sess_missing')) }
+
+      assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
+    end
+
+    it 'deletes a session' do
+      connection = allowing
+      session_id = new_session(connection)
+      response = within { connection.session_delete(ACP::Types::DeleteSessionRequest.new(session_id:)) }
+
+      assert_equal({}, response.to_h)
+    end
+
+    it 'answers delete of an unknown session with the agent\'s error' do
+      connection = allowing
+      response = within { connection.session_delete(ACP::Types::DeleteSessionRequest.new(session_id: 'sess_missing')) }
+
+      assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
+    end
+
     it 'returns the agent\'s error response' do
       connection = allowing
       response = within { connection.session_prompt(prompt_request('sess_missing', 'hello')) { nil } }

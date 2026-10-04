@@ -8,7 +8,12 @@ require_relative '../lib/acp/sdk'
 class EchoAgent
   CAPABILITIES = ACP::Types::AgentCapabilities.new(
     load_session: true,
-    session_capabilities: ACP::Types::SessionCapabilities.new(list: ACP::Types::SessionListCapabilities.new)
+    session_capabilities: ACP::Types::SessionCapabilities.new(
+      list: ACP::Types::SessionListCapabilities.new,
+      resume: ACP::Types::SessionResumeCapabilities.new,
+      close: ACP::Types::SessionCloseCapabilities.new,
+      delete: ACP::Types::SessionDeleteCapabilities.new
+    )
   )
   READ = ACP::Types::AvailableCommand.new(
     name: 'read',
@@ -102,7 +107,34 @@ class EchoAgent
     ACP::Types::ListSessionsResponse.new(sessions: infos)
   end
 
+  # Resume must not replay history, so the response carries no updates.
+  def resume_session(request)
+    return NOT_FOUND unless find(request.session_id)
+
+    ACP::Types::ResumeSessionResponse.new
+  end
+
+  def close_session(request)
+    return NOT_FOUND unless drop(request.session_id)
+
+    ACP::Types::CloseSessionResponse.new
+  end
+
+  def delete_session(request)
+    return NOT_FOUND unless drop(request.session_id)
+
+    ACP::Types::DeleteSessionResponse.new
+  end
+
   private
+
+  def find(session_id)
+    @lock.synchronize { @sessions[session_id] }
+  end
+
+  def drop(session_id)
+    @lock.synchronize { @sessions.delete(session_id) }
+  end
 
   def commands(capabilities)
     [

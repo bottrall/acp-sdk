@@ -56,7 +56,7 @@ The agent's contract:
 - `client.read_text_file` and `client.write_text_file` take an `ACP::Types::ReadTextFileRequest` or `ACP::Types::WriteTextFileRequest` and return the response type or an `ACP::RequestError`. Unless `client.capabilities` advertises `fs.read_text_file` or `fs.write_text_file`, they return `-32601` without sending anything to the client.
 - `client.create_terminal`, `client.terminal_output`, `client.wait_for_terminal_exit`, `client.kill_terminal` and `client.release_terminal` take the matching `ACP::Types` request (`CreateTerminalRequest`, `TerminalOutputRequest`, `WaitForTerminalExitRequest`, `KillTerminalRequest`, `ReleaseTerminalRequest`) and return its response type or an `ACP::RequestError`. Unless `client.capabilities` advertises `terminal`, they return `-32601` without sending anything to the client. The agent must release every terminal it creates.
 
-[`examples/echo_agent.rb`](https://github.com/bottrall/acp-sdk/blob/main/examples/echo_agent.rb) is a complete agent that streams updates, asks permission, handles cancellation, reads and writes files and runs commands through the client (`/read <path>`, `/write <path> <text>` and `/run <command> [args]`, each advertised as a slash command only when the client supports it), and supports `session/load` and `session/list`.
+[`examples/echo_agent.rb`](https://github.com/bottrall/acp-sdk/blob/main/examples/echo_agent.rb) is a complete agent that streams updates, asks permission, handles cancellation, reads and writes files and runs commands through the client (`/read <path>`, `/write <path> <text>` and `/run <command> [args]`, each advertised as a slash command only when the client supports it), and supports `session/load`, `session/list`, `session/resume`, `session/close` and `session/delete`.
 
 ## Driving an agent
 
@@ -94,7 +94,7 @@ connection = ACP::ClientConnection.new(
 )
 ```
 
-- `session_prompt` and `session_load` yield the session's updates on the calling thread as they arrive and return once the agent replies. Updates outside those calls, such as the available commands after `session/new`, go to `updates`, which runs on the reader thread and must return quickly.
+- `session_prompt` and `session_load` yield the session's updates on the calling thread as they arrive and return once the agent replies. Updates outside those calls, such as the available commands after `session/new`, go to `updates`, which runs on the reader thread and must return quickly. `session_resume` does not take a block: the agent must not replay history on resume, so unlike `session_load` there is nothing to stream. `session_close` and `session_delete` end the session, discarding it on the agent, and return once the agent replies.
 - `permission` answers `session/request_permission` with an `ACP::Types::RequestPermissionResponse` or an `ACP::RequestError`. It runs on its own thread, so it may block while the user decides, and `session_cancel` can be sent meanwhile.
 
 ## Contributing
