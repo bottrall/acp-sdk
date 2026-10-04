@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/bottrall/acp-sdk/compare/v0.5.0...v0.6.0) (2026-10-04)
+
+
+### Features
+
+* answer pending permission requests with cancelled after session_cancel ([#70](https://github.com/bottrall/acp-sdk/issues/70)) ([06a218b](https://github.com/bottrall/acp-sdk/commit/06a218b6262ff409e301d08a43330af5b60837e0))
+* extension methods on both connections ([#72](https://github.com/bottrall/acp-sdk/issues/72)) ([d1faa1a](https://github.com/bottrall/acp-sdk/commit/d1faa1a738019e73a4dbad5b59f480795f8dd4bf))
+
 ## [0.5.0](https://github.com/bottrall/acp-sdk/compare/v0.4.0...v0.5.0) (2026-10-04)
 
 
