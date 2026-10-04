@@ -127,4 +127,10 @@ class ACP::ClientConnection
   # @rbs params: untyped
   # @rbs return: (ACP::Types::WriteTextFileResponse | ACP::RequestError)
   def write_text_file: (untyped params) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError)
+
+  # The fs capabilities initialize advertises that no injected handler serves.
+  #
+  # @rbs capabilities: ACP::Types::FileSystemCapabilities?
+  # @rbs return: Array[String]
+  def unserved_fs_methods: (ACP::Types::FileSystemCapabilities? capabilities) -> Array[String]
 end

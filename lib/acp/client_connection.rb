@@ -52,16 +52,13 @@ class ACP::ClientConnection
   # @rbs request: ACP::Types::InitializeRequest
   # @rbs return: ACP::Types::InitializeResponse | ACP::RequestError
   def connect(request)
-    fs = request.client_capabilities&.fs
-    unserved = [
-      ['fs.readTextFile', fs&.read_text_file && !@read_text_file],
-      ['fs.writeTextFile', fs&.write_text_file && !@write_text_file]
-    ].select(&:last).map(&:first)
+    capabilities = request.client_capabilities&.fs
+    unserved = unserved_fs_methods(capabilities)
     unless unserved.empty?
       raise ArgumentError, "initialize advertises fs methods no handler serves: #{unserved.join(', ')}"
     end
 
-    @fs_capabilities = fs
+    @fs_capabilities = capabilities
     parse(ACP::Types::InitializeResponse, @transport.request('initialize', request.to_h)).then do |response|
       next response if response.is_a?(ACP::RequestError)
 
@@ -243,5 +240,16 @@ class ACP::ClientConnection
     # Safe: connect refuses an advertised capability no handler serves.
     handler = @write_text_file #: ^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError)
     handler.call(request)
+  end
+
+  # The fs capabilities initialize advertises that no injected handler serves.
+  #
+  # @rbs capabilities: ACP::Types::FileSystemCapabilities?
+  # @rbs return: Array[String]
+  def unserved_fs_methods(capabilities)
+    {
+      'fs.readTextFile' => capabilities&.read_text_file && !@read_text_file,
+      'fs.writeTextFile' => capabilities&.write_text_file && !@write_text_file
+    }.select { |_, unserved| unserved }.keys
   end
 end
