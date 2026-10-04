@@ -5,5 +5,5 @@
 module ACP::Extensions
   # @rbs name: String
   # @rbs return: void
-  def self.validate_name: (String name) -> void
+  def validate_name: (String name) -> void
 end

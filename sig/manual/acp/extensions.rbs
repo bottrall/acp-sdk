@@ -1,0 +1,6 @@
+# rbs-inline does not emit `extend self`, so without this reopen the module's
+# methods aren't visible as singleton methods.
+
+module ACP::Extensions
+  extend ::ACP::Extensions
+end
