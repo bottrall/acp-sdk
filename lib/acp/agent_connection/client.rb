@@ -87,11 +87,11 @@ class ACP::AgentConnection::Client
   def create_elicitation(request)
     case request.mode
     when ACP::Types::CreateElicitationRequest::Mode::Form
-      return unadvertised('elicitation.form') unless capabilities&.elicitation&.form
+      return ACP::RequestError.unadvertised('elicitation.form') unless capabilities&.elicitation&.form
     when ACP::Types::CreateElicitationRequest::Mode::Url
-      return unadvertised('elicitation.url') unless capabilities&.elicitation&.url
+      return ACP::RequestError.unadvertised('elicitation.url') unless capabilities&.elicitation&.url
     else
-      return unadvertised("elicitation.#{request.mode['mode']}")
+      return ACP::RequestError.unadvertised("elicitation.#{request.mode['mode']}")
     end
 
     call('elicitation/create', ACP::Types::CreateElicitationResponse, request)
@@ -100,7 +100,7 @@ class ACP::AgentConnection::Client
   # @rbs notification: ACP::Types::CompleteElicitationNotification
   # @rbs return: void
   def complete_elicitation(notification)
-    return unadvertised('elicitation.url') unless capabilities&.elicitation&.url
+    return ACP::RequestError.unadvertised('elicitation.url') unless capabilities&.elicitation&.url
 
     @peer.notify('elicitation/complete', notification.to_h)
   end
