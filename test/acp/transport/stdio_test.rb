@@ -115,7 +115,11 @@ describe ACP::Transport::Stdio do
     send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'nope' })
 
     assert_equal(
-      { 'jsonrpc' => '2.0', 'id' => 1, 'error' => { 'code' => -32_601, 'message' => 'Method not found' } },
+      {
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => { 'code' => -32_601, 'message' => 'Method not found', 'data' => { 'method' => 'nope' } }
+      },
       receive_message
     )
   end
@@ -216,6 +220,16 @@ describe ACP::Transport::Stdio do
 
     assert_equal(
       { 'jsonrpc' => '2.0', 'id' => nil, 'error' => { 'code' => -32_600, 'message' => 'Invalid request' } },
+      receive_message
+    )
+  end
+
+  it 'answers an invalid envelope with a readable id by echoing the id' do
+    start
+    send_message({ 'jsonrpc' => '2.0', 'id' => 7, 'method' => 5 })
+
+    assert_equal(
+      { 'jsonrpc' => '2.0', 'id' => 7, 'error' => { 'code' => -32_600, 'message' => 'Invalid request' } },
       receive_message
     )
   end

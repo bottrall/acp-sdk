@@ -48,9 +48,10 @@ class ACP::RequestError
     new(code: INVALID_REQUEST, message: 'Invalid request')
   end
 
+  # @rbs method: String?
   # @rbs return: ACP::RequestError
-  def self.method_not_found
-    new(code: METHOD_NOT_FOUND, message: 'Method not found')
+  def self.method_not_found(method = nil)
+    new(code: METHOD_NOT_FOUND, message: 'Method not found', data: method && { method: method })
   end
 
   # @rbs return: ACP::RequestError

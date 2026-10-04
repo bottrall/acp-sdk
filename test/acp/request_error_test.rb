@@ -21,6 +21,12 @@ describe ACP::RequestError do
     assert_equal [-32_601, 'Method not found', nil], [error.code, error.message, error.data]
   end
 
+  it 'builds method not found errors naming the refused method in data' do
+    error = ACP::RequestError.method_not_found('fs/read_text_file')
+
+    assert_equal [-32_601, 'Method not found', { method: 'fs/read_text_file' }], [error.code, error.message, error.data]
+  end
+
   it 'builds invalid params errors with code -32602' do
     error = ACP::RequestError.invalid_params
 

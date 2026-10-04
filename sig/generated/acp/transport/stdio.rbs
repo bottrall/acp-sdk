@@ -62,6 +62,14 @@ class ACP::Transport::Stdio
   # @rbs return: void
   def route: (Hash[String, untyped] message, Hash[String, _Handler] requests, Hash[String, _NotificationHandler] notifications) -> void
 
+  # JSON-RPC 2.0 says an error reply echoes the request id whenever it can be
+  # detected; ids outside the spec's String/Number/Null types are not, so
+  # those replies keep id null.
+  #
+  # @rbs message: Hash[String, untyped]
+  # @rbs return: untyped
+  def detectable_id: (Hash[String, untyped] message) -> untyped
+
   # @rbs line: String
   # @rbs return: Hash[String, untyped] | ACP::RequestError
   def parse: (String line) -> (Hash[String, untyped] | ACP::RequestError)
@@ -69,8 +77,9 @@ class ACP::Transport::Stdio
   # @rbs handler: _Handler?
   # @rbs id: untyped
   # @rbs params: untyped
+  # @rbs method: String
   # @rbs return: void
-  def serve: (_Handler? handler, untyped id, untyped params) -> void
+  def serve: (_Handler? handler, untyped id, untyped params, String method) -> void
 
   # For code with no reply to carry an error: a notification handler, or a
   # Reply's after once the reply is on the wire. An exception must not kill
