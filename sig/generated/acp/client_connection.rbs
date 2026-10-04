@@ -7,7 +7,13 @@ class ACP::ClientConnection
 
   @lock: Thread::Mutex
 
+  @fs_capabilities: ACP::Types::FileSystemCapabilities?
+
   @updates: ACP::ClientConnection::_UpdateHandler
+
+  @write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
+
+  @read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
 
   @permission: ACP::ClientConnection::_PermissionHandler
 
@@ -19,10 +25,12 @@ class ACP::ClientConnection
 
   # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
+  # @rbs read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
+  # @rbs write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
   # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
-  def initialize: (transport: ACP::AgentConnection::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?updates: ACP::ClientConnection::_UpdateHandler, ?logger: ACP::Transport::_Logger) -> void
+  def initialize: (transport: ACP::AgentConnection::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?, ?write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?, ?updates: ACP::ClientConnection::_UpdateHandler, ?logger: ACP::Transport::_Logger) -> void
 
   # @rbs return: Thread
   def start: () -> Thread
@@ -108,4 +116,15 @@ class ACP::ClientConnection
   # @rbs params: untyped
   # @rbs return: (ACP::Types::RequestPermissionResponse | ACP::RequestError)
   def request_permission: (untyped params) -> (ACP::Types::RequestPermissionResponse | ACP::RequestError)
+
+  # The routes are registered at start, before connect records the advertised
+  # capabilities, so each one answers -32601 until then.
+  #
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::ReadTextFileResponse | ACP::RequestError)
+  def read_text_file: (untyped params) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError)
+
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::WriteTextFileResponse | ACP::RequestError)
+  def write_text_file: (untyped params) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError)
 end
