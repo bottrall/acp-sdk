@@ -3,7 +3,10 @@
 class ACP::ClientConnection
   # @rbs @transport: ACP::AgentConnection::_Transport
   # @rbs @permission: ACP::ClientConnection::_PermissionHandler
+  # @rbs @read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
+  # @rbs @write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
   # @rbs @updates: ACP::ClientConnection::_UpdateHandler
+  # @rbs @fs_capabilities: ACP::Types::FileSystemCapabilities?
   # @rbs @lock: Thread::Mutex
   # @rbs @streams: Hash[String, Thread::Queue]
   # @rbs @logger: ACP::Transport::_Logger
@@ -14,13 +17,18 @@ class ACP::ClientConnection
 
   # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
+  # @rbs read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
+  # @rbs write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
   # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
-  def initialize(transport:, permission:, updates: IGNORE, logger: ACP::Transport::StderrLogger.new)
+  def initialize(transport:, permission:, read_text_file: nil, write_text_file: nil, updates: IGNORE, logger: ACP::Transport::StderrLogger.new)
     @transport = transport
     @permission = permission
+    @read_text_file = read_text_file
+    @write_text_file = write_text_file
     @updates = updates
+    @fs_capabilities = nil
     @lock = Mutex.new
     @streams = {}
     @logger = logger
@@ -29,7 +37,11 @@ class ACP::ClientConnection
   # @rbs return: Thread
   def start
     @transport.start(
-      requests: { 'session/request_permission' => method(:request_permission) },
+      requests: {
+        'session/request_permission' => method(:request_permission),
+        'fs/read_text_file' => method(:read_text_file),
+        'fs/write_text_file' => method(:write_text_file)
+      },
       notifications: { 'session/update' => method(:dispatch) }
     )
   end
@@ -40,6 +52,13 @@ class ACP::ClientConnection
   # @rbs request: ACP::Types::InitializeRequest
   # @rbs return: ACP::Types::InitializeResponse | ACP::RequestError
   def connect(request)
+    capabilities = request.client_capabilities&.fs
+    unserved = unserved_fs_methods(capabilities)
+    unless unserved.empty?
+      raise ArgumentError, "initialize advertises fs methods no handler serves: #{unserved.join(', ')}"
+    end
+
+    @fs_capabilities = capabilities
     parse(ACP::Types::InitializeResponse, @transport.request('initialize', request.to_h)).then do |response|
       next response if response.is_a?(ACP::RequestError)
 
@@ -205,5 +224,47 @@ class ACP::ClientConnection
     ACP::RequestError.invalid_params
   else
     @permission.call(request)
+  end
+
+  # The routes are registered at start, before connect records the advertised
+  # capabilities, so each one answers -32601 until then.
+  #
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::ReadTextFileResponse | ACP::RequestError)
+  def read_text_file(params)
+    return ACP::RequestError.unadvertised('fs.readTextFile') unless @fs_capabilities&.read_text_file
+
+    request = ACP::Types::ReadTextFileRequest.from_h(params)
+  rescue KeyError, TypeError, NoMethodError
+    ACP::RequestError.invalid_params
+  else
+    # Safe: connect refuses an advertised capability no handler serves.
+    handler = @read_text_file #: ^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError)
+    handler.call(request)
+  end
+
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::WriteTextFileResponse | ACP::RequestError)
+  def write_text_file(params)
+    return ACP::RequestError.unadvertised('fs.writeTextFile') unless @fs_capabilities&.write_text_file
+
+    request = ACP::Types::WriteTextFileRequest.from_h(params)
+  rescue KeyError, TypeError, NoMethodError
+    ACP::RequestError.invalid_params
+  else
+    # Safe: connect refuses an advertised capability no handler serves.
+    handler = @write_text_file #: ^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError)
+    handler.call(request)
+  end
+
+  # The fs capabilities initialize advertises that no injected handler serves.
+  #
+  # @rbs capabilities: ACP::Types::FileSystemCapabilities?
+  # @rbs return: Array[String]
+  def unserved_fs_methods(capabilities)
+    {
+      'fs.readTextFile' => capabilities&.read_text_file && !@read_text_file,
+      'fs.writeTextFile' => capabilities&.write_text_file && !@write_text_file
+    }.select { |_, unserved| unserved }.keys
   end
 end

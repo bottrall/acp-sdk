@@ -344,6 +344,197 @@ describe ACP::ClientConnection do
     end
   end
 
+  describe 'serving the agent\'s file requests' do
+    before do
+      agent_input, @client_output = IO.pipe
+      @client_input, @agent_output = IO.pipe
+      @pipes = [agent_input, @client_output, @client_input, @agent_output]
+      @agent_reader = ACP::AgentConnection.new(
+        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
+        capabilities: EchoAgent::CAPABILITIES,
+        agent_info: ACP::Types::Implementation.new(name: 'echo-agent', version: '1.0.0')
+      ) { |client| EchoAgent.new(client:) }.start
+      @updates = Thread::Queue.new
+      @read_requests = Thread::Queue.new
+      @write_requests = Thread::Queue.new
+    end
+
+    after do
+      @client_output.close
+      @agent_reader.join(2)
+      @agent_output.close
+      @client_reader&.join(2)
+      @pipes.reject(&:closed?).each(&:close)
+    end
+
+    def start
+      @read_replies = Thread::Queue.new
+      @read_replies << ACP::Types::ReadTextFileResponse.new(content: 'hello')
+      @write_replies = Thread::Queue.new
+      @write_replies << ACP::Types::WriteTextFileResponse.new
+      connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
+        permission: ->(_request) { choose(EchoAgent::ALLOW) },
+        read_text_file: method(:serve_read),
+        write_text_file: method(:serve_write),
+        updates: ->(notification) { @updates << notification }
+      )
+      @client_reader = connection.start
+      connection
+    end
+
+    def serve_read(request)
+      @read_requests << request
+      @read_replies.pop
+    end
+
+    def serve_write(request)
+      @write_requests << request
+      @write_replies.pop
+    end
+
+    def connect(connection)
+      within do
+        connection.connect(
+          ACP::Types::InitializeRequest.new(
+            protocol_version: 1,
+            client_capabilities: ACP::Types::ClientCapabilities.new(
+              fs: ACP::Types::FileSystemCapabilities.new(read_text_file: true, write_text_file: true)
+            )
+          )
+        )
+      end
+    end
+
+    def new_session(connection)
+      session_id = within { connection.session_new(new_session_request) }.session_id
+      within { @updates.pop }
+      session_id
+    end
+
+    it 'serves fs/read_text_file when connect advertises it' do
+      connection = start
+      connect(connection)
+      session_id = new_session(connection)
+      updates = []
+      response = within do
+        connection.session_prompt(prompt_request(session_id, '/read /a.txt')) { |update| updates << update }
+      end
+
+      assert_equal(
+        ['/a.txt', [['tool_call', 'Echo the prompt'], ['agent_message_chunk', 'hello']], 'end_turn'],
+        [@read_requests.pop.path, updates.map { |update| summary(update) }, response.stop_reason]
+      )
+    end
+
+    it 'serves fs/write_text_file when connect advertises it' do
+      connection = start
+      connect(connection)
+      session_id = new_session(connection)
+      response = within { connection.session_prompt(prompt_request(session_id, '/write /a.txt hello')) { nil } }
+      written = within { @write_requests.pop }
+
+      assert_equal(['/a.txt', 'hello', 'end_turn'], [written.path, written.content, response.stop_reason])
+    end
+
+    it 'returns the error a file handler answers with as the prompt error' do
+      connection = start
+      @read_replies.clear
+      @read_replies << ACP::RequestError.resource_not_found
+      connect(connection)
+      session_id = new_session(connection)
+      response = within { connection.session_prompt(prompt_request(session_id, '/read /missing')) { nil } }
+
+      assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
+    end
+  end
+
+  describe 'answering file requests the capabilities do not advertise' do
+    before do
+      @client_input, @agent_output = IO.pipe
+      @agent_input, @client_output = IO.pipe
+      @connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
+        permission: ->(_request) {},
+        read_text_file: ->(_request) { ACP::Types::ReadTextFileResponse.new(content: 'hello') },
+        write_text_file: ->(_request) { ACP::Types::WriteTextFileResponse.new }
+      )
+      @reader = @connection.start
+    end
+
+    after do
+      @agent_output.close
+      @reader.join(2)
+      [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
+    end
+
+    # Plays the agent: a raw request into the client's input, its raw reply back.
+    def reply_for(method, params)
+      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => 1, 'method' => method, 'params' => params)}\n")
+      within { JSON.parse(@agent_input.gets) }
+    end
+
+    it 'answers -32601 before connect records any capability' do
+      reply = reply_for('fs/read_text_file', { 'sessionId' => 's', 'path' => '/a.txt' })
+
+      assert_equal(
+        [-32_601, 'Client does not advertise fs.readTextFile'],
+        [reply.dig('error', 'code'), reply.dig('error', 'message')]
+      )
+    end
+
+    it 'answers -32601 for a method the advertised capabilities omit' do
+      connect = Thread.new do
+        @connection.connect(
+          ACP::Types::InitializeRequest.new(
+            protocol_version: 1,
+            client_capabilities: ACP::Types::ClientCapabilities.new(
+              fs: ACP::Types::FileSystemCapabilities.new(read_text_file: true)
+            )
+          )
+        )
+      end
+      request = within { JSON.parse(@agent_input.gets) }
+      result = JSON.generate('jsonrpc' => '2.0', 'id' => request['id'], 'result' => { 'protocolVersion' => 1 })
+      @agent_output.write("#{result}\n")
+      within { connect.value }
+      reply = reply_for('fs/write_text_file', { 'sessionId' => 's', 'path' => '/a.txt', 'content' => 'hi' })
+
+      assert_equal(
+        [-32_601, 'Client does not advertise fs.writeTextFile'],
+        [reply.dig('error', 'code'), reply.dig('error', 'message')]
+      )
+    end
+
+    it 'refuses a connect that advertises a capability with no handler' do
+      from_client, client_output = IO.pipe
+      connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: from_client, output: client_output),
+        permission: ->(_request) {},
+        read_text_file: ->(_request) { ACP::Types::ReadTextFileResponse.new(content: 'hello') }
+      )
+      error =
+        within do
+          assert_raises(ArgumentError) do
+            connection.connect(
+              ACP::Types::InitializeRequest.new(
+                protocol_version: 1,
+                client_capabilities: ACP::Types::ClientCapabilities.new(
+                  fs: ACP::Types::FileSystemCapabilities.new(write_text_file: true)
+                )
+              )
+            )
+          end
+        end
+
+      assert_equal 'initialize advertises fs methods no handler serves: fs.writeTextFile', error.message
+      assert_nil from_client.wait_readable(0.1), 'connect sent initialize anyway'
+    ensure
+      from_client&.close
+      client_output&.close
+    end
+  end
+
   describe 'driving an agent with auth over pipes' do
     before do
       agent_input, @client_output = IO.pipe

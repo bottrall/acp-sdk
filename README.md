@@ -90,12 +90,18 @@ Any transport over a pair of IOs works too, so the connection can still be wired
 connection = ACP::ClientConnection.new(
   transport: ACP::Transport::Stdio.new(input: some_io, output: other_io),
   permission: ->(request) { ask_the_user(request) },
+  read_text_file: ->(request) { ACP::Types::ReadTextFileResponse.new(content: File.read(request.path)) },
+  write_text_file: ->(request) {
+    File.write(request.path, request.content)
+    ACP::Types::WriteTextFileResponse.new
+  },
   updates: ->(notification) { show(notification) }
 )
 ```
 
 - `session_prompt` and `session_load` yield the session's updates on the calling thread as they arrive and return once the agent replies. Updates outside those calls, such as the available commands after `session/new`, go to `updates`, which runs on the reader thread and must return quickly. `session_resume` does not take a block: the agent must not replay history on resume, so unlike `session_load` there is nothing to stream. `session_close` and `session_delete` end the session, discarding it on the agent, and return once the agent replies.
 - `permission` answers `session/request_permission` with an `ACP::Types::RequestPermissionResponse` or an `ACP::RequestError`. It runs on its own thread, so it may block while the user decides, and `session_cancel` can be sent meanwhile.
+- `read_text_file` and `write_text_file` answer the agent's `fs/read_text_file` and `fs/write_text_file` with an `ACP::Types::ReadTextFileResponse`, an `ACP::Types::WriteTextFileResponse` or an `ACP::RequestError`. They are routed by the `fs` capabilities `connect` sends: a method the client does not advertise is answered with `-32601` without reaching the handler, and `connect` raises `ArgumentError` — before sending `initialize` — when the request advertises a capability that has no handler.
 
 ## Contributing
 

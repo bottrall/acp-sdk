@@ -58,6 +58,16 @@ class ACP::RequestError
     new(code: INVALID_PARAMS, message: 'Invalid params')
   end
 
+  # The method-not-found code for a method the client's capabilities do not
+  # advertise, with a message that names the capability so it can be told
+  # apart from an unknown method.
+  #
+  # @rbs capability: String
+  # @rbs return: ACP::RequestError
+  def self.unadvertised(capability)
+    new(code: METHOD_NOT_FOUND, message: "Client does not advertise #{capability}")
+  end
+
   # @rbs return: ACP::RequestError
   def self.internal_error
     new(code: INTERNAL_ERROR, message: 'Internal error')
