@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-# Validates the `_`-prefixed wire names extension handlers are keyed by and
-# extension sends take, so a plain method name cannot slip into the extension
-# routes.
+# Shared by the connections' handler maps and send paths, so a plain method
+# name cannot slip into the extension routes.
 module ACP::Extensions
   # @rbs name: String
   # @rbs return: void
