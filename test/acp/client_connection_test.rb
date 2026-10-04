@@ -45,6 +45,28 @@ class AuthAgent
   end
 end
 
+class ModesAgent
+  def change_session_mode(request)
+    return ACP::RequestError.new(code: -32_000, message: 'No such mode') unless request.mode_id == 'code'
+
+    ACP::Types::SetSessionModeResponse.new
+  end
+
+  def change_session_config_option(request)
+    return ACP::RequestError.new(code: -32_000, message: 'No such option') unless request.config_id == 'thinking'
+
+    ACP::Types::SetSessionConfigOptionResponse.new(config_options: [option(request.value.value)])
+  end
+
+  private
+
+  def option(current_value)
+    ACP::Types::SessionConfigOption.new(
+      id: 'thinking', name: 'Thinking', kind: ACP::Types::SessionConfigOption::Kind::Boolean.new(current_value:)
+    )
+  end
+end
+
 # Holds each request on @gate until released, so a stream stays open between
 # two threads.
 class GatedTransport
@@ -379,6 +401,72 @@ describe ACP::ClientConnection do
       response = logout
 
       assert_equal({ 'code' => -32_000, 'message' => 'Authentication required' }, response.to_h)
+    end
+  end
+
+  describe 'driving an agent with modes and config options over pipes' do
+    before do
+      agent_input, @client_output = IO.pipe
+      @client_input, @agent_output = IO.pipe
+      @pipes = [agent_input, @client_output, @client_input, @agent_output]
+      agent = ACP::AgentConnection.new(
+        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
+        capabilities: ACP::Types::AgentCapabilities.new,
+        agent_info: ACP::Types::Implementation.new(name: 'modes-agent', version: '1.0.0')
+      ) { ModesAgent.new }
+      @agent_reader = agent.start
+      @connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
+        permission: ->(_request) {}
+      )
+      @client_reader = @connection.start
+    end
+
+    after do
+      @client_output.close
+      @agent_reader.join(2)
+      @agent_output.close
+      @client_reader.join(2)
+      @pipes.reject(&:closed?).each(&:close)
+    end
+
+    def set_mode(mode_id = 'code')
+      within do
+        @connection.session_set_mode(ACP::Types::SetSessionModeRequest.new(session_id: 's1', mode_id:))
+      end
+    end
+
+    def set_config_option(config_id, value)
+      request = ACP::Types::SetSessionConfigOptionRequest.new(session_id: 's1', config_id:, value:)
+      within { @connection.session_set_config_option(request) }
+    end
+
+    it 'sets the mode' do
+      assert_equal({}, set_mode.to_h)
+    end
+
+    it 'returns the agent\'s error when it rejects the mode' do
+      response = set_mode('ask')
+
+      assert_equal({ 'code' => -32_000, 'message' => 'No such mode' }, response.to_h)
+    end
+
+    it 'sets a boolean config option and returns the complete option list' do
+      response = set_config_option(
+        'thinking',
+        ACP::Types::SetSessionConfigOptionRequest::Value::Boolean.new(value: true)
+      )
+
+      assert_equal(
+        [['thinking', 'Thinking', true]],
+        response.config_options.map { |option| [option.id, option.name, option.kind.current_value] }
+      )
+    end
+
+    it 'returns the agent\'s error when it rejects the config option' do
+      response = set_config_option('modes', ACP::Types::SetSessionConfigOptionRequest::Value::ValueId.new(value: 'off'))
+
+      assert_equal({ 'code' => -32_000, 'message' => 'No such option' }, response.to_h)
     end
   end
 

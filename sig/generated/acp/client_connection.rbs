@@ -71,6 +71,17 @@ class ACP::ClientConnection
   # @rbs return: void
   def session_cancel: (ACP::Types::CancelNotification notification) -> void
 
+  # @rbs request: ACP::Types::SetSessionModeRequest
+  # @rbs return: ACP::Types::SetSessionModeResponse | ACP::RequestError
+  def session_set_mode: (ACP::Types::SetSessionModeRequest request) -> (ACP::Types::SetSessionModeResponse | ACP::RequestError)
+
+  # The reply carries the session's complete option list, so it replaces any
+  # state held from an earlier reply rather than merging into it.
+  #
+  # @rbs request: ACP::Types::SetSessionConfigOptionRequest
+  # @rbs return: ACP::Types::SetSessionConfigOptionResponse | ACP::RequestError
+  def session_set_config_option: (ACP::Types::SetSessionConfigOptionRequest request) -> (ACP::Types::SetSessionConfigOptionResponse | ACP::RequestError)
+
   # @rbs request: ACP::Types::AuthenticateRequest
   # @rbs return: ACP::Types::AuthenticateResponse | ACP::RequestError
   def authenticate: (ACP::Types::AuthenticateRequest request) -> (ACP::Types::AuthenticateResponse | ACP::RequestError)
