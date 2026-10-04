@@ -3,11 +3,12 @@
 require 'test_helper'
 
 class RecordingPeer
-  attr_reader :requests
+  attr_reader :requests, :notifications
 
   def initialize(response)
     @response = response
     @requests = []
+    @notifications = []
   end
 
   def request(method, params = nil)
@@ -15,7 +16,9 @@ class RecordingPeer
     @response
   end
 
-  def notify(_method, _params = nil); end
+  def notify(method, params = nil)
+    @notifications << [method, params]
+  end
 end
 
 describe ACP::AgentConnection::Client do
@@ -147,6 +150,103 @@ describe ACP::AgentConnection::Client do
       assert_equal(
         [[-32_601] * 10, ['Client does not advertise terminal'] * 10, []],
         [refusals.map(&:code), refusals.map(&:message), peer.requests]
+      )
+    end
+  end
+
+  describe 'elicitation' do
+    let(:form_mode) do
+      ACP::Types::CreateElicitationRequest::Mode::Form.new(
+        requested_schema: ACP::Types::ElicitationSchema.new(
+          type: 'object', properties: { 'color' => ACP::Types::StringPropertySchema.new(title: 'Color') }
+        ),
+        scope: ACP::Types::ElicitationSessionScope.new(session_id: 's')
+      )
+    end
+    let(:url_mode) do
+      ACP::Types::CreateElicitationRequest::Mode::Url.new(
+        elicitation_id: 'e', url: 'https://example.com', scope: ACP::Types::ElicitationSessionScope.new(session_id: 's')
+      )
+    end
+    let(:complete) { ACP::Types::CompleteElicitationNotification.new(elicitation_id: 'e') }
+
+    def form_request
+      ACP::Types::CreateElicitationRequest.new(message: 'Pick one', mode: form_mode)
+    end
+
+    def url_request
+      ACP::Types::CreateElicitationRequest.new(message: 'Visit', mode: url_mode)
+    end
+
+    def client_with(peer, elicitation)
+      ACP::AgentConnection::Client.new(peer:).tap do |handle|
+        handle.capabilities = ACP::Types::ClientCapabilities.new(elicitation:)
+      end
+    end
+
+    def capabilities(form: nil, url: nil)
+      ACP::Types::ElicitationCapabilities.new(form:, url:)
+    end
+
+    it 'sends a form-mode request to a client that advertises elicitation.form' do
+      peer = RecordingPeer.new({ 'action' => 'accept', 'content' => { 'color' => 'red' } })
+      response = client_with(peer, capabilities(form: ACP::Types::ElicitationFormCapabilities.new))
+                 .create_elicitation(form_request)
+
+      assert_equal(
+        [ACP::Types::CreateElicitationResponse::Action::Accept,
+         [['elicitation/create',
+           { 'message' => 'Pick one', 'mode' => 'form', 'sessionId' => 's',
+             'requestedSchema' => { 'type' => 'object', 'properties' => { 'color' => { 'title' => 'Color' } } } }]]],
+        [response.action.class, peer.requests]
+      )
+    end
+
+    it 'sends a url-mode request to a client that advertises elicitation.url' do
+      peer = RecordingPeer.new({ 'action' => 'decline' })
+      response = client_with(peer, capabilities(url: ACP::Types::ElicitationUrlCapabilities.new))
+                 .create_elicitation(url_request)
+
+      assert_equal(
+        [ACP::Types::CreateElicitationResponse::Action::Decline,
+         [['elicitation/create',
+           { 'message' => 'Visit', 'mode' => 'url', 'elicitationId' => 'e', 'url' => 'https://example.com',
+             'sessionId' => 's' }]]],
+        [response.action.class, peer.requests]
+      )
+    end
+
+    it 'passes an unknown response action through as-is' do
+      raw_action = { 'action' => 'reschedule', 'when' => 'later' }
+      response = client_with(RecordingPeer.new(raw_action), capabilities(form: ACP::Types::ElicitationFormCapabilities.new))
+                 .create_elicitation(form_request)
+
+      assert_same raw_action, response.action
+    end
+
+    it 'notifies elicitation/complete on a client that advertises elicitation.url' do
+      peer = RecordingPeer.new({})
+      client_with(peer, capabilities(url: ACP::Types::ElicitationUrlCapabilities.new)).complete_elicitation(complete)
+
+      assert_equal [['elicitation/complete', { 'elicitationId' => 'e' }]], peer.notifications
+    end
+
+    it 'refuses each unadvertised mode without a round trip' do
+      peer = RecordingPeer.new({})
+      handle = client_with(peer, capabilities(form: ACP::Types::ElicitationFormCapabilities.new))
+      before_initialize = ACP::AgentConnection::Client.new(peer:)
+      refusals = [
+        handle.create_elicitation(url_request),
+        handle.complete_elicitation(complete),
+        client_with(peer, nil).create_elicitation(form_request),
+        before_initialize.create_elicitation(form_request)
+      ]
+
+      assert_equal(
+        [[-32_601] * 4,
+         (['Client does not advertise elicitation.url'] * 2) + (['Client does not advertise elicitation.form'] * 2),
+         [], []],
+        [refusals.map(&:code), refusals.map(&:message), peer.requests, peer.notifications]
       )
     end
   end

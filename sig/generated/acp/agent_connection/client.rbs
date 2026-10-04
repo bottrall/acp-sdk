@@ -55,6 +55,14 @@ class ACP::AgentConnection::Client
   # @rbs return: ACP::Types::ReleaseTerminalResponse | ACP::RequestError
   def release_terminal: (ACP::Types::ReleaseTerminalRequest request) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
 
+  # @rbs request: ACP::Types::CreateElicitationRequest
+  # @rbs return: ACP::Types::CreateElicitationResponse | ACP::RequestError
+  def create_elicitation: (ACP::Types::CreateElicitationRequest request) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError)
+
+  # @rbs notification: ACP::Types::CompleteElicitationNotification
+  # @rbs return: void
+  def complete_elicitation: (ACP::Types::CompleteElicitationNotification notification) -> void
+
   private
 
   # @rbs rpc_method: String
