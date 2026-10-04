@@ -3,6 +3,8 @@
 class ACP::ClientConnection
   @logger: ACP::Transport::_Logger
 
+  @pending_permissions: Hash[String, Array[Thread::Queue]]
+
   @streams: Hash[String, Thread::Queue]
 
   @lock: Thread::Mutex
@@ -22,6 +24,8 @@ class ACP::ClientConnection
   PROTOCOL_VERSION: Integer
 
   IGNORE: ^(ACP::Types::SessionNotification) -> void
+
+  CANCELLED: ACP::Types::RequestPermissionResponse
 
   # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
@@ -75,6 +79,11 @@ class ACP::ClientConnection
   # @rbs return: ACP::Types::DeleteSessionResponse | ACP::RequestError
   def session_delete: (ACP::Types::DeleteSessionRequest request) -> (ACP::Types::DeleteSessionResponse | ACP::RequestError)
 
+  # The spec requires a pending session/request_permission to be answered with
+  # the cancelled outcome once the turn is cancelled, so every queue registered
+  # for the session gets one before this returns. The notification goes first
+  # so the wire order is cancel, then the cancelled replies.
+  #
   # @rbs notification: ACP::Types::CancelNotification
   # @rbs return: void
   def session_cancel: (ACP::Types::CancelNotification notification) -> void
@@ -124,9 +133,23 @@ class ACP::ClientConnection
   # @rbs return: void
   def dispatch: (untyped params) -> void
 
+  # The handler runs on its own thread so a cancelled request is answered
+  # without waiting for it, and whatever it returns after that is pushed to a
+  # queue nobody reads.
+  #
   # @rbs params: untyped
   # @rbs return: (ACP::Types::RequestPermissionResponse | ACP::RequestError)
   def request_permission: (untyped params) -> (ACP::Types::RequestPermissionResponse | ACP::RequestError)
+
+  # @rbs session_id: String
+  # @rbs replies: Thread::Queue
+  # @rbs return: void
+  def register_permission: (String session_id, Thread::Queue replies) -> void
+
+  # @rbs session_id: String
+  # @rbs replies: Thread::Queue
+  # @rbs return: void
+  def unregister_permission: (String session_id, Thread::Queue replies) -> void
 
   # The routes are registered at start, before connect records the advertised
   # capabilities, so each one answers -32601 until then.

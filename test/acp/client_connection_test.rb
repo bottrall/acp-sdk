@@ -265,6 +265,29 @@ describe ACP::ClientConnection do
       assert_equal 'cancelled', response.stop_reason
     end
 
+    it 'answers a pending permission request with cancelled after session_cancel' do
+      entered = Thread::Queue.new
+      release = Thread::Queue.new
+      connection = start do |_request|
+        entered << true
+        release.pop
+        choose(EchoAgent::ALLOW)
+      end
+      session_id = new_session(connection)
+      response = within do
+        connection.session_prompt(prompt_request(session_id, 'hello')) do
+          # Entering the handler proves the request is registered, so the
+          # cancel below cannot race ahead of it.
+          within { entered.pop }
+          connection.session_cancel(ACP::Types::CancelNotification.new(session_id:))
+        end
+      end
+
+      assert_equal 'cancelled', response.stop_reason
+    ensure
+      release << true
+    end
+
     it 'yields the replayed history from session_load' do
       connection = allowing
       session_id = new_session(connection)

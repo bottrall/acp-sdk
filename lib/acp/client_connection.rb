@@ -9,11 +9,16 @@ class ACP::ClientConnection
   # @rbs @fs_capabilities: ACP::Types::FileSystemCapabilities?
   # @rbs @lock: Thread::Mutex
   # @rbs @streams: Hash[String, Thread::Queue]
+  # @rbs @pending_permissions: Hash[String, Array[Thread::Queue]]
   # @rbs @logger: ACP::Transport::_Logger
 
   PROTOCOL_VERSION = ACP::AgentConnection::PROTOCOL_VERSION #: Integer
 
   IGNORE = ->(_notification) {} #: ^(ACP::Types::SessionNotification) -> void
+
+  CANCELLED = ACP::Types::RequestPermissionResponse.new(
+    outcome: ACP::Types::RequestPermissionOutcome::Cancelled.new
+  ) #: ACP::Types::RequestPermissionResponse
 
   # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
@@ -31,6 +36,7 @@ class ACP::ClientConnection
     @fs_capabilities = nil
     @lock = Mutex.new
     @streams = {}
+    @pending_permissions = {}
     @logger = logger
   end
 
@@ -118,10 +124,17 @@ class ACP::ClientConnection
     parse(ACP::Types::DeleteSessionResponse, @transport.request('session/delete', request.to_h))
   end
 
+  # The spec requires a pending session/request_permission to be answered with
+  # the cancelled outcome once the turn is cancelled, so every queue registered
+  # for the session gets one before this returns. The notification goes first
+  # so the wire order is cancel, then the cancelled replies.
+  #
   # @rbs notification: ACP::Types::CancelNotification
   # @rbs return: void
   def session_cancel(notification)
     @transport.notify('session/cancel', notification.to_h)
+    pending = @lock.synchronize { @pending_permissions.delete(notification.session_id) }
+    pending&.each { |replies| replies << [:value, CANCELLED] }
   end
 
   # @rbs request: ACP::Types::SetSessionModeRequest
@@ -216,6 +229,10 @@ class ACP::ClientConnection
     @updates.call(notification) unless queue
   end
 
+  # The handler runs on its own thread so a cancelled request is answered
+  # without waiting for it, and whatever it returns after that is pushed to a
+  # queue nobody reads.
+  #
   # @rbs params: untyped
   # @rbs return: (ACP::Types::RequestPermissionResponse | ACP::RequestError)
   def request_permission(params)
@@ -223,7 +240,45 @@ class ACP::ClientConnection
   rescue KeyError, TypeError, NoMethodError
     ACP::RequestError.invalid_params
   else
-    @permission.call(request)
+    replies = Thread::Queue.new
+    register_permission(request.session_id, replies)
+    Thread.new do
+      # A raised StandardError is not a returned ACP::RequestError, so the two
+      # need distinct shapes on the queue.
+      replies << begin
+        [:value, @permission.call(request)]
+      rescue StandardError => e
+        [:raised, e]
+      end
+    ensure
+      unregister_permission(request.session_id, replies)
+    end
+    settled = replies.pop
+    # Re-raised so the transport's invoke turns it into an error reply, as it
+    # would if the handler ran on the serve thread itself.
+    raise settled[1] if settled[0] == :raise
+
+    settled[1]
+  end
+
+  # @rbs session_id: String
+  # @rbs replies: Thread::Queue
+  # @rbs return: void
+  def register_permission(session_id, replies)
+    @lock.synchronize { (@pending_permissions[session_id] ||= []) << replies }
+  end
+
+  # @rbs session_id: String
+  # @rbs replies: Thread::Queue
+  # @rbs return: void
+  def unregister_permission(session_id, replies)
+    @lock.synchronize do
+      pending = @pending_permissions[session_id]
+      if pending
+        pending.delete(replies)
+        @pending_permissions.delete(session_id) if pending.empty?
+      end
+    end
   end
 
   # The routes are registered at start, before connect records the advertised
