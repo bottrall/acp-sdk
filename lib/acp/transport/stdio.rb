@@ -149,7 +149,9 @@ class ACP::Transport::Stdio
   end
 
   # Handlers are application code at the protocol boundary: an exception
-  # becomes an error response instead of killing the thread serving it.
+  # becomes an error response instead of killing the thread serving it. The
+  # exception is only logged, not sent: its message can carry paths, SQL or
+  # anything else the handler interpolated, which must not reach the peer.
   #
   # @rbs handler: _Handler
   # @rbs params: untyped
@@ -157,7 +159,8 @@ class ACP::Transport::Stdio
   def invoke(handler, params)
     handler.call(params)
   rescue StandardError => e
-    ACP::RequestError.new(code: ACP::RequestError::INTERNAL_ERROR, message: e.message)
+    @logger.error("request handler raised #{e.class}: #{e.message}")
+    ACP::RequestError.internal_error
   end
 
   # The success arm is whatever the handler returned, which the transport only

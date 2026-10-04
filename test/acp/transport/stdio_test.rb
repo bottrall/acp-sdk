@@ -120,14 +120,15 @@ describe ACP::Transport::Stdio do
     )
   end
 
-  it 'answers an inbound request whose handler raises with an internal error' do
-    start(requests: { 'boom' => ->(_) { raise 'kaboom' } })
+  it 'answers an inbound request whose handler raises with an internal error and no detail' do
+    start(requests: { 'boom' => ->(_) { raise 'secret db password leaked' } })
     send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'boom' })
 
     assert_equal(
-      { 'jsonrpc' => '2.0', 'id' => 1, 'error' => { 'code' => -32_603, 'message' => 'kaboom' } },
+      { 'jsonrpc' => '2.0', 'id' => 1, 'error' => { 'code' => -32_603, 'message' => 'Internal error' } },
       receive_message
     )
+    assert_equal [:error, 'request handler raised RuntimeError: secret db password leaked'], @logger.pop
   end
 
   it 'delivers an inbound notification to its handler' do
