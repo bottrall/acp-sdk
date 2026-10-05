@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.0](https://github.com/bottrall/acp-sdk/compare/v0.6.0...v0.7.0) (2026-10-05)
+
+
+### Features
+
+* terminal handlers on ACP::ClientConnection ([#77](https://github.com/bottrall/acp-sdk/issues/77)) ([8a42829](https://github.com/bottrall/acp-sdk/commit/8a428295d5cd7c92b56ec1b3ed1c900b485bbf01)), closes [#40](https://github.com/bottrall/acp-sdk/issues/40)
+
+
+### Bug Fixes
+
+* attach data to method-not-found and invalid-request replies ([#75](https://github.com/bottrall/acp-sdk/issues/75)) ([9bc201c](https://github.com/bottrall/acp-sdk/commit/9bc201c53d86f506bedb5b49183b865cf9b8f4fe)), closes [#29](https://github.com/bottrall/acp-sdk/issues/29)
+* don't send handler exception messages to the peer ([#74](https://github.com/bottrall/acp-sdk/issues/74)) ([af66b48](https://github.com/bottrall/acp-sdk/commit/af66b48cbab4a99244c28a9c6f6a12c9ea23efc7)), closes [#28](https://github.com/bottrall/acp-sdk/issues/28)
+
 ## [0.6.0](https://github.com/bottrall/acp-sdk/compare/v0.5.0...v0.6.0) (2026-10-04)
 
 
