@@ -1,29 +1,41 @@
 # Generated from lib/acp/client_connection.rb with RBS::Inline
 
 class ACP::ClientConnection
-  @logger: ACP::Transport::_Logger
-
-  @pending_permissions: Hash[String, Array[Thread::Queue]]
-
-  @streams: Hash[String, Thread::Queue]
-
-  @lock: Thread::Mutex
-
-  @extension_notifications: Hash[String, ^(untyped) -> void]
-
-  @extension_requests: Hash[String, ^(untyped) -> untyped]
-
-  @fs_capabilities: ACP::Types::FileSystemCapabilities?
-
-  @updates: ACP::ClientConnection::_UpdateHandler
-
-  @write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
-
-  @read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
+  @transport: ACP::AgentConnection::_Transport
 
   @permission: ACP::ClientConnection::_PermissionHandler
 
-  @transport: ACP::AgentConnection::_Transport
+  @read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
+
+  @write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
+
+  @create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?
+
+  @terminal_output: (^(ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError))?
+
+  @wait_for_terminal_exit: (^(ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?
+
+  @kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?
+
+  @release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?
+
+  @updates: ACP::ClientConnection::_UpdateHandler
+
+  @fs_capabilities: ACP::Types::FileSystemCapabilities?
+
+  @terminal: bool?
+
+  @extension_requests: Hash[String, ^(untyped) -> untyped]
+
+  @extension_notifications: Hash[String, ^(untyped) -> void]
+
+  @lock: Thread::Mutex
+
+  @streams: Hash[String, Thread::Queue]
+
+  @pending_permissions: Hash[String, Array[Thread::Queue]]
+
+  @logger: ACP::Transport::_Logger
 
   PROTOCOL_VERSION: Integer
 
@@ -35,12 +47,18 @@ class ACP::ClientConnection
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
   # @rbs read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
   # @rbs write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
+  # @rbs create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?
+  # @rbs terminal_output: (^(ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError))?
+  # @rbs wait_for_terminal_exit: (^(ACP::Types::WaitForTerminalExitRequest) ->
+  #   (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?
+  # @rbs kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?
+  # @rbs release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
   # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
-  def initialize: (transport: ACP::AgentConnection::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?, ?write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?, ?updates: ACP::ClientConnection::_UpdateHandler, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) -> void
+  def initialize: (transport: ACP::AgentConnection::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?, ?write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?, ?create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?, ?terminal_output: (^(ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError))?, ?wait_for_terminal_exit: (^(ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?, ?kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?, ?release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?, ?updates: ACP::ClientConnection::_UpdateHandler, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) -> void
 
   # @rbs return: Thread
   def start: () -> Thread
@@ -182,9 +200,42 @@ class ACP::ClientConnection
   # @rbs return: (ACP::Types::WriteTextFileResponse | ACP::RequestError)
   def write_text_file: (untyped params) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError)
 
+  # The terminal routes are registered at start, before connect records the
+  # advertised capability, so each one answers -32601 until then.
+  #
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::CreateTerminalResponse | ACP::RequestError)
+  def create_terminal: (untyped params) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError)
+
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::TerminalOutputResponse | ACP::RequestError)
+  def terminal_output: (untyped params) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError)
+
+  # The handler may block for as long as the command runs, so the transport
+  # must serve each request on its own thread for this not to hold up others.
+  #
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError)
+  def wait_for_terminal_exit: (untyped params) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError)
+
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::KillTerminalResponse | ACP::RequestError)
+  def kill_terminal: (untyped params) -> (ACP::Types::KillTerminalResponse | ACP::RequestError)
+
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
+  def release_terminal: (untyped params) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
+
   # The fs capabilities initialize advertises that no injected handler serves.
   #
   # @rbs capabilities: ACP::Types::FileSystemCapabilities?
   # @rbs return: Array[String]
   def unserved_fs_methods: (ACP::Types::FileSystemCapabilities? capabilities) -> Array[String]
+
+  # The terminal capabilities initialize advertises that no injected handler
+  # serves.
+  #
+  # @rbs capabilities: bool?
+  # @rbs return: Array[String]
+  def unserved_terminal_methods: (bool? capabilities) -> Array[String]
 end

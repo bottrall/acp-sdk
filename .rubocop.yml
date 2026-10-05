@@ -19,6 +19,9 @@ Layout/FirstMethodParameterLineBreak:
 Layout/LeadingCommentSpace:
   AllowRBSInlineAnnotation: true
 
+Layout/LineLength:
+  AllowRBSInlineAnnotation: true
+
 Layout/MultilineMethodArgumentLineBreaks:
   Enabled: true
 

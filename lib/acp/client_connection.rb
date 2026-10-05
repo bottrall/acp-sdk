@@ -5,8 +5,15 @@ class ACP::ClientConnection
   # @rbs @permission: ACP::ClientConnection::_PermissionHandler
   # @rbs @read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
   # @rbs @write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
+  # @rbs @create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?
+  # @rbs @terminal_output: (^(ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError))?
+  # @rbs @wait_for_terminal_exit: (^(ACP::Types::WaitForTerminalExitRequest) ->
+  #   (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?
+  # @rbs @kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?
+  # @rbs @release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?
   # @rbs @updates: ACP::ClientConnection::_UpdateHandler
   # @rbs @fs_capabilities: ACP::Types::FileSystemCapabilities?
+  # @rbs @terminal: bool?
   # @rbs @extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs @extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs @lock: Thread::Mutex
@@ -26,6 +33,12 @@ class ACP::ClientConnection
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
   # @rbs read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
   # @rbs write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
+  # @rbs create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?
+  # @rbs terminal_output: (^(ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError))?
+  # @rbs wait_for_terminal_exit: (^(ACP::Types::WaitForTerminalExitRequest) ->
+  #   (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?
+  # @rbs kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?
+  # @rbs release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
   # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
@@ -36,6 +49,11 @@ class ACP::ClientConnection
     permission:,
     read_text_file: nil,
     write_text_file: nil,
+    create_terminal: nil,
+    terminal_output: nil,
+    wait_for_terminal_exit: nil,
+    kill_terminal: nil,
+    release_terminal: nil,
     updates: IGNORE,
     extension_requests: {},
     extension_notifications: {},
@@ -45,8 +63,14 @@ class ACP::ClientConnection
     @permission = permission
     @read_text_file = read_text_file
     @write_text_file = write_text_file
+    @create_terminal = create_terminal
+    @terminal_output = terminal_output
+    @wait_for_terminal_exit = wait_for_terminal_exit
+    @kill_terminal = kill_terminal
+    @release_terminal = release_terminal
     @updates = updates
     @fs_capabilities = nil
+    @terminal = nil
     @extension_requests = extension_requests
     @extension_notifications = extension_notifications
     extension_requests.each_key { |name| ACP::Extensions.validate_name(name) }
@@ -63,7 +87,12 @@ class ACP::ClientConnection
       requests: {
         'session/request_permission' => method(:request_permission),
         'fs/read_text_file' => method(:read_text_file),
-        'fs/write_text_file' => method(:write_text_file)
+        'fs/write_text_file' => method(:write_text_file),
+        'terminal/create' => method(:create_terminal),
+        'terminal/output' => method(:terminal_output),
+        'terminal/wait_for_exit' => method(:wait_for_terminal_exit),
+        'terminal/kill' => method(:kill_terminal),
+        'terminal/release' => method(:release_terminal)
       }.merge(@extension_requests),
       notifications: { 'session/update' => method(:dispatch) }.merge(@extension_notifications)
     )
@@ -81,7 +110,14 @@ class ACP::ClientConnection
       raise ArgumentError, "initialize advertises fs methods no handler serves: #{unserved.join(', ')}"
     end
 
+    terminal = request.client_capabilities&.terminal
+    unserved = unserved_terminal_methods(terminal)
+    unless unserved.empty?
+      raise ArgumentError, "initialize advertises terminal methods no handler serves: #{unserved.join(', ')}"
+    end
+
     @fs_capabilities = capabilities
+    @terminal = terminal
     parse(ACP::Types::InitializeResponse, @transport.request('initialize', request.to_h)).then do |response|
       next response if response.is_a?(ACP::RequestError)
 
@@ -349,6 +385,82 @@ class ACP::ClientConnection
     handler.call(request)
   end
 
+  # The terminal routes are registered at start, before connect records the
+  # advertised capability, so each one answers -32601 until then.
+  #
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::CreateTerminalResponse | ACP::RequestError)
+  def create_terminal(params)
+    return ACP::RequestError.unadvertised('terminal') unless @terminal
+
+    request = ACP::Types::CreateTerminalRequest.from_h(params)
+  rescue KeyError, TypeError, NoMethodError
+    ACP::RequestError.invalid_params
+  else
+    # Safe: connect refuses an advertised capability no handler serves.
+    handler = @create_terminal #: ^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError)
+    handler.call(request)
+  end
+
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::TerminalOutputResponse | ACP::RequestError)
+  def terminal_output(params)
+    return ACP::RequestError.unadvertised('terminal') unless @terminal
+
+    request = ACP::Types::TerminalOutputRequest.from_h(params)
+  rescue KeyError, TypeError, NoMethodError
+    ACP::RequestError.invalid_params
+  else
+    # Safe: connect refuses an advertised capability no handler serves.
+    handler = @terminal_output #: ^(ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError)
+    handler.call(request)
+  end
+
+  # The handler may block for as long as the command runs, so the transport
+  # must serve each request on its own thread for this not to hold up others.
+  #
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError)
+  def wait_for_terminal_exit(params)
+    return ACP::RequestError.unadvertised('terminal') unless @terminal
+
+    request = ACP::Types::WaitForTerminalExitRequest.from_h(params)
+  rescue KeyError, TypeError, NoMethodError
+    ACP::RequestError.invalid_params
+  else
+    # Safe: connect refuses an advertised capability no handler serves.
+    handler = @wait_for_terminal_exit #: ^(ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError)
+    handler.call(request)
+  end
+
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::KillTerminalResponse | ACP::RequestError)
+  def kill_terminal(params)
+    return ACP::RequestError.unadvertised('terminal') unless @terminal
+
+    request = ACP::Types::KillTerminalRequest.from_h(params)
+  rescue KeyError, TypeError, NoMethodError
+    ACP::RequestError.invalid_params
+  else
+    # Safe: connect refuses an advertised capability no handler serves.
+    handler = @kill_terminal #: ^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError)
+    handler.call(request)
+  end
+
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
+  def release_terminal(params)
+    return ACP::RequestError.unadvertised('terminal') unless @terminal
+
+    request = ACP::Types::ReleaseTerminalRequest.from_h(params)
+  rescue KeyError, TypeError, NoMethodError
+    ACP::RequestError.invalid_params
+  else
+    # Safe: connect refuses an advertised capability no handler serves.
+    handler = @release_terminal #: ^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
+    handler.call(request)
+  end
+
   # The fs capabilities initialize advertises that no injected handler serves.
   #
   # @rbs capabilities: ACP::Types::FileSystemCapabilities?
@@ -357,6 +469,21 @@ class ACP::ClientConnection
     {
       'fs.readTextFile' => capabilities&.read_text_file && !@read_text_file,
       'fs.writeTextFile' => capabilities&.write_text_file && !@write_text_file
+    }.select { |_, unserved| unserved }.keys
+  end
+
+  # The terminal capabilities initialize advertises that no injected handler
+  # serves.
+  #
+  # @rbs capabilities: bool?
+  # @rbs return: Array[String]
+  def unserved_terminal_methods(capabilities)
+    {
+      'terminal.create' => capabilities && !@create_terminal,
+      'terminal.output' => capabilities && !@terminal_output,
+      'terminal.wait_for_exit' => capabilities && !@wait_for_terminal_exit,
+      'terminal.kill' => capabilities && !@kill_terminal,
+      'terminal.release' => capabilities && !@release_terminal
     }.select { |_, unserved| unserved }.keys
   end
 end

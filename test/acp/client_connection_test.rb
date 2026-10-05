@@ -147,9 +147,16 @@ describe ACP::ClientConnection do
     end
 
     def start(&permission)
+      # Canned terminal handlers: connect demands one per advertised terminal
+      # method, and these tests only use the agent's `run` command listing.
       connection = ACP::ClientConnection.new(
         transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
         permission:,
+        create_terminal: ->(_request) { ACP::Types::CreateTerminalResponse.new(terminal_id: 't1') },
+        terminal_output: ->(_request) { ACP::Types::TerminalOutputResponse.new(output: '', truncated: false) },
+        wait_for_terminal_exit: ->(_request) { ACP::Types::WaitForTerminalExitResponse.new(exit_code: 0) },
+        kill_terminal: ->(_request) { ACP::Types::KillTerminalResponse.new },
+        release_terminal: ->(_request) { ACP::Types::ReleaseTerminalResponse.new },
         updates: ->(notification) { @updates << notification }
       )
       @client_reader = connection.start
@@ -907,6 +914,200 @@ describe ACP::ClientConnection do
       connection = start
       assert_raises(ArgumentError) { connection.ext_request('myapp/ping') }
       assert_raises(ArgumentError) { connection.ext_notify('myapp/note') }
+    end
+  end
+
+  describe "serving the agent's terminal requests" do
+    before do
+      @client_input, @agent_output = IO.pipe
+      @agent_input, @client_output = IO.pipe
+      @wait_gate = Thread::Queue.new
+      @connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
+        permission: ->(_request) {},
+        create_terminal: lambda { |request|
+          if request.command == 'boom'
+            ACP::RequestError.resource_not_found
+          else
+            ACP::Types::CreateTerminalResponse.new(terminal_id: 't1')
+          end
+        },
+        terminal_output: ->(_request) { ACP::Types::TerminalOutputResponse.new(output: 'hello', truncated: false) },
+        wait_for_terminal_exit: lambda { |_request|
+          @wait_gate.pop
+          ACP::Types::WaitForTerminalExitResponse.new(exit_code: 0)
+        },
+        kill_terminal: ->(_request) { ACP::Types::KillTerminalResponse.new },
+        release_terminal: ->(_request) { ACP::Types::ReleaseTerminalResponse.new }
+      )
+      @reader = @connection.start
+      connect
+    end
+
+    after do
+      @agent_output.close
+      @reader.join(2)
+      [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
+    end
+
+    def connect(capabilities = ACP::Types::ClientCapabilities.new(terminal: true))
+      thread = Thread.new do
+        @connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1, client_capabilities: capabilities))
+      end
+      request = within { JSON.parse(@agent_input.gets) }
+      result = JSON.generate('jsonrpc' => '2.0', 'id' => request['id'], 'result' => { 'protocolVersion' => 1 })
+      @agent_output.write("#{result}\n")
+      within { thread.value }
+    end
+
+    # Plays the agent: a raw request into the client's input, its raw reply back.
+    def send_request(id, method, params)
+      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => id, 'method' => method, 'params' => params)}\n")
+    end
+
+    def reply_for(method, params)
+      send_request(1, method, params)
+      within { JSON.parse(@agent_input.gets) }
+    end
+
+    it 'serves terminal/create' do
+      reply = reply_for('terminal/create', { 'sessionId' => 's', 'command' => 'echo' })
+
+      assert_equal({ 'terminalId' => 't1' }, reply['result'])
+    end
+
+    it 'serves terminal/output' do
+      reply = reply_for('terminal/output', { 'sessionId' => 's', 'terminalId' => 't1' })
+
+      assert_equal({ 'output' => 'hello', 'truncated' => false }, reply['result'])
+    end
+
+    it 'serves terminal/wait_for_exit' do
+      @wait_gate << true
+      reply = reply_for('terminal/wait_for_exit', { 'sessionId' => 's', 'terminalId' => 't1' })
+
+      assert_equal({ 'exitCode' => 0 }, reply['result'])
+    end
+
+    it 'serves terminal/kill' do
+      reply = reply_for('terminal/kill', { 'sessionId' => 's', 'terminalId' => 't1' })
+
+      assert_equal({}, reply['result'])
+    end
+
+    it 'serves terminal/release' do
+      reply = reply_for('terminal/release', { 'sessionId' => 's', 'terminalId' => 't1' })
+
+      assert_equal({}, reply['result'])
+    end
+
+    it 'returns the error a terminal handler answers with' do
+      reply = reply_for('terminal/create', { 'sessionId' => 's', 'command' => 'boom' })
+
+      assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, reply['error'])
+    end
+
+    it 'answers other terminal methods while terminal/wait_for_exit blocks' do
+      send_request(1, 'terminal/wait_for_exit', { 'sessionId' => 's', 'terminalId' => 't1' })
+      send_request(2, 'terminal/kill', { 'sessionId' => 's', 'terminalId' => 't1' })
+      reply = within { JSON.parse(@agent_input.gets) }
+
+      assert_equal(2, reply['id'])
+      # Releases the blocked handler, then drains its reply before the after
+      # hook closes the pipe.
+      @wait_gate << true
+      within { JSON.parse(@agent_input.gets) }
+    ensure
+      @wait_gate << true
+    end
+  end
+
+  describe 'answering terminal requests the capabilities do not advertise' do
+    before do
+      @client_input, @agent_output = IO.pipe
+      @agent_input, @client_output = IO.pipe
+      @connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
+        permission: ->(_request) {},
+        create_terminal: ->(_request) { ACP::Types::CreateTerminalResponse.new(terminal_id: 't1') },
+        terminal_output: ->(_request) { ACP::Types::TerminalOutputResponse.new(output: 'hello', truncated: false) },
+        wait_for_terminal_exit: ->(_request) { ACP::Types::WaitForTerminalExitResponse.new },
+        kill_terminal: ->(_request) { ACP::Types::KillTerminalResponse.new },
+        release_terminal: ->(_request) { ACP::Types::ReleaseTerminalResponse.new }
+      )
+      @reader = @connection.start
+    end
+
+    after do
+      @agent_output.close
+      @reader.join(2)
+      [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
+    end
+
+    # Plays the agent: a raw request into the client's input, its raw reply back.
+    def reply_for(method, params)
+      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => 1, 'method' => method, 'params' => params)}\n")
+      within { JSON.parse(@agent_input.gets) }
+    end
+
+    def assert_unadvertised(method)
+      reply = reply_for(method, { 'sessionId' => 's', 'terminalId' => 't1' })
+
+      assert_equal(
+        [-32_601, 'Client does not advertise terminal'],
+        [reply.dig('error', 'code'), reply.dig('error', 'message')]
+      )
+    end
+
+    it 'answers -32601 before connect records any capability' do
+      %w[
+        terminal/create
+        terminal/output
+        terminal/wait_for_exit
+        terminal/kill
+        terminal/release
+      ].each { |method| assert_unadvertised(method) }
+    end
+
+    it 'answers -32601 for a capability the advertised capabilities omit' do
+      thread = Thread.new do
+        @connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1))
+      end
+      request = within { JSON.parse(@agent_input.gets) }
+      result = JSON.generate('jsonrpc' => '2.0', 'id' => request['id'], 'result' => { 'protocolVersion' => 1 })
+      @agent_output.write("#{result}\n")
+      within { thread.value }
+
+      assert_unadvertised('terminal/create')
+    end
+
+    it 'refuses a connect that advertises a capability with no handler' do
+      from_client, client_output = IO.pipe
+      connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: from_client, output: client_output),
+        permission: ->(_request) {},
+        create_terminal: ->(_request) { ACP::Types::CreateTerminalResponse.new(terminal_id: 't1') }
+      )
+      error =
+        within do
+          assert_raises(ArgumentError) do
+            connection.connect(
+              ACP::Types::InitializeRequest.new(
+                protocol_version: 1,
+                client_capabilities: ACP::Types::ClientCapabilities.new(terminal: true)
+              )
+            )
+          end
+        end
+
+      expected = 'initialize advertises terminal methods no handler serves: ' \
+                 'terminal.output, terminal.wait_for_exit, terminal.kill, terminal.release'
+
+      assert_equal(expected, error.message)
+      assert_nil from_client.wait_readable(0.1), 'connect sent initialize anyway'
+    ensure
+      from_client&.close
+      client_output&.close
     end
   end
 end
