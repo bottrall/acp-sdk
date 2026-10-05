@@ -19,11 +19,17 @@ class ACP::ClientConnection
 
   @release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?
 
+  @elicitation: (^(ACP::Types::CreateElicitationRequest) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError))?
+
+  @complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
+
   @updates: ACP::ClientConnection::_UpdateHandler
 
   @fs_capabilities: ACP::Types::FileSystemCapabilities?
 
   @terminal: bool?
+
+  @elicitation_capabilities: ACP::Types::ElicitationCapabilities?
 
   @extension_requests: Hash[String, ^(untyped) -> untyped]
 
@@ -34,6 +40,8 @@ class ACP::ClientConnection
   @streams: Hash[String, Thread::Queue]
 
   @pending_permissions: Hash[String, Array[Thread::Queue]]
+
+  @outstanding_elicitations: Hash[String, bool]
 
   @logger: ACP::Transport::_Logger
 
@@ -53,12 +61,15 @@ class ACP::ClientConnection
   #   (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?
   # @rbs kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?
   # @rbs release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?
+  # @rbs elicitation: (^(ACP::Types::CreateElicitationRequest) ->
+  #   (ACP::Types::CreateElicitationResponse | ACP::RequestError))?
+  # @rbs complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
   # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
-  def initialize: (transport: ACP::AgentConnection::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?, ?write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?, ?create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?, ?terminal_output: (^(ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError))?, ?wait_for_terminal_exit: (^(ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?, ?kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?, ?release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?, ?updates: ACP::ClientConnection::_UpdateHandler, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) -> void
+  def initialize: (transport: ACP::AgentConnection::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?, ?write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?, ?create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?, ?terminal_output: (^(ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError))?, ?wait_for_terminal_exit: (^(ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?, ?kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?, ?release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?, ?elicitation: (^(ACP::Types::CreateElicitationRequest) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError))?, ?complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?, ?updates: ACP::ClientConnection::_UpdateHandler, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) -> void
 
   # @rbs return: Thread
   def start: () -> Thread
@@ -226,6 +237,26 @@ class ACP::ClientConnection
   # @rbs return: (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
   def release_terminal: (untyped params) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
 
+  # The routes are registered at start, before connect records the advertised
+  # capabilities, so a request for an unadvertised mode answers -32602.
+  #
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::CreateElicitationResponse | ACP::RequestError)
+  def create_elicitation: (untyped params) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError)
+
+  # The spec requires a completion for an unknown or already-completed
+  # elicitation id to be ignored, so only an id registered by a served
+  # url-mode request reaches the handler. It runs on the transport's reader
+  # thread, so it must return quickly.
+  #
+  # @rbs params: untyped
+  # @rbs return: void
+  def complete_elicitation: (untyped params) -> void
+
+  # @rbs elicitation_id: String
+  # @rbs return: void
+  def register_elicitation: (String elicitation_id) -> void
+
   # The fs capabilities initialize advertises that no injected handler serves.
   #
   # @rbs capabilities: ACP::Types::FileSystemCapabilities?
@@ -238,4 +269,11 @@ class ACP::ClientConnection
   # @rbs capabilities: bool?
   # @rbs return: Array[String]
   def unserved_terminal_methods: (bool? capabilities) -> Array[String]
+
+  # The elicitation capabilities initialize advertises that no injected
+  # handler serves.
+  #
+  # @rbs capabilities: ACP::Types::ElicitationCapabilities?
+  # @rbs return: Array[String]
+  def unserved_elicitation_modes: (ACP::Types::ElicitationCapabilities? capabilities) -> Array[String]
 end

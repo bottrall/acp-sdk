@@ -69,6 +69,18 @@ class ACP::RequestError
     new(code: METHOD_NOT_FOUND, message: "Client does not advertise #{capability}")
   end
 
+  # The invalid-params code for a request whose mode the client's
+  # capabilities do not advertise, with a message that names the mode so it
+  # can be told apart from malformed params. The spec gives elicitation a
+  # mode in its params, so an unadvertised one is invalid params rather than
+  # method not found.
+  #
+  # @rbs mode: String
+  # @rbs return: ACP::RequestError
+  def self.unadvertised_mode(mode)
+    new(code: INVALID_PARAMS, message: "Client does not advertise #{mode}")
+  end
+
   # @rbs return: ACP::RequestError
   def self.internal_error
     new(code: INTERNAL_ERROR, message: 'Internal error')

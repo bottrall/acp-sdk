@@ -1110,4 +1110,254 @@ describe ACP::ClientConnection do
       client_output&.close
     end
   end
+
+  describe "serving the agent's elicitation requests" do
+    before do
+      @client_input, @agent_output = IO.pipe
+      @agent_input, @client_output = IO.pipe
+      @completions = Thread::Queue.new
+      @connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
+        permission: ->(_request) {},
+        elicitation: method(:serve_elicitation),
+        complete_elicitation: ->(notification) { @completions << notification }
+      )
+      @reader = @connection.start
+      connect
+    end
+
+    after do
+      @agent_output.close
+      @reader.join(2)
+      [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
+    end
+
+    def serve_elicitation(request)
+      action =
+        case request.message
+        when 'decline me'
+          ACP::Types::CreateElicitationResponse::Action::Decline.new
+        when 'cancel me'
+          ACP::Types::CreateElicitationResponse::Action::Cancel.new
+        else
+          ACP::Types::CreateElicitationResponse::Action::Accept.new(content: { 'answer' => '42' })
+        end
+
+      ACP::Types::CreateElicitationResponse.new(action:)
+    end
+
+    def connect(
+      capabilities = ACP::Types::ClientCapabilities.new(
+        elicitation: ACP::Types::ElicitationCapabilities.new(
+          form: ACP::Types::ElicitationFormCapabilities.new,
+          url: ACP::Types::ElicitationUrlCapabilities.new
+        )
+      )
+    )
+      thread = Thread.new do
+        @connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1, client_capabilities: capabilities))
+      end
+      request = within { JSON.parse(@agent_input.gets) }
+      result = JSON.generate('jsonrpc' => '2.0', 'id' => request['id'], 'result' => { 'protocolVersion' => 1 })
+      @agent_output.write("#{result}\n")
+      within { thread.value }
+    end
+
+    # Plays the agent: a raw request into the client's input, its raw reply back.
+    def reply_for(method, params)
+      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => 1, 'method' => method, 'params' => params)}\n")
+      within { JSON.parse(@agent_input.gets) }
+    end
+
+    def notify(method, params)
+      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'method' => method, 'params' => params)}\n")
+    end
+
+    def form_params(message = 'Pick one')
+      {
+        'sessionId' => 's', 'mode' => 'form', 'message' => message,
+        'requestedSchema' => { 'type' => 'object', 'properties' => {} }
+      }
+    end
+
+    def url_params(id)
+      {
+        'sessionId' => 's', 'mode' => 'url', 'elicitationId' => id,
+        'url' => 'https://example.com/connect', 'message' => 'Authorize access'
+      }
+    end
+
+    it 'serves a form-mode accept' do
+      reply = reply_for('elicitation/create', form_params)
+
+      assert_equal({ 'action' => 'accept', 'content' => { 'answer' => '42' } }, reply['result'])
+    end
+
+    it 'serves a form-mode decline' do
+      reply = reply_for('elicitation/create', form_params('decline me'))
+
+      assert_equal({ 'action' => 'decline' }, reply['result'])
+    end
+
+    it 'serves a form-mode cancel' do
+      reply = reply_for('elicitation/create', form_params('cancel me'))
+
+      assert_equal({ 'action' => 'cancel' }, reply['result'])
+    end
+
+    it 'serves a url-mode request' do
+      reply = reply_for('elicitation/create', url_params('e1'))
+
+      assert_equal({ 'action' => 'accept', 'content' => { 'answer' => '42' } }, reply['result'])
+    end
+
+    it 'hands the completion of a url request to the completion handler' do
+      reply_for('elicitation/create', url_params('e1'))
+      notify('elicitation/complete', { 'elicitationId' => 'e1' })
+
+      notification = within { @completions.pop }
+
+      assert_equal 'e1', notification.elicitation_id
+    end
+
+    it 'ignores a completion for an unknown elicitation id' do
+      reply_for('elicitation/create', url_params('e1'))
+      notify('elicitation/complete', { 'elicitationId' => 'unknown' })
+      notify('elicitation/complete', { 'elicitationId' => 'e1' })
+
+      notification = within { @completions.pop }
+
+      assert_equal 'e1', notification.elicitation_id
+    end
+
+    it 'ignores a completion for an already-completed elicitation id' do
+      reply_for('elicitation/create', url_params('e1'))
+      reply_for('elicitation/create', url_params('e2'))
+      notify('elicitation/complete', { 'elicitationId' => 'e1' })
+      notify('elicitation/complete', { 'elicitationId' => 'e1' })
+      notify('elicitation/complete', { 'elicitationId' => 'e2' })
+
+      assert_equal(%w[e1 e2], [within { @completions.pop }, within { @completions.pop }].map(&:elicitation_id))
+    end
+  end
+
+  describe 'answering elicitation requests the capabilities do not advertise' do
+    before do
+      @client_input, @agent_output = IO.pipe
+      @agent_input, @client_output = IO.pipe
+      @connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
+        permission: ->(_request) {},
+        elicitation: lambda { |_request|
+          ACP::Types::CreateElicitationResponse.new(action: ACP::Types::CreateElicitationResponse::Action::Accept.new)
+        }
+      )
+      @reader = @connection.start
+    end
+
+    after do
+      @agent_output.close
+      @reader.join(2)
+      [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
+    end
+
+    # Plays the agent: a raw request into the client's input, its raw reply back.
+    def reply_for(method, params)
+      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => 1, 'method' => method, 'params' => params)}\n")
+      within { JSON.parse(@agent_input.gets) }
+    end
+
+    def connect(capabilities)
+      thread = Thread.new do
+        @connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1, client_capabilities: capabilities))
+      end
+      request = within { JSON.parse(@agent_input.gets) }
+      result = JSON.generate('jsonrpc' => '2.0', 'id' => request['id'], 'result' => { 'protocolVersion' => 1 })
+      @agent_output.write("#{result}\n")
+      within { thread.value }
+    end
+
+    def form_params
+      {
+        'sessionId' => 's', 'mode' => 'form', 'message' => 'hi',
+        'requestedSchema' => { 'type' => 'object', 'properties' => {} }
+      }
+    end
+
+    def url_params
+      {
+        'sessionId' => 's', 'mode' => 'url', 'elicitationId' => 'e1',
+        'url' => 'https://example.com/connect', 'message' => 'hi'
+      }
+    end
+
+    def assert_unadvertised(params)
+      reply = reply_for('elicitation/create', params)
+
+      assert_equal(
+        [-32_602, "Client does not advertise elicitation.#{params['mode']}"],
+        [reply.dig('error', 'code'), reply.dig('error', 'message')]
+      )
+    end
+
+    it 'answers -32602 before connect records any capability' do
+      assert_unadvertised(form_params)
+    end
+
+    it 'answers -32602 for a mode the advertised capabilities omit' do
+      connect(
+        ACP::Types::ClientCapabilities.new(
+          elicitation: ACP::Types::ElicitationCapabilities.new(form: ACP::Types::ElicitationFormCapabilities.new)
+        )
+      )
+
+      assert_unadvertised(url_params)
+    end
+
+    it 'answers -32602 for a mode the client does not know' do
+      connect(
+        ACP::Types::ClientCapabilities.new(
+          elicitation: ACP::Types::ElicitationCapabilities.new(
+            form: ACP::Types::ElicitationFormCapabilities.new,
+            url: ACP::Types::ElicitationUrlCapabilities.new
+          )
+        )
+      )
+
+      assert_unadvertised({ 'sessionId' => 's', 'mode' => 'other', 'message' => 'hi' })
+    end
+
+    it 'refuses a connect that advertises a mode with no handler' do
+      from_client, client_output = IO.pipe
+      connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: from_client, output: client_output),
+        permission: ->(_request) {}
+      )
+      error =
+        within do
+          assert_raises(ArgumentError) do
+            connection.connect(
+              ACP::Types::InitializeRequest.new(
+                protocol_version: 1,
+                client_capabilities: ACP::Types::ClientCapabilities.new(
+                  elicitation: ACP::Types::ElicitationCapabilities.new(
+                    form: ACP::Types::ElicitationFormCapabilities.new,
+                    url: ACP::Types::ElicitationUrlCapabilities.new
+                  )
+                )
+              )
+            )
+          end
+        end
+
+      assert_equal(
+        'initialize advertises elicitation modes no handler serves: elicitation.form, elicitation.url',
+        error.message
+      )
+      assert_nil from_client.wait_readable(0.1), 'connect sent initialize anyway'
+    ensure
+      from_client&.close
+      client_output&.close
+    end
+  end
 end

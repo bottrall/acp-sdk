@@ -11,14 +11,19 @@ class ACP::ClientConnection
   #   (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?
   # @rbs @kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?
   # @rbs @release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?
+  # @rbs @elicitation: (^(ACP::Types::CreateElicitationRequest) ->
+  #   (ACP::Types::CreateElicitationResponse | ACP::RequestError))?
+  # @rbs @complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
   # @rbs @updates: ACP::ClientConnection::_UpdateHandler
   # @rbs @fs_capabilities: ACP::Types::FileSystemCapabilities?
   # @rbs @terminal: bool?
+  # @rbs @elicitation_capabilities: ACP::Types::ElicitationCapabilities?
   # @rbs @extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs @extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs @lock: Thread::Mutex
   # @rbs @streams: Hash[String, Thread::Queue]
   # @rbs @pending_permissions: Hash[String, Array[Thread::Queue]]
+  # @rbs @outstanding_elicitations: Hash[String, bool]
   # @rbs @logger: ACP::Transport::_Logger
 
   PROTOCOL_VERSION = ACP::AgentConnection::PROTOCOL_VERSION #: Integer
@@ -39,6 +44,9 @@ class ACP::ClientConnection
   #   (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?
   # @rbs kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?
   # @rbs release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?
+  # @rbs elicitation: (^(ACP::Types::CreateElicitationRequest) ->
+  #   (ACP::Types::CreateElicitationResponse | ACP::RequestError))?
+  # @rbs complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
   # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
@@ -54,6 +62,8 @@ class ACP::ClientConnection
     wait_for_terminal_exit: nil,
     kill_terminal: nil,
     release_terminal: nil,
+    elicitation: nil,
+    complete_elicitation: nil,
     updates: IGNORE,
     extension_requests: {},
     extension_notifications: {},
@@ -68,9 +78,12 @@ class ACP::ClientConnection
     @wait_for_terminal_exit = wait_for_terminal_exit
     @kill_terminal = kill_terminal
     @release_terminal = release_terminal
+    @elicitation = elicitation
+    @complete_elicitation = complete_elicitation
     @updates = updates
     @fs_capabilities = nil
     @terminal = nil
+    @elicitation_capabilities = nil
     @extension_requests = extension_requests
     @extension_notifications = extension_notifications
     extension_requests.each_key { |name| ACP::Extensions.validate_name(name) }
@@ -78,6 +91,7 @@ class ACP::ClientConnection
     @lock = Mutex.new
     @streams = {}
     @pending_permissions = {}
+    @outstanding_elicitations = {}
     @logger = logger
   end
 
@@ -92,9 +106,11 @@ class ACP::ClientConnection
         'terminal/output' => method(:terminal_output),
         'terminal/wait_for_exit' => method(:wait_for_terminal_exit),
         'terminal/kill' => method(:kill_terminal),
-        'terminal/release' => method(:release_terminal)
+        'terminal/release' => method(:release_terminal),
+        'elicitation/create' => method(:create_elicitation)
       }.merge(@extension_requests),
-      notifications: { 'session/update' => method(:dispatch) }.merge(@extension_notifications)
+      notifications: { 'session/update' => method(:dispatch),
+                       'elicitation/complete' => method(:complete_elicitation) }.merge(@extension_notifications)
     )
   end
 
@@ -116,8 +132,15 @@ class ACP::ClientConnection
       raise ArgumentError, "initialize advertises terminal methods no handler serves: #{unserved.join(', ')}"
     end
 
+    elicitation = request.client_capabilities&.elicitation
+    unserved = unserved_elicitation_modes(elicitation)
+    unless unserved.empty?
+      raise ArgumentError, "initialize advertises elicitation modes no handler serves: #{unserved.join(', ')}"
+    end
+
     @fs_capabilities = capabilities
     @terminal = terminal
+    @elicitation_capabilities = elicitation
     parse(ACP::Types::InitializeResponse, @transport.request('initialize', request.to_h)).then do |response|
       next response if response.is_a?(ACP::RequestError)
 
@@ -461,6 +484,54 @@ class ACP::ClientConnection
     handler.call(request)
   end
 
+  # The routes are registered at start, before connect records the advertised
+  # capabilities, so a request for an unadvertised mode answers -32602.
+  #
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::CreateElicitationResponse | ACP::RequestError)
+  def create_elicitation(params)
+    request = ACP::Types::CreateElicitationRequest.from_h(params)
+  rescue KeyError, TypeError, NoMethodError
+    ACP::RequestError.invalid_params
+  else
+    case request.mode
+    when ACP::Types::CreateElicitationRequest::Mode::Form
+      return ACP::RequestError.unadvertised_mode('elicitation.form') unless @elicitation_capabilities&.form
+    when ACP::Types::CreateElicitationRequest::Mode::Url
+      return ACP::RequestError.unadvertised_mode('elicitation.url') unless @elicitation_capabilities&.url
+
+      register_elicitation(request.mode.elicitation_id)
+    else
+      return ACP::RequestError.unadvertised_mode("elicitation.#{request.mode['mode']}")
+    end
+
+    # Safe: connect refuses an advertised mode no handler serves.
+    handler = @elicitation #: ^(ACP::Types::CreateElicitationRequest) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError)
+    handler.call(request)
+  end
+
+  # The spec requires a completion for an unknown or already-completed
+  # elicitation id to be ignored, so only an id registered by a served
+  # url-mode request reaches the handler. It runs on the transport's reader
+  # thread, so it must return quickly.
+  #
+  # @rbs params: untyped
+  # @rbs return: void
+  def complete_elicitation(params)
+    notification = ACP::Types::CompleteElicitationNotification.from_h(params)
+  rescue KeyError, TypeError, NoMethodError => e
+    @logger.warn("dropped malformed elicitation/complete: #{e.class}: #{e.message}")
+  else
+    known = @lock.synchronize { @outstanding_elicitations.delete(notification.elicitation_id) }
+    @complete_elicitation&.call(notification) if known
+  end
+
+  # @rbs elicitation_id: String
+  # @rbs return: void
+  def register_elicitation(elicitation_id)
+    @lock.synchronize { @outstanding_elicitations[elicitation_id] = true }
+  end
+
   # The fs capabilities initialize advertises that no injected handler serves.
   #
   # @rbs capabilities: ACP::Types::FileSystemCapabilities?
@@ -484,6 +555,18 @@ class ACP::ClientConnection
       'terminal.wait_for_exit' => capabilities && !@wait_for_terminal_exit,
       'terminal.kill' => capabilities && !@kill_terminal,
       'terminal.release' => capabilities && !@release_terminal
+    }.select { |_, unserved| unserved }.keys
+  end
+
+  # The elicitation capabilities initialize advertises that no injected
+  # handler serves.
+  #
+  # @rbs capabilities: ACP::Types::ElicitationCapabilities?
+  # @rbs return: Array[String]
+  def unserved_elicitation_modes(capabilities)
+    {
+      'elicitation.form' => capabilities&.form && !@elicitation,
+      'elicitation.url' => capabilities&.url && !@elicitation
     }.select { |_, unserved| unserved }.keys
   end
 end
