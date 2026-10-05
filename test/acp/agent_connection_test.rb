@@ -461,7 +461,10 @@ describe ACP::AgentConnection do
     start
     reply = call('authenticate', { 'methodId' => 'token' })
 
-    assert_equal({ 'code' => -32_601, 'message' => 'Method not found' }, reply['error'])
+    assert_equal(
+      { 'code' => -32_601, 'message' => 'Method not found', 'data' => { 'method' => 'authenticate' } },
+      reply['error']
+    )
   end
 
   it 'routes logout when auth logout is advertised' do
@@ -478,7 +481,10 @@ describe ACP::AgentConnection do
     start
     reply = call('logout', {})
 
-    assert_equal({ 'code' => -32_601, 'message' => 'Method not found' }, reply['error'])
+    assert_equal(
+      { 'code' => -32_601, 'message' => 'Method not found', 'data' => { 'method' => 'logout' } },
+      reply['error']
+    )
   end
 
   it 'answers session/load and session/list with method not found unless advertised' do
@@ -547,7 +553,10 @@ describe ACP::AgentConnection do
     it 'answers an unregistered extension request with method not found' do
       start
 
-      assert_equal({ 'code' => -32_601, 'message' => 'Method not found' }, call('_myapp/unknown').fetch('error'))
+      assert_equal(
+        { 'code' => -32_601, 'message' => 'Method not found', 'data' => { 'method' => '_myapp/unknown' } },
+        call('_myapp/unknown').fetch('error')
+      )
     end
 
     it 'sends an extension request from the agent and returns the client\'s result' do

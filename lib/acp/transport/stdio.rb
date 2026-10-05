@@ -92,7 +92,7 @@ class ACP::Transport::Stdio
     method = message['method']
     error = message['error']
     if method.is_a?(String) && message.key?('id')
-      serve(requests[method], message['id'], message['params'])
+      serve(requests[method], message['id'], message['params'], method)
     elsif method.is_a?(String)
       # Run on the reader thread so notifications (session/update) keep their
       # order; a JSON-RPC notification has no reply to carry a handler error.
@@ -104,8 +104,19 @@ class ACP::Transport::Stdio
       code, text, data = error.values_at('code', 'message', 'data')
       settle(message['id'], ACP::RequestError.new(code:, message: text, data:))
     else
-      reply(nil, ACP::RequestError.invalid_request)
+      reply(detectable_id(message), ACP::RequestError.invalid_request)
     end
+  end
+
+  # JSON-RPC 2.0 says an error reply echoes the request id whenever it can be
+  # detected; ids outside the spec's String/Number/Null types are not, so
+  # those replies keep id null.
+  #
+  # @rbs message: Hash[String, untyped]
+  # @rbs return: untyped
+  def detectable_id(message)
+    id = message['id']
+    id.is_a?(String) || id.is_a?(Numeric) ? id : nil
   end
 
   # @rbs line: String
@@ -122,10 +133,11 @@ class ACP::Transport::Stdio
   # @rbs handler: _Handler?
   # @rbs id: untyped
   # @rbs params: untyped
+  # @rbs method: String
   # @rbs return: void
-  def serve(handler, id, params)
+  def serve(handler, id, params, method)
     Thread.new do
-      outcome = handler ? invoke(handler, params) : ACP::RequestError.method_not_found
+      outcome = handler ? invoke(handler, params) : ACP::RequestError.method_not_found(method)
       case outcome
       when ACP::Transport::Reply
         reply(id, outcome.result)
