@@ -21,7 +21,7 @@ class ACP::Types::AuthenticateRequest
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::AuthenticateRequest
   def self.from_h(hash)
-    new(method_id: hash.fetch('methodId'), meta: hash['_meta'])
+    new(method_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'methodId'), 'methodId'), meta: hash['_meta'])
   end
 
   # @rbs return: Hash[String, untyped]

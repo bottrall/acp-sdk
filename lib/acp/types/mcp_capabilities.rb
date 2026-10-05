@@ -26,7 +26,11 @@ class ACP::Types::McpCapabilities
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::McpCapabilities
   def self.from_h(hash)
-    new(http: hash['http'], sse: hash['sse'], meta: hash['_meta'])
+    new(
+      http: ACP::Types::Check.boolean(hash['http'], 'http', allow_nil: true),
+      sse: ACP::Types::Check.boolean(hash['sse'], 'sse', allow_nil: true),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

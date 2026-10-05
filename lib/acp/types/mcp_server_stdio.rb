@@ -36,11 +36,17 @@ class ACP::Types::McpServerStdio
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::McpServerStdio
   def self.from_h(hash)
+    args = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'args'), 'args') do |item, path|
+      ACP::Types::Check.string(item, path)
+    end
+    env = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'env'), 'env') do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::EnvVariable)
+    end
     new(
-      name: hash.fetch('name'),
-      command: hash.fetch('command'),
-      args: hash.fetch('args'),
-      env: hash.fetch('env').map { |item| ACP::Types::EnvVariable.from_h(item) },
+      name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
+      command: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'command'), 'command'),
+      args:,
+      env:,
       meta: hash['_meta']
     )
   end

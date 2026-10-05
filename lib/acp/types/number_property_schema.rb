@@ -42,11 +42,11 @@ class ACP::Types::NumberPropertySchema
   # @rbs return: ACP::Types::NumberPropertySchema
   def self.from_h(hash)
     new(
-      title: hash['title'],
-      description: hash['description'],
-      minimum: hash['minimum'],
-      maximum: hash['maximum'],
-      default: hash['default'],
+      title: ACP::Types::Check.string(hash['title'], 'title', allow_nil: true),
+      description: ACP::Types::Check.string(hash['description'], 'description', allow_nil: true),
+      minimum: ACP::Types::Check.number(hash['minimum'], 'minimum', allow_nil: true),
+      maximum: ACP::Types::Check.number(hash['maximum'], 'maximum', allow_nil: true),
+      default: ACP::Types::Check.number(hash['default'], 'default', allow_nil: true),
       meta: hash['_meta']
     )
   end

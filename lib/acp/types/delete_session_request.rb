@@ -21,7 +21,10 @@ class ACP::Types::DeleteSessionRequest
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::DeleteSessionRequest
   def self.from_h(hash)
-    new(session_id: hash.fetch('sessionId'), meta: hash['_meta'])
+    new(
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

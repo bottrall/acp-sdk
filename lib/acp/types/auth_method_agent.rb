@@ -31,7 +31,12 @@ class ACP::Types::AuthMethodAgent
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::AuthMethodAgent
   def self.from_h(hash)
-    new(id: hash.fetch('id'), name: hash.fetch('name'), description: hash['description'], meta: hash['_meta'])
+    new(
+      id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'id'), 'id'),
+      name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
+      description: ACP::Types::Check.string(hash['description'], 'description', allow_nil: true),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

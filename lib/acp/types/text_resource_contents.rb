@@ -31,7 +31,12 @@ class ACP::Types::TextResourceContents
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::TextResourceContents
   def self.from_h(hash)
-    new(mime_type: hash['mimeType'], text: hash.fetch('text'), uri: hash.fetch('uri'), meta: hash['_meta'])
+    new(
+      mime_type: ACP::Types::Check.string(hash['mimeType'], 'mimeType', allow_nil: true),
+      text: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'text'), 'text'),
+      uri: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'uri'), 'uri'),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

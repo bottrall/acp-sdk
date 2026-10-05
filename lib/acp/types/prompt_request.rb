@@ -26,9 +26,12 @@ class ACP::Types::PromptRequest
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::PromptRequest
   def self.from_h(hash)
+    prompt = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'prompt'), 'prompt') do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::ContentBlock)
+    end
     new(
-      session_id: hash.fetch('sessionId'),
-      prompt: hash.fetch('prompt').map { |item| ACP::Types::ContentBlock.from_h(item) },
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      prompt:,
       meta: hash['_meta']
     )
   end

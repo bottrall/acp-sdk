@@ -26,9 +26,12 @@ class ACP::Types::ListSessionsResponse
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ListSessionsResponse
   def self.from_h(hash)
+    sessions = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'sessions'), 'sessions') do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::SessionInfo)
+    end
     new(
-      sessions: hash.fetch('sessions').map { |item| ACP::Types::SessionInfo.from_h(item) },
-      next_cursor: hash['nextCursor'],
+      sessions:,
+      next_cursor: ACP::Types::Check.string(hash['nextCursor'], 'nextCursor', allow_nil: true),
       meta: hash['_meta']
     )
   end

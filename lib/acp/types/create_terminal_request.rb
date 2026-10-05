@@ -46,13 +46,19 @@ class ACP::Types::CreateTerminalRequest
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::CreateTerminalRequest
   def self.from_h(hash)
+    args = ACP::Types::Check.array(hash['args'], 'args', allow_nil: true) do |item, path|
+      ACP::Types::Check.string(item, path)
+    end
+    env = ACP::Types::Check.array(hash['env'], 'env', allow_nil: true) do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::EnvVariable)
+    end
     new(
-      session_id: hash.fetch('sessionId'),
-      command: hash.fetch('command'),
-      args: hash['args'],
-      env: hash['env']&.map { |item| ACP::Types::EnvVariable.from_h(item) },
-      cwd: hash['cwd'],
-      output_byte_limit: hash['outputByteLimit'],
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      command: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'command'), 'command'),
+      args:,
+      env:,
+      cwd: ACP::Types::Check.string(hash['cwd'], 'cwd', allow_nil: true),
+      output_byte_limit: ACP::Types::Check.integer(hash['outputByteLimit'], 'outputByteLimit', min: 0, allow_nil: true),
       meta: hash['_meta']
     )
   end

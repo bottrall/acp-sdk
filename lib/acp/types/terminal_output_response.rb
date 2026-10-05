@@ -32,9 +32,14 @@ class ACP::Types::TerminalOutputResponse
   # @rbs return: ACP::Types::TerminalOutputResponse
   def self.from_h(hash)
     new(
-      output: hash.fetch('output'),
-      truncated: hash.fetch('truncated'),
-      exit_status: hash['exitStatus']&.then { |value| ACP::Types::TerminalExitStatus.from_h(value) },
+      output: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'output'), 'output'),
+      truncated: ACP::Types::Check.boolean(ACP::Types::Check.key(hash, 'truncated'), 'truncated'),
+      exit_status: ACP::Types::Check.object(
+        hash['exitStatus'],
+        'exitStatus',
+        ACP::Types::TerminalExitStatus,
+        allow_nil: true
+      ),
       meta: hash['_meta']
     )
   end

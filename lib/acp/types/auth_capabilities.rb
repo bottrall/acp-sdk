@@ -21,7 +21,7 @@ class ACP::Types::AuthCapabilities
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::AuthCapabilities
   def self.from_h(hash)
-    new(terminal: hash['terminal'], meta: hash['_meta'])
+    new(terminal: ACP::Types::Check.boolean(hash['terminal'], 'terminal', allow_nil: true), meta: hash['_meta'])
   end
 
   # @rbs return: Hash[String, untyped]

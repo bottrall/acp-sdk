@@ -21,7 +21,7 @@ class ACP::Types::UnstructuredCommandInput
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::UnstructuredCommandInput
   def self.from_h(hash)
-    new(hint: hash.fetch('hint'), meta: hash['_meta'])
+    new(hint: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'hint'), 'hint'), meta: hash['_meta'])
   end
 
   # @rbs return: Hash[String, untyped]

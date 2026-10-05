@@ -26,7 +26,16 @@ class ACP::Types::SessionUpdate::SessionInfoUpdate
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SessionUpdate::SessionInfoUpdate
   def self.from_h(hash)
-    new(title: hash.fetch('title', :unset), updated_at: hash.fetch('updatedAt', :unset), meta: hash['_meta'])
+    new(
+      title: ACP::Types::Check.string(hash.fetch('title', :unset), 'title', allow_nil: true, allow_unset: true),
+      updated_at: ACP::Types::Check.string(
+        hash.fetch('updatedAt', :unset),
+        'updatedAt',
+        allow_nil: true,
+        allow_unset: true
+      ),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

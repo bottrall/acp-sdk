@@ -21,7 +21,10 @@ class ACP::Types::ElicitationSessionScope
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ElicitationSessionScope
   def self.from_h(hash)
-    new(session_id: hash.fetch('sessionId'), tool_call_id: hash['toolCallId'])
+    new(
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      tool_call_id: ACP::Types::Check.string(hash['toolCallId'], 'toolCallId', allow_nil: true)
+    )
   end
 
   # @rbs return: Hash[String, untyped]

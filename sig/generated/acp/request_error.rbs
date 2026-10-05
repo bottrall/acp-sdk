@@ -48,8 +48,12 @@ class ACP::RequestError
   # @rbs return: ACP::RequestError
   def self.method_not_found: (?String? method) -> ACP::RequestError
 
+  # The errors name the param paths that failed to parse, like the Python
+  # SDK's `{ errors }`.
+  #
+  # @rbs errors: Array[String]?
   # @rbs return: ACP::RequestError
-  def self.invalid_params: () -> ACP::RequestError
+  def self.invalid_params: (?Array[String]? errors) -> ACP::RequestError
 
   # The method-not-found code for a method the client's capabilities do not
   # advertise, with a message that names the capability so it can be told

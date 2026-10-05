@@ -31,7 +31,12 @@ class ACP::Types::SessionConfigSelectOption
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SessionConfigSelectOption
   def self.from_h(hash)
-    new(value: hash.fetch('value'), name: hash.fetch('name'), description: hash['description'], meta: hash['_meta'])
+    new(
+      value: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'value'), 'value'),
+      name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
+      description: ACP::Types::Check.string(hash['description'], 'description', allow_nil: true),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

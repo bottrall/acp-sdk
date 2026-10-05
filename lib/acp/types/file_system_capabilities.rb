@@ -26,7 +26,11 @@ class ACP::Types::FileSystemCapabilities
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::FileSystemCapabilities
   def self.from_h(hash)
-    new(read_text_file: hash['readTextFile'], write_text_file: hash['writeTextFile'], meta: hash['_meta'])
+    new(
+      read_text_file: ACP::Types::Check.boolean(hash['readTextFile'], 'readTextFile', allow_nil: true),
+      write_text_file: ACP::Types::Check.boolean(hash['writeTextFile'], 'writeTextFile', allow_nil: true),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

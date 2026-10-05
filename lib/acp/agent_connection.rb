@@ -117,7 +117,7 @@ class ACP::AgentConnection
   # @rbs return: void
   def cancel(agent, params)
     notification = ACP::Types::CancelNotification.from_h(params)
-  rescue KeyError, TypeError, NoMethodError => e
+  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError => e
     @logger.warn("dropped malformed session/cancel: #{e.class}: #{e.message}")
   else
     agent.cancel(notification)
@@ -131,6 +131,8 @@ class ACP::AgentConnection
   def route(type, &)
     lambda do |params|
       request = type.from_h(params)
+    rescue ACP::Types::ParseError => e
+      ACP::RequestError.invalid_params([e.message])
     rescue KeyError, TypeError, NoMethodError
       ACP::RequestError.invalid_params
     else

@@ -41,12 +41,18 @@ class ACP::Types::ElicitationSchema
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ElicitationSchema
   def self.from_h(hash)
+    properties = ACP::Types::Check.hash(hash['properties'], 'properties', allow_nil: true) do |value, path|
+      ACP::Types::Check.object(value, path, ACP::Types::ElicitationPropertySchema)
+    end
+    required = ACP::Types::Check.array(hash['required'], 'required', allow_nil: true) do |item, path|
+      ACP::Types::Check.string(item, path)
+    end
     new(
-      type: hash['type'],
-      title: hash['title'],
-      properties: hash['properties']&.transform_values { |item| ACP::Types::ElicitationPropertySchema.from_h(item) },
-      required: hash['required'],
-      description: hash['description'],
+      type: ACP::Types::Check.enum(hash['type'], 'type', ['object'], allow_nil: true),
+      title: ACP::Types::Check.string(hash['title'], 'title', allow_nil: true),
+      properties:,
+      required:,
+      description: ACP::Types::Check.string(hash['description'], 'description', allow_nil: true),
       meta: hash['_meta']
     )
   end

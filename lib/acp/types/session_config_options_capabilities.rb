@@ -22,7 +22,12 @@ class ACP::Types::SessionConfigOptionsCapabilities
   # @rbs return: ACP::Types::SessionConfigOptionsCapabilities
   def self.from_h(hash)
     new(
-      boolean: hash['boolean']&.then { |value| ACP::Types::BooleanConfigOptionCapabilities.from_h(value) },
+      boolean: ACP::Types::Check.object(
+        hash['boolean'],
+        'boolean',
+        ACP::Types::BooleanConfigOptionCapabilities,
+        allow_nil: true
+      ),
       meta: hash['_meta']
     )
   end

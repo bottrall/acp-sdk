@@ -16,7 +16,7 @@ class ACP::Types::SessionConfigBoolean
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SessionConfigBoolean
   def self.from_h(hash)
-    new(current_value: hash.fetch('currentValue'))
+    new(current_value: ACP::Types::Check.boolean(ACP::Types::Check.key(hash, 'currentValue'), 'currentValue'))
   end
 
   # @rbs return: Hash[String, untyped]

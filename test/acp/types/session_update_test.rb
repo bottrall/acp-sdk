@@ -115,6 +115,14 @@ describe ACP::Types::SessionUpdate do
     assert_same payload, ACP::Types::SessionUpdate.from_h(payload)
   end
 
+  it 'rejects a tool call update with a status outside the closed enum and names the path' do
+    payload = { 'sessionUpdate' => 'tool_call_update', 'toolCallId' => 'call_001', 'status' => 'weird' }
+
+    error = assert_raises(ACP::Types::ParseError) { ACP::Types::SessionUpdate.from_h(payload) }
+
+    assert_equal 'status: expected one of "pending", "in_progress", "completed", "failed", got String', error.message
+  end
+
   it 'round-trips inside a session/update notification' do
     payload = { 'sessionId' => 'sess_abc123def456', 'update' => examples.values.first }
 

@@ -37,10 +37,15 @@ class ACP::Types::ContentBlock::Image
   # @rbs return: ACP::Types::ContentBlock::Image
   def self.from_h(hash)
     new(
-      annotations: hash['annotations']&.then { |value| ACP::Types::Annotations.from_h(value) },
-      data: hash.fetch('data'),
-      mime_type: hash.fetch('mimeType'),
-      uri: hash['uri'],
+      annotations: ACP::Types::Check.object(
+        hash['annotations'],
+        'annotations',
+        ACP::Types::Annotations,
+        allow_nil: true
+      ),
+      data: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'data'), 'data'),
+      mime_type: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'mimeType'), 'mimeType'),
+      uri: ACP::Types::Check.string(hash['uri'], 'uri', allow_nil: true),
       meta: hash['_meta']
     )
   end

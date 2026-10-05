@@ -26,7 +26,11 @@ class ACP::Types::SetSessionModeRequest
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SetSessionModeRequest
   def self.from_h(hash)
-    new(session_id: hash.fetch('sessionId'), mode_id: hash.fetch('modeId'), meta: hash['_meta'])
+    new(
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      mode_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'modeId'), 'modeId'),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

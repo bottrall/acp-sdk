@@ -22,7 +22,11 @@ class ACP::Types::CreateElicitationRequest::Mode::Form
   # @rbs return: ACP::Types::CreateElicitationRequest::Mode::Form
   def self.from_h(hash)
     new(
-      requested_schema: ACP::Types::ElicitationSchema.from_h(hash.fetch('requestedSchema')),
+      requested_schema: ACP::Types::Check.object(
+        ACP::Types::Check.key(hash, 'requestedSchema'),
+        'requestedSchema',
+        ACP::Types::ElicitationSchema
+      ),
       scope: ACP::Types::ElicitationFormMode::Scope.from_h(hash)
     )
   end

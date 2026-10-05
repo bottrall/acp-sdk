@@ -21,7 +21,10 @@ class ACP::Types::SessionUpdate::Plan
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SessionUpdate::Plan
   def self.from_h(hash)
-    new(entries: hash.fetch('entries').map { |item| ACP::Types::PlanEntry.from_h(item) }, meta: hash['_meta'])
+    entries = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'entries'), 'entries') do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::PlanEntry)
+    end
+    new(entries:, meta: hash['_meta'])
   end
 
   # @rbs return: Hash[String, untyped]

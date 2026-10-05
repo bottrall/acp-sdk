@@ -16,7 +16,14 @@ class ACP::Types::ElicitationRequestScope
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ElicitationRequestScope
   def self.from_h(hash)
-    new(request_id: hash.fetch('requestId'))
+    new(
+      request_id: ACP::Types::Check.one_of(
+        ACP::Types::Check.key(hash, 'requestId'),
+        'requestId',
+        [Integer, String],
+        allow_nil: true
+      )
+    )
   end
 
   # @rbs return: Hash[String, untyped]

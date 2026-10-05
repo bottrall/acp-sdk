@@ -27,7 +27,7 @@ class ACP::Types::CreateElicitationRequest
   # @rbs return: ACP::Types::CreateElicitationRequest
   def self.from_h(hash)
     new(
-      message: hash.fetch('message'),
+      message: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'message'), 'message'),
       meta: hash['_meta'],
       mode: ACP::Types::CreateElicitationRequest::Mode.from_h(hash)
     )

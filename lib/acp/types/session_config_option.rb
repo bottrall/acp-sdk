@@ -42,9 +42,9 @@ class ACP::Types::SessionConfigOption
   # @rbs return: ACP::Types::SessionConfigOption
   def self.from_h(hash)
     new(
-      id: hash.fetch('id'),
-      name: hash.fetch('name'),
-      description: hash['description'],
+      id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'id'), 'id'),
+      name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
+      description: ACP::Types::Check.string(hash['description'], 'description', allow_nil: true),
       category: hash['category'],
       meta: hash['_meta'],
       kind: ACP::Types::SessionConfigOption::Kind.from_h(hash)

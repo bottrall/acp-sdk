@@ -16,7 +16,7 @@ class ACP::Types::SetSessionConfigOptionRequest::Value::Boolean
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SetSessionConfigOptionRequest::Value::Boolean
   def self.from_h(hash)
-    new(value: hash.fetch('value'))
+    new(value: ACP::Types::Check.boolean(ACP::Types::Check.key(hash, 'value'), 'value'))
   end
 
   # @rbs return: Hash[String, untyped]

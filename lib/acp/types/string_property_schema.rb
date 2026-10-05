@@ -72,16 +72,22 @@ class ACP::Types::StringPropertySchema
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::StringPropertySchema
   def self.from_h(hash)
+    enum = ACP::Types::Check.array(hash['enum'], 'enum', allow_nil: true) do |item, path|
+      ACP::Types::Check.string(item, path)
+    end
+    one_of = ACP::Types::Check.array(hash['oneOf'], 'oneOf', allow_nil: true) do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::EnumOption)
+    end
     new(
-      title: hash['title'],
-      description: hash['description'],
-      min_length: hash['minLength'],
-      max_length: hash['maxLength'],
-      pattern: hash['pattern'],
-      format: hash['format'],
-      default: hash['default'],
-      enum: hash['enum'],
-      one_of: hash['oneOf']&.map { |item| ACP::Types::EnumOption.from_h(item) },
+      title: ACP::Types::Check.string(hash['title'], 'title', allow_nil: true),
+      description: ACP::Types::Check.string(hash['description'], 'description', allow_nil: true),
+      min_length: ACP::Types::Check.integer(hash['minLength'], 'minLength', min: 0, allow_nil: true),
+      max_length: ACP::Types::Check.integer(hash['maxLength'], 'maxLength', min: 0, allow_nil: true),
+      pattern: ACP::Types::Check.string(hash['pattern'], 'pattern', allow_nil: true),
+      format: ACP::Types::Check.enum(hash['format'], 'format', %w[email uri date date-time], allow_nil: true),
+      default: ACP::Types::Check.string(hash['default'], 'default', allow_nil: true),
+      enum:,
+      one_of:,
       meta: hash['_meta']
     )
   end

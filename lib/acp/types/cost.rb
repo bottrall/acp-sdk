@@ -26,7 +26,11 @@ class ACP::Types::Cost
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Cost
   def self.from_h(hash)
-    new(amount: hash.fetch('amount'), currency: hash.fetch('currency'), meta: hash['_meta'])
+    new(
+      amount: ACP::Types::Check.number(ACP::Types::Check.key(hash, 'amount'), 'amount'),
+      currency: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'currency'), 'currency'),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

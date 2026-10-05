@@ -16,7 +16,7 @@ class ACP::Types::SetSessionConfigOptionRequest::Value::ValueId
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SetSessionConfigOptionRequest::Value::ValueId
   def self.from_h(hash)
-    new(value: hash.fetch('value'))
+    new(value: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'value'), 'value'))
   end
 
   # @rbs return: Hash[String, untyped]

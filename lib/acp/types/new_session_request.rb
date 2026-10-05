@@ -31,10 +31,20 @@ class ACP::Types::NewSessionRequest
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::NewSessionRequest
   def self.from_h(hash)
+    additional_directories = ACP::Types::Check.array(
+      hash['additionalDirectories'],
+      'additionalDirectories',
+      allow_nil: true
+    ) do |item, path|
+      ACP::Types::Check.string(item, path)
+    end
+    mcp_servers = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'mcpServers'), 'mcpServers') do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::McpServer)
+    end
     new(
-      cwd: hash.fetch('cwd'),
-      additional_directories: hash['additionalDirectories'],
-      mcp_servers: hash.fetch('mcpServers').map { |item| ACP::Types::McpServer.from_h(item) },
+      cwd: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'cwd'), 'cwd'),
+      additional_directories:,
+      mcp_servers:,
       meta: hash['_meta']
     )
   end

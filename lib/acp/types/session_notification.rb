@@ -27,8 +27,8 @@ class ACP::Types::SessionNotification
   # @rbs return: ACP::Types::SessionNotification
   def self.from_h(hash)
     new(
-      session_id: hash.fetch('sessionId'),
-      update: ACP::Types::SessionUpdate.from_h(hash.fetch('update')),
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      update: ACP::Types::Check.object(ACP::Types::Check.key(hash, 'update'), 'update', ACP::Types::SessionUpdate),
       meta: hash['_meta']
     )
   end

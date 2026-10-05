@@ -21,7 +21,15 @@ class ACP::Types::CancelRequestNotification
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::CancelRequestNotification
   def self.from_h(hash)
-    new(request_id: hash.fetch('requestId'), meta: hash['_meta'])
+    new(
+      request_id: ACP::Types::Check.one_of(
+        ACP::Types::Check.key(hash, 'requestId'),
+        'requestId',
+        [Integer, String],
+        allow_nil: true
+      ),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

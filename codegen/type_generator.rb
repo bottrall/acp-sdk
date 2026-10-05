@@ -33,6 +33,16 @@ module TypeGenerator
 
   PRIMITIVES = { 'boolean' => 'bool', 'integer' => 'Integer', 'number' => 'Numeric', 'string' => 'String' }.freeze
 
+  # Ruby classes a primitive union accepts, in the schema's variant order.
+  RUBY_CLASSES = {
+    'boolean' => %w[TrueClass FalseClass],
+    'integer' => %w[Integer],
+    'number' => %w[Numeric],
+    'string' => %w[String]
+  }.freeze
+
+  CHECK = 'ACP::Types::Check'
+
   # A variant class named after one of these would shadow it in the RBS of its
   # union's namespace, where the generated signatures refer to it unqualified.
   CORE_CLASSES = %w[Array Hash Integer Numeric String].freeze
@@ -40,13 +50,19 @@ module TypeGenerator
   RAW_HASH = 'Hash[String, untyped]'
 
   class Type
-    attr_reader :rbs, :from, :to
+    attr_reader :rbs, :from, :to, :check
 
-    def initialize(rbs:, from: nil, to: nil, nullable: false)
+    # `check` describes how from_h validates the value, as a tagged array the
+    # `guard` case turns into a Check call: [:string], [:boolean],
+    # [:integer, min, max], [:number, min, max], [:enum, values],
+    # [:one_of, classes], [:hash, inner], [:array, inner], [:object, const] or
+    # [:objects, const]. nil means the value passes through unvalidated.
+    def initialize(rbs:, from: nil, to: nil, nullable: false, check: nil)
       @rbs = rbs
       @from = from
       @to = to
       @nullable = nullable
+      @check = check
       freeze
     end
 
@@ -168,7 +184,12 @@ module TypeGenerator
     case Array(schema['type']) - ['null']
     in ['array']
       item = resolve(defs, schema.fetch('items'))
-      Type.new(rbs: "Array[#{item.rbs}]", from: elementwise(:map, item.from), to: elementwise(:map, item.to))
+      Type.new(
+        rbs: "Array[#{item.rbs}]",
+        from: elementwise(:map, item.from),
+        to: elementwise(:map, item.to),
+        check: item.check && [:array, item.check]
+      )
     in ['object']
       values = schema['additionalProperties']
       return Type.new(rbs: RAW_HASH) unless values.is_a?(Hash)
@@ -177,24 +198,60 @@ module TypeGenerator
       Type.new(
         rbs: "Hash[String, #{value.rbs}]",
         from: elementwise(:transform_values, value.from),
-        to: elementwise(:transform_values, value.to)
+        to: elementwise(:transform_values, value.to),
+        check: value.check && [:hash, value.check]
       )
-    in [type] then Type.new(rbs: PRIMITIVES.fetch(type))
+    in [type] then Type.new(rbs: PRIMITIVES.fetch(type), check: primitive_check(schema, type))
     in [] then Type.new(rbs: 'untyped')
+    end
+  end
+
+  def primitive_check(schema, type)
+    case type
+    when 'boolean' then [:boolean]
+    when 'integer' then [:integer, schema['minimum'], schema['maximum']]
+    when 'number' then [:number, schema['minimum'], schema['maximum']]
+    else [:string]
     end
   end
 
   def resolve_ref(defs, name)
     definition = defs.fetch(name)
     case kind(definition)
-    when :object then Type.new(rbs: const(name), from: [:call, "#{const(name)}.from_h"], to: [:send, 'to_h'])
-    when :union then Type.new(rbs: "#{const(name)}::t", from: [:call, "#{const(name)}.from_h"], to: [:send, 'to_h'])
+    when :object
+      Type.new(
+        rbs: const(name), from: [:call, "#{const(name)}.from_h"], to: [:send, 'to_h'], check: [:object, const(name)]
+      )
+    when :union
+      Type.new(
+        rbs: "#{const(name)}::t",
+        from: [:call, "#{const(name)}.from_h"],
+        to: [:send, 'to_h'],
+        check: [:object, const(name)]
+      )
     when :array_union
-      Type.new(rbs: "#{const(name)}::t", from: [:call, "#{const(name)}.from_a"], to: [:map, [:send, 'to_h']])
-    when :enum then Type.new(rbs: PRIMITIVES.fetch(variants(definition).first.fetch('type')))
+      Type.new(
+        rbs: "#{const(name)}::t",
+        from: [:call, "#{const(name)}.from_a"],
+        to: [:map, [:send, 'to_h']],
+        check: [:objects, const(name)]
+      )
+    when :enum
+      options = variants(definition)
+      rbs = PRIMITIVES.fetch(options.first.fetch('type'))
+      # An open enum's non-const variant accepts unknown values; a closed one
+      # rejects them.
+      check = [:enum, options.map { |option| option.fetch('const') }] if options.all? { |option| option.key?('const') }
+      Type.new(rbs:, check:)
     when :primitive_union
-      types = variants(definition).map { |option| option['type'] == 'null' ? 'nil' : resolve(defs, option).rbs }
-      Type.new(rbs: types.join(' | '), nullable: types.include?('nil'))
+      options = variants(definition)
+      types = options.map { |option| option['type'] == 'null' ? 'nil' : resolve(defs, option).rbs }
+      non_null = options.reject { |option| option['type'] == 'null' }
+      classes = non_null.flat_map { |option| RUBY_CLASSES.fetch(option.fetch('type'), %w[Array]) }
+      # A typed-array variant's items are checked by one_of after the Array
+      # class matches, so the spec passes the inner item check, not [:array, ...].
+      items = non_null.filter_map { |option| resolve(defs, option).check[1] if option['type'] == 'array' }.first
+      Type.new(rbs: types.join(' | '), nullable: types.include?('nil'), check: [:one_of, classes, items])
     else resolve(defs, definition)
     end
   end
@@ -306,30 +363,151 @@ module TypeGenerator
     ]
   end
 
+  # A do...end in a keyword-argument position binds its block to `new`, so
+  # fields whose guard takes a block are assigned to locals first.
   def from_h_method(const, fields)
     param = fields.empty? ? '_hash' : 'hash'
-    args = fields.map { |field| "#{field.attr}: #{from_expression(field)}" }
+    expressions = fields.to_h { |field| [field, from_expression(field)] }
+    blocky, _plain = fields.partition { |field| piece_block(expressions.fetch(field)) }
+    args = fields.map do |field|
+      expression = expressions.fetch(field)
+      [field.attr, piece_block(expression) ? nil : expression]
+    end
+    temps = blocky.map { |field| render(expressions.fetch(field), 4, "#{field.attr} = ") }
     [
       "# @rbs #{param}: #{RAW_HASH}",
       "# @rbs return: #{const}",
       "def self.from_h(#{param})",
-      *indent(call('new', args, 4), 2),
+      *temps.flat_map { |lines| indent(lines, 2) },
+      *indent(new_call(args, 4), 2),
       'end'
     ]
   end
 
+  def new_call(args, column)
+    return ['new'] if args.empty?
+
+    single = "new(#{args.map { |name, expr| new_arg(name, expr) }.join(', ')})"
+    return [single] if column + single.length <= MAX_LINE_LENGTH
+
+    lines = args.each_with_index.flat_map do |(name, expr), index|
+      comma = index == args.size - 1 ? '' : ','
+      if expr.nil?
+        indent(["#{name}:"], 2).tap { |arg_lines| arg_lines[-1] += comma }
+      else
+        indent(render(expr, column + 2, "#{name}: ", comma), 2)
+      end
+    end
+    ['new(', *lines, ')']
+  end
+
+  def new_arg(name, expr)
+    expr.nil? ? "#{name}:" : "#{name}: #{inline(expr)}"
+  end
+
+  def arg_comma(size, index)
+    index == size - 1 ? '' : ','
+  end
+
   def from_expression(field)
+    return convert(field.type.from, 'hash', false) if field.flattened?
+
     source =
-      if field.flattened?
-        'hash'
-      elsif field.required?
-        "hash.fetch('#{field.json}')"
+      if field.required?
+        ["#{CHECK}.key", ['hash', "'#{field.json}'"], nil, nil]
       elsif field.clearable?
         "hash.fetch('#{field.json}', :unset)"
       else
         "hash['#{field.json}']"
       end
-    convert(field.type.from, source, field.nilable?)
+    unless field.type.check
+      return convert(field.type.from, source.is_a?(String) ? source : inline(source), field.nilable?)
+    end
+
+    guard(field.type.check, source, "'#{field.json}'", field.nilable?, field.clearable?)
+  end
+
+  # Builds the guard call for a resolved type as a piece: [callee, args,
+  # block, cast]. Top-level guards take the field path as a string; guards
+  # nested in a container take the block's `path` parameter, so the Check
+  # module can report absolute paths.
+  def guard(spec, source, path, nilable, clearable)
+    opts = guard_options(nilable, clearable)
+    case spec
+    in [:string] then ["#{CHECK}.string", [source, path, *opts], nil, nil]
+    in [:boolean] then ["#{CHECK}.boolean", [source, path, *opts], nil, nil]
+    in [:integer, min, max] then ["#{CHECK}.integer", [source, path, *bounds(min, max), *opts], nil, nil]
+    in [:number, min, max] then ["#{CHECK}.number", [source, path, *bounds(min, max), *opts], nil, nil]
+    in [:enum, values] then ["#{CHECK}.enum", [source, path, enum_values(values), *opts], nil, nil]
+    in [:one_of, classes, items]
+      block = items ? ['item, path', guard(items, 'item', 'path', false, false)] : nil
+      ["#{CHECK}.one_of", [source, path, "[#{classes.join(', ')}]", *opts], block, nil]
+    in [:hash, value]
+      ["#{CHECK}.hash", [source, path, *opts], ['value, path', guard(value, 'value', 'path', false, false)], nil]
+    in [:array, item]
+      ["#{CHECK}.array", [source, path, *opts], ['item, path', guard(item, 'item', 'path', false, false)], nil]
+    in [:object, const] then ["#{CHECK}.object", [source, path, const, *opts], nil, nil]
+    in [:objects, const] then ["#{CHECK}.objects", [source, path, const, *opts], nil, nil]
+    end
+  end
+
+  def guard_options(nilable, clearable)
+    { allow_nil: nilable, allow_unset: clearable }.select { |_, set| set }.map { |name, _| "#{name}: true" }
+  end
+
+  def bounds(min, max)
+    { min: min, max: max }.select { |_, value| value }.map { |name, value| "#{name}: #{numeric(value)}" }
+  end
+
+  def numeric(value) = value.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\1_').reverse
+
+  def enum_values(values)
+    words = values.all?(String) && values.size > 1 && values.all? { |value| value.match?(/\A[\w-]+\z/) }
+    return "%w[#{values.join(' ')}]" if words
+
+    "[#{values.map { |value| enum_value(value) }.join(', ')}]"
+  end
+
+  def enum_value(value)
+    return numeric(value) if value.is_a?(Integer)
+
+    "'#{value.gsub('\\', '\\\\\\\\').gsub("'", "\\\\'")}'"
+  end
+
+  def inline(piece)
+    return piece if piece.is_a?(String)
+
+    callee, args, block, cast = piece
+    rendered = "#{callee}(#{args.map { |arg| inline(arg) }.join(', ')})"
+    rendered += " { |#{block[0]}| #{inline(block[1])} }" if block
+    rendered += " #{cast}" if cast
+    rendered
+  end
+
+  def piece_block(piece) = piece.is_a?(Array) ? piece[2] : nil
+
+  # Renders a piece or plain expression as one or more lines. `column` is the
+  # final column the first line starts at, `suffix` (e.g. an argument comma)
+  # closes the last line; nested lines indent by two.
+  def render(piece, column, prefix = '', suffix = '')
+    line = "#{prefix}#{inline(piece)}#{suffix}"
+    return [line] if column + line.length <= MAX_LINE_LENGTH || piece.is_a?(String)
+
+    callee, args, block, cast = piece
+    tail = cast ? " #{cast}" : ''
+    rendered_args = args.map { |arg| inline(arg) }.join(', ')
+    head = args.empty? ? "#{prefix}#{callee}" : "#{prefix}#{callee}(#{rendered_args})"
+    if block && column + "#{head} do |#{block[0]}|".length <= MAX_LINE_LENGTH
+      return ["#{head} do |#{block[0]}|", *indent(render(block[1], column + 2), 2), "end#{tail}#{suffix}"]
+    end
+
+    lines = args.each_with_index.flat_map do |arg, index|
+      indent(render(arg, column + 2, '', arg_comma(args.size, index)), 2)
+    end
+    return ["#{prefix}#{callee}(", *lines, ")#{tail}#{suffix}"] unless block
+
+    body = indent(render(block[1], column + 2), 2)
+    ["#{prefix}#{callee}(", *lines, ") do |#{block[0]}|", *body, "end#{tail}#{suffix}"]
   end
 
   def to_h_method(fields, tag)
@@ -354,17 +532,10 @@ module TypeGenerator
     single = "#{prefix}(#{args.join(', ')})"
     return [single] if column + single.length <= MAX_LINE_LENGTH
 
-    lines = args.each_with_index.flat_map do |arg, index|
-      block_lines("#{arg}#{',' unless index == args.size - 1}", column + 2)
+    lines = args.each_with_index.map do |arg, index|
+      "#{arg}#{',' unless index == args.size - 1}"
     end
     ["#{prefix}(", *indent(lines, 2), ')']
-  end
-
-  def block_lines(line, column)
-    match = line.match(/\A(.+) \{ (\|\w+\|) (.+) \}(,?)\z/)
-    return [line] if match.nil? || column + line.length <= MAX_LINE_LENGTH
-
-    ["#{match[1]} do #{match[2]}", "  #{match[3]}", "end#{match[4]}"]
   end
 
   def hash_literal(entries, suffix, column)
@@ -454,7 +625,7 @@ module TypeGenerator
 
   def dispatch_body(dispatch)
     unless dispatch.tag
-      branches = dispatch.untagged.map { |variant, key| ["hash.key?('#{key}')", "#{variant}.from_h(hash)"] }
+      branches = dispatch.untagged.map { |variant, key| ["hash.key?('#{key}')", ["#{variant}.from_h(hash)"]] }
       return key_dispatch(branches, 'hash')
     end
 
@@ -472,7 +643,7 @@ module TypeGenerator
   def key_dispatch(branches, fallback)
     [
       *branches.each_with_index.flat_map do |(condition, result), index|
-        ["#{index.zero? ? 'if' : 'elsif'} #{condition}", "  #{result}"]
+        ["#{index.zero? ? 'if' : 'elsif'} #{condition}", *indent(result, 2)]
       end,
       'else',
       "  #{fallback}",
@@ -486,8 +657,15 @@ module TypeGenerator
     branches = items.zip(keys).map do |name, key|
       [
         "items.all? { |item| item.key?('#{key}') }",
-        # Steep checks every branch against the first member of `t` otherwise.
-        "items.map { |item| #{const(name)}.from_h(item) } #: Array[#{const(name)}]"
+        # The index segment makes a variant's parse failure report its position,
+        # and the cast keeps Steep from checking the branch against the first
+        # member of `t` only.
+        render(
+          ['items.each_with_index.map', [],
+           ['item, index', ["#{CHECK}.object", ['item', '[index]', const(name)], nil, nil]],
+           "#: Array[#{const(name)}]"],
+          6
+        )
       ]
     end
     from_a = [

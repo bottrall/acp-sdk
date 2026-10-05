@@ -72,14 +72,30 @@ class ACP::Types::ToolCallUpdate
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ToolCallUpdate
   def self.from_h(hash)
+    content = ACP::Types::Check.array(hash['content'], 'content', allow_nil: true) do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::ToolCallContent)
+    end
+    locations = ACP::Types::Check.array(hash['locations'], 'locations', allow_nil: true) do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::ToolCallLocation)
+    end
     new(
-      tool_call_id: hash.fetch('toolCallId'),
-      kind: hash['kind'],
-      status: hash['status'],
-      title: hash['title'],
-      name: hash['name'],
-      content: hash['content']&.map { |item| ACP::Types::ToolCallContent.from_h(item) },
-      locations: hash['locations']&.map { |item| ACP::Types::ToolCallLocation.from_h(item) },
+      tool_call_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'toolCallId'), 'toolCallId'),
+      kind: ACP::Types::Check.enum(
+        hash['kind'],
+        'kind',
+        %w[read edit delete move search execute think fetch switch_mode other],
+        allow_nil: true
+      ),
+      status: ACP::Types::Check.enum(
+        hash['status'],
+        'status',
+        %w[pending in_progress completed failed],
+        allow_nil: true
+      ),
+      title: ACP::Types::Check.string(hash['title'], 'title', allow_nil: true),
+      name: ACP::Types::Check.string(hash['name'], 'name', allow_nil: true),
+      content:,
+      locations:,
       raw_input: hash['rawInput'],
       raw_output: hash['rawOutput'],
       meta: hash['_meta']

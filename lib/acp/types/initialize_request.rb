@@ -32,9 +32,24 @@ class ACP::Types::InitializeRequest
   # @rbs return: ACP::Types::InitializeRequest
   def self.from_h(hash)
     new(
-      protocol_version: hash.fetch('protocolVersion'),
-      client_capabilities: hash['clientCapabilities']&.then { |value| ACP::Types::ClientCapabilities.from_h(value) },
-      client_info: hash['clientInfo']&.then { |value| ACP::Types::Implementation.from_h(value) },
+      protocol_version: ACP::Types::Check.integer(
+        ACP::Types::Check.key(hash, 'protocolVersion'),
+        'protocolVersion',
+        min: 0,
+        max: 65_535
+      ),
+      client_capabilities: ACP::Types::Check.object(
+        hash['clientCapabilities'],
+        'clientCapabilities',
+        ACP::Types::ClientCapabilities,
+        allow_nil: true
+      ),
+      client_info: ACP::Types::Check.object(
+        hash['clientInfo'],
+        'clientInfo',
+        ACP::Types::Implementation,
+        allow_nil: true
+      ),
       meta: hash['_meta']
     )
   end

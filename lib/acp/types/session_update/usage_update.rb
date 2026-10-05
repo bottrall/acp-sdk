@@ -32,9 +32,9 @@ class ACP::Types::SessionUpdate::UsageUpdate
   # @rbs return: ACP::Types::SessionUpdate::UsageUpdate
   def self.from_h(hash)
     new(
-      used: hash.fetch('used'),
-      size: hash.fetch('size'),
-      cost: hash['cost']&.then { |value| ACP::Types::Cost.from_h(value) },
+      used: ACP::Types::Check.integer(ACP::Types::Check.key(hash, 'used'), 'used', min: 0),
+      size: ACP::Types::Check.integer(ACP::Types::Check.key(hash, 'size'), 'size', min: 0),
+      cost: ACP::Types::Check.object(hash['cost'], 'cost', ACP::Types::Cost, allow_nil: true),
       meta: hash['_meta']
     )
   end

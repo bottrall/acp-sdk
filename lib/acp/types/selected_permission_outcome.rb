@@ -21,7 +21,7 @@ class ACP::Types::SelectedPermissionOutcome
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SelectedPermissionOutcome
   def self.from_h(hash)
-    new(option_id: hash.fetch('optionId'), meta: hash['_meta'])
+    new(option_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'optionId'), 'optionId'), meta: hash['_meta'])
   end
 
   # @rbs return: Hash[String, untyped]

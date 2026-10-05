@@ -31,7 +31,12 @@ class ACP::Types::BlobResourceContents
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::BlobResourceContents
   def self.from_h(hash)
-    new(blob: hash.fetch('blob'), mime_type: hash['mimeType'], uri: hash.fetch('uri'), meta: hash['_meta'])
+    new(
+      blob: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'blob'), 'blob'),
+      mime_type: ACP::Types::Check.string(hash['mimeType'], 'mimeType', allow_nil: true),
+      uri: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'uri'), 'uri'),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

@@ -210,7 +210,7 @@ class ACP::ClientConnection
     return result if result.is_a?(ACP::RequestError)
 
     type.from_h(result)
-  rescue KeyError, TypeError, NoMethodError
+  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError
     ACP::RequestError.invalid_response(result)
   end
 
@@ -259,7 +259,7 @@ class ACP::ClientConnection
   # @rbs return: void
   def dispatch(params)
     notification = ACP::Types::SessionNotification.from_h(params)
-  rescue KeyError, TypeError, NoMethodError => e
+  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError => e
     @logger.warn("dropped malformed session/update: #{e.class}: #{e.message}")
   else
     queue = @lock.synchronize { @streams[notification.session_id]&.push(notification.update) }
@@ -274,6 +274,8 @@ class ACP::ClientConnection
   # @rbs return: (ACP::Types::RequestPermissionResponse | ACP::RequestError)
   def request_permission(params)
     request = ACP::Types::RequestPermissionRequest.from_h(params)
+  rescue ACP::Types::ParseError => e
+    ACP::RequestError.invalid_params([e.message])
   rescue KeyError, TypeError, NoMethodError
     ACP::RequestError.invalid_params
   else
@@ -327,6 +329,8 @@ class ACP::ClientConnection
     return ACP::RequestError.unadvertised('fs.readTextFile') unless @fs_capabilities&.read_text_file
 
     request = ACP::Types::ReadTextFileRequest.from_h(params)
+  rescue ACP::Types::ParseError => e
+    ACP::RequestError.invalid_params([e.message])
   rescue KeyError, TypeError, NoMethodError
     ACP::RequestError.invalid_params
   else
@@ -341,6 +345,8 @@ class ACP::ClientConnection
     return ACP::RequestError.unadvertised('fs.writeTextFile') unless @fs_capabilities&.write_text_file
 
     request = ACP::Types::WriteTextFileRequest.from_h(params)
+  rescue ACP::Types::ParseError => e
+    ACP::RequestError.invalid_params([e.message])
   rescue KeyError, TypeError, NoMethodError
     ACP::RequestError.invalid_params
   else
