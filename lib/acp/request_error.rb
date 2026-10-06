@@ -54,9 +54,6 @@ class ACP::RequestError
     new(code: METHOD_NOT_FOUND, message: 'Method not found', data: method && { method: method })
   end
 
-  # The errors name the param paths that failed to parse, like the Python
-  # SDK's `{ errors }`.
-  #
   # @rbs errors: Array[String]?
   # @rbs return: ACP::RequestError
   def self.invalid_params(errors = nil)
