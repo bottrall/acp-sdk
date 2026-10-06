@@ -1,0 +1,11 @@
+# Generated from lib/acp/types/unstable/compaction_status.rb with RBS::Inline
+
+module ACP::Types::Unstable::CompactionStatus
+  IN_PROGRESS: ::String
+
+  COMPLETED: ::String
+
+  FAILED: ::String
+
+  CANCELLED: ::String
+end

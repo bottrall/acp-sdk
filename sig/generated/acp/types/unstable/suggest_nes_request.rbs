@@ -1,0 +1,45 @@
+# Generated from lib/acp/types/unstable/suggest_nes_request.rb with RBS::Inline
+
+class ACP::Types::Unstable::SuggestNesRequest
+  # @dynamic session_id
+  attr_reader session_id: String
+
+  # @dynamic uri
+  attr_reader uri: String
+
+  # @dynamic version
+  attr_reader version: Integer
+
+  # @dynamic position
+  attr_reader position: ACP::Types::Unstable::Position
+
+  # @dynamic selection
+  attr_reader selection: ACP::Types::Unstable::Range?
+
+  # @dynamic trigger_kind
+  attr_reader trigger_kind: String
+
+  # @dynamic context
+  attr_reader context: ACP::Types::Unstable::NesSuggestContext?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs session_id: String
+  # @rbs uri: String
+  # @rbs version: Integer
+  # @rbs position: ACP::Types::Unstable::Position
+  # @rbs selection: ACP::Types::Unstable::Range?
+  # @rbs trigger_kind: String
+  # @rbs context: ACP::Types::Unstable::NesSuggestContext?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (session_id: String, uri: String, version: Integer, position: ACP::Types::Unstable::Position, trigger_kind: String, ?selection: ACP::Types::Unstable::Range?, ?context: ACP::Types::Unstable::NesSuggestContext?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SuggestNesRequest
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SuggestNesRequest
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

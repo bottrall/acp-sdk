@@ -1,0 +1,9 @@
+# Generated from lib/acp/types/unstable/position_encoding_kind.rb with RBS::Inline
+
+module ACP::Types::Unstable::PositionEncodingKind
+  UTF_16: ::String
+
+  UTF_32: ::String
+
+  UTF_8: ::String
+end

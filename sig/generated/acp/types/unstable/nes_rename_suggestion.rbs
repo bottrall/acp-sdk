@@ -1,0 +1,33 @@
+# Generated from lib/acp/types/unstable/nes_rename_suggestion.rb with RBS::Inline
+
+class ACP::Types::Unstable::NesRenameSuggestion
+  # @dynamic id
+  attr_reader id: String
+
+  # @dynamic uri
+  attr_reader uri: String
+
+  # @dynamic position
+  attr_reader position: ACP::Types::Unstable::Position
+
+  # @dynamic new_name
+  attr_reader new_name: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs id: String
+  # @rbs uri: String
+  # @rbs position: ACP::Types::Unstable::Position
+  # @rbs new_name: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (id: String, uri: String, position: ACP::Types::Unstable::Position, new_name: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::NesRenameSuggestion
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::NesRenameSuggestion
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

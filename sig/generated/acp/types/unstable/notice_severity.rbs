@@ -1,0 +1,9 @@
+# Generated from lib/acp/types/unstable/notice_severity.rb with RBS::Inline
+
+module ACP::Types::Unstable::NoticeSeverity
+  INFO: ::String
+
+  WARNING: ::String
+
+  ERROR: ::String
+end

@@ -1,0 +1,37 @@
+# Generated from lib/acp/types/unstable/session_update/subagent_update.rb with RBS::Inline
+
+class ACP::Types::Unstable::SessionUpdate::SubagentUpdate
+  # @dynamic session_id
+  attr_reader session_id: String
+
+  # @dynamic title
+  attr_reader title: String?
+
+  # @dynamic description
+  attr_reader description: String?
+
+  # @dynamic capabilities
+  attr_reader capabilities: ACP::Types::Unstable::SubagentSessionCapabilities?
+
+  # @dynamic state
+  attr_reader state: ACP::Types::Unstable::StateUpdate::t?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs session_id: String
+  # @rbs title: String?
+  # @rbs description: String?
+  # @rbs capabilities: ACP::Types::Unstable::SubagentSessionCapabilities?
+  # @rbs state: ACP::Types::Unstable::StateUpdate::t?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (session_id: String, ?title: String?, ?description: String?, ?capabilities: ACP::Types::Unstable::SubagentSessionCapabilities?, ?state: ACP::Types::Unstable::StateUpdate::t?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SessionUpdate::SubagentUpdate
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SessionUpdate::SubagentUpdate
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/plan_update_content/items.rb with RBS::Inline
+
+class ACP::Types::Unstable::PlanUpdateContent::Items
+  # @dynamic plan_id
+  attr_reader plan_id: String
+
+  # @dynamic entries
+  attr_reader entries: Array[ACP::Types::PlanEntry]
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs plan_id: String
+  # @rbs entries: Array[ACP::Types::PlanEntry]
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (plan_id: String, entries: Array[ACP::Types::PlanEntry], ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::PlanUpdateContent::Items
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::PlanUpdateContent::Items
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

@@ -1,0 +1,53 @@
+# Generated from lib/acp/types/unstable/client_capabilities.rb with RBS::Inline
+
+class ACP::Types::Unstable::ClientCapabilities
+  # @dynamic fs
+  attr_reader fs: ACP::Types::FileSystemCapabilities?
+
+  # @dynamic terminal
+  attr_reader terminal: bool?
+
+  # @dynamic session
+  attr_reader session: ACP::Types::Unstable::ClientSessionCapabilities?
+
+  # @dynamic subagents
+  attr_reader subagents: ACP::Types::Unstable::SubagentCapabilities?
+
+  # @dynamic plan
+  attr_reader plan: ACP::Types::Unstable::PlanCapabilities?
+
+  # @dynamic auth
+  attr_reader auth: ACP::Types::AuthCapabilities?
+
+  # @dynamic elicitation
+  attr_reader elicitation: ACP::Types::ElicitationCapabilities?
+
+  # @dynamic nes
+  attr_reader nes: ACP::Types::Unstable::ClientNesCapabilities?
+
+  # @dynamic position_encodings
+  attr_reader position_encodings: Array[String]?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs fs: ACP::Types::FileSystemCapabilities?
+  # @rbs terminal: bool?
+  # @rbs session: ACP::Types::Unstable::ClientSessionCapabilities?
+  # @rbs subagents: ACP::Types::Unstable::SubagentCapabilities?
+  # @rbs plan: ACP::Types::Unstable::PlanCapabilities?
+  # @rbs auth: ACP::Types::AuthCapabilities?
+  # @rbs elicitation: ACP::Types::ElicitationCapabilities?
+  # @rbs nes: ACP::Types::Unstable::ClientNesCapabilities?
+  # @rbs position_encodings: Array[String]?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?fs: ACP::Types::FileSystemCapabilities?, ?terminal: bool?, ?session: ACP::Types::Unstable::ClientSessionCapabilities?, ?subagents: ACP::Types::Unstable::SubagentCapabilities?, ?plan: ACP::Types::Unstable::PlanCapabilities?, ?auth: ACP::Types::AuthCapabilities?, ?elicitation: ACP::Types::ElicitationCapabilities?, ?nes: ACP::Types::Unstable::ClientNesCapabilities?, ?position_encodings: Array[String]?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::ClientCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::ClientCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

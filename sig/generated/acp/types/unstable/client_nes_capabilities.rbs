@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/unstable/client_nes_capabilities.rb with RBS::Inline
+
+class ACP::Types::Unstable::ClientNesCapabilities
+  # @dynamic jump
+  attr_reader jump: ACP::Types::Unstable::NesJumpCapabilities?
+
+  # @dynamic rename
+  attr_reader rename: ACP::Types::Unstable::NesRenameCapabilities?
+
+  # @dynamic search_and_replace
+  attr_reader search_and_replace: ACP::Types::Unstable::NesSearchAndReplaceCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs jump: ACP::Types::Unstable::NesJumpCapabilities?
+  # @rbs rename: ACP::Types::Unstable::NesRenameCapabilities?
+  # @rbs search_and_replace: ACP::Types::Unstable::NesSearchAndReplaceCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?jump: ACP::Types::Unstable::NesJumpCapabilities?, ?rename: ACP::Types::Unstable::NesRenameCapabilities?, ?search_and_replace: ACP::Types::Unstable::NesSearchAndReplaceCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::ClientNesCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::ClientNesCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

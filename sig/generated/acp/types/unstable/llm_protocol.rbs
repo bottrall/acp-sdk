@@ -1,0 +1,13 @@
+# Generated from lib/acp/types/unstable/llm_protocol.rb with RBS::Inline
+
+module ACP::Types::Unstable::LlmProtocol
+  ANTHROPIC: ::String
+
+  OPENAI: ::String
+
+  AZURE: ::String
+
+  VERTEX: ::String
+
+  BEDROCK: ::String
+end

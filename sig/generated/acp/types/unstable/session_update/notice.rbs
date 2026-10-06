@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/unstable/session_update/notice.rb with RBS::Inline
+
+class ACP::Types::Unstable::SessionUpdate::Notice
+  # @dynamic severity
+  attr_reader severity: String
+
+  # @dynamic title
+  attr_reader title: String
+
+  # @dynamic description
+  attr_reader description: String?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs severity: String
+  # @rbs title: String
+  # @rbs description: String?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (severity: String, title: String, ?description: String?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SessionUpdate::Notice
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SessionUpdate::Notice
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

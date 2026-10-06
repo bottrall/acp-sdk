@@ -1,0 +1,41 @@
+# Generated from lib/acp/types/unstable/nes_suggest_context.rb with RBS::Inline
+
+class ACP::Types::Unstable::NesSuggestContext
+  # @dynamic recent_files
+  attr_reader recent_files: Array[ACP::Types::Unstable::NesRecentFile]?
+
+  # @dynamic related_snippets
+  attr_reader related_snippets: Array[ACP::Types::Unstable::NesRelatedSnippet]?
+
+  # @dynamic edit_history
+  attr_reader edit_history: Array[ACP::Types::Unstable::NesEditHistoryEntry]?
+
+  # @dynamic user_actions
+  attr_reader user_actions: Array[ACP::Types::Unstable::NesUserAction]?
+
+  # @dynamic open_files
+  attr_reader open_files: Array[ACP::Types::Unstable::NesOpenFile]?
+
+  # @dynamic diagnostics
+  attr_reader diagnostics: Array[ACP::Types::Unstable::NesDiagnostic]?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs recent_files: Array[ACP::Types::Unstable::NesRecentFile]?
+  # @rbs related_snippets: Array[ACP::Types::Unstable::NesRelatedSnippet]?
+  # @rbs edit_history: Array[ACP::Types::Unstable::NesEditHistoryEntry]?
+  # @rbs user_actions: Array[ACP::Types::Unstable::NesUserAction]?
+  # @rbs open_files: Array[ACP::Types::Unstable::NesOpenFile]?
+  # @rbs diagnostics: Array[ACP::Types::Unstable::NesDiagnostic]?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?recent_files: Array[ACP::Types::Unstable::NesRecentFile]?, ?related_snippets: Array[ACP::Types::Unstable::NesRelatedSnippet]?, ?edit_history: Array[ACP::Types::Unstable::NesEditHistoryEntry]?, ?user_actions: Array[ACP::Types::Unstable::NesUserAction]?, ?open_files: Array[ACP::Types::Unstable::NesOpenFile]?, ?diagnostics: Array[ACP::Types::Unstable::NesDiagnostic]?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::NesSuggestContext
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::NesSuggestContext
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

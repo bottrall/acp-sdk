@@ -1,0 +1,33 @@
+# Generated from lib/acp/types/unstable/set_provider_request.rb with RBS::Inline
+
+class ACP::Types::Unstable::SetProviderRequest
+  # @dynamic provider_id
+  attr_reader provider_id: String
+
+  # @dynamic api_type
+  attr_reader api_type: String
+
+  # @dynamic base_url
+  attr_reader base_url: String
+
+  # @dynamic headers
+  attr_reader headers: Hash[String, String]?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs provider_id: String
+  # @rbs api_type: String
+  # @rbs base_url: String
+  # @rbs headers: Hash[String, String]?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (provider_id: String, api_type: String, base_url: String, ?headers: Hash[String, String]?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SetProviderRequest
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SetProviderRequest
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

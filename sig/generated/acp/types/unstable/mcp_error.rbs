@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/mcp_error.rb with RBS::Inline
+
+class ACP::Types::Unstable::McpError
+  # @dynamic code
+  attr_reader code: Integer
+
+  # @dynamic message
+  attr_reader message: String
+
+  # @dynamic data
+  attr_reader data: untyped
+
+  # @rbs code: Integer
+  # @rbs message: String
+  # @rbs data: untyped
+  # @rbs return: void
+  def initialize: (code: Integer, message: String, ?data: untyped) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::McpError
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::McpError
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

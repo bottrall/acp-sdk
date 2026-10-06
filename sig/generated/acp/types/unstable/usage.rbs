@@ -1,0 +1,41 @@
+# Generated from lib/acp/types/unstable/usage.rb with RBS::Inline
+
+class ACP::Types::Unstable::Usage
+  # @dynamic total_tokens
+  attr_reader total_tokens: Integer
+
+  # @dynamic input_tokens
+  attr_reader input_tokens: Integer
+
+  # @dynamic output_tokens
+  attr_reader output_tokens: Integer
+
+  # @dynamic thought_tokens
+  attr_reader thought_tokens: Integer?
+
+  # @dynamic cached_read_tokens
+  attr_reader cached_read_tokens: Integer?
+
+  # @dynamic cached_write_tokens
+  attr_reader cached_write_tokens: Integer?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs total_tokens: Integer
+  # @rbs input_tokens: Integer
+  # @rbs output_tokens: Integer
+  # @rbs thought_tokens: Integer?
+  # @rbs cached_read_tokens: Integer?
+  # @rbs cached_write_tokens: Integer?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (total_tokens: Integer, input_tokens: Integer, output_tokens: Integer, ?thought_tokens: Integer?, ?cached_read_tokens: Integer?, ?cached_write_tokens: Integer?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::Usage
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::Usage
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

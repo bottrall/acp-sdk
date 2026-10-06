@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/unstable/message_mcp_response/result.rb with RBS::Inline
+
+class ACP::Types::Unstable::MessageMcpResponse::Result
+  # @dynamic result
+  attr_reader result: untyped
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs result: untyped
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (result: untyped, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::MessageMcpResponse::Result
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::MessageMcpResponse::Result
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

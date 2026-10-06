@@ -1,0 +1,41 @@
+# Generated from lib/acp/types/unstable/nes_context_capabilities.rb with RBS::Inline
+
+class ACP::Types::Unstable::NesContextCapabilities
+  # @dynamic recent_files
+  attr_reader recent_files: ACP::Types::Unstable::NesRecentFilesCapabilities?
+
+  # @dynamic related_snippets
+  attr_reader related_snippets: ACP::Types::Unstable::NesRelatedSnippetsCapabilities?
+
+  # @dynamic edit_history
+  attr_reader edit_history: ACP::Types::Unstable::NesEditHistoryCapabilities?
+
+  # @dynamic user_actions
+  attr_reader user_actions: ACP::Types::Unstable::NesUserActionsCapabilities?
+
+  # @dynamic open_files
+  attr_reader open_files: ACP::Types::Unstable::NesOpenFilesCapabilities?
+
+  # @dynamic diagnostics
+  attr_reader diagnostics: ACP::Types::Unstable::NesDiagnosticsCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs recent_files: ACP::Types::Unstable::NesRecentFilesCapabilities?
+  # @rbs related_snippets: ACP::Types::Unstable::NesRelatedSnippetsCapabilities?
+  # @rbs edit_history: ACP::Types::Unstable::NesEditHistoryCapabilities?
+  # @rbs user_actions: ACP::Types::Unstable::NesUserActionsCapabilities?
+  # @rbs open_files: ACP::Types::Unstable::NesOpenFilesCapabilities?
+  # @rbs diagnostics: ACP::Types::Unstable::NesDiagnosticsCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?recent_files: ACP::Types::Unstable::NesRecentFilesCapabilities?, ?related_snippets: ACP::Types::Unstable::NesRelatedSnippetsCapabilities?, ?edit_history: ACP::Types::Unstable::NesEditHistoryCapabilities?, ?user_actions: ACP::Types::Unstable::NesUserActionsCapabilities?, ?open_files: ACP::Types::Unstable::NesOpenFilesCapabilities?, ?diagnostics: ACP::Types::Unstable::NesDiagnosticsCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::NesContextCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::NesContextCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end
