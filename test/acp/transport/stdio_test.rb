@@ -163,6 +163,92 @@ describe ACP::Transport::Stdio do
     assert_equal expected, receive_message
   end
 
+  it 'answers a cancelled inbound request with the handler\'s -32800' do
+    handler = lambda do |_params|
+      Timeout.timeout(2) { sleep(0.001) until @transport.cancellation&.cancelled? }
+      ACP::RequestError.request_cancelled
+    end
+    start(requests: { 'echo' => handler })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 7, 'method' => 'echo' })
+    send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => 7 } })
+
+    assert_equal(
+      {
+        'jsonrpc' => '2.0',
+        'id' => 7,
+        'error' => { 'code' => -32_800, 'message' => 'Request cancelled' }
+      },
+      receive_message
+    )
+  end
+
+  it 'answers a request cancelled while its handler runs with the handler\'s result alone' do
+    release = Thread::Queue.new
+    start(requests: { 'echo' => ->(_) { release.pop.then { { 'echo' => 'done' } } } })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 7, 'method' => 'echo' })
+    send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => 7 } })
+    release << true
+
+    assert_equal({ 'jsonrpc' => '2.0', 'id' => 7, 'result' => { 'echo' => 'done' } }, receive_message)
+  end
+
+  it 'ignores a cancel for an unknown id and keeps serving' do
+    start(requests: { 'echo' => ->(params) { params } })
+    send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => 99 } })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
+
+    assert_equal({ 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'text' => 'hi' } }, receive_message)
+  end
+
+  it 'ignores a cancel for an already-answered id and keeps serving' do
+    start(requests: { 'echo' => ->(params) { params } })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
+    receive_message
+    send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => 1 } })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => { 'text' => 'again' } })
+
+    assert_equal({ 'jsonrpc' => '2.0', 'id' => 2, 'result' => { 'text' => 'again' } }, receive_message)
+  end
+
+  it 'drops a malformed $/cancel_request and keeps serving' do
+    start(requests: { 'echo' => ->(params) { params } })
+    send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request' })
+    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
+
+    assert_equal(
+      [
+        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'text' => 'hi' } },
+        [:warn, 'dropped malformed $/cancel_request: missing requestId']
+      ],
+      [receive_message, @logger.pop]
+    )
+  end
+
+  it 'cancels a pending outbound request and releases it with the peer\'s -32800' do
+    start
+    pending = Thread.new { @transport.request('session/request_permission') }
+    id = receive_message.fetch('id')
+    @transport.cancel(id)
+
+    assert_equal(
+      { 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => id } },
+      receive_message
+    )
+    send_message({ 'jsonrpc' => '2.0', 'id' => id, 'error' => { 'code' => -32_800, 'message' => 'Request cancelled' } })
+
+    assert_equal [:error, { 'code' => -32_800, 'message' => 'Request cancelled' }], outcome(pending)
+  end
+
+  it 'does not send a cancel notification for an unknown id' do
+    start
+    @transport.cancel(99)
+    pending = Thread.new { @transport.request('fs/read_text_file') }
+    id = receive_message.fetch('id')
+    send_message({ 'jsonrpc' => '2.0', 'id' => id, 'result' => { 'content' => 'A' } })
+
+    assert_equal [:ok, { 'content' => 'A' }], outcome(pending)
+  end
+
   it 'dispatches inbound messages while a handler waits on its own outbound request' do
     session = { 'sessionId' => 'sess_1' }
     cancels = Thread::Queue.new

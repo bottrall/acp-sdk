@@ -12,6 +12,8 @@ class ACP::Transport::Stdio
 
   @next_id: Integer
 
+  @serving: Hash[untyped, ACP::Transport::Cancellation]
+
   @pending: Hash[untyped, Thread::Queue]
 
   @lock: Thread::Mutex
@@ -23,6 +25,8 @@ class ACP::Transport::Stdio
   @input: _Reader
 
   CONNECTION_CLOSED: ACP::RequestError
+
+  SERVING_CANCEL: Symbol
 
   # @rbs input: _Reader
   # @rbs output: _Writer
@@ -47,6 +51,23 @@ class ACP::Transport::Stdio
   # @rbs params: untyped
   # @rbs return: void
   def notify: (String method, ?untyped params) -> void
+
+  # Cancels a pending outbound request: the peer is told $/cancel_request for
+  # the request's id, and the waiting caller is released with -32800 only if
+  # the peer answers that way, as the spec requires it to answer either way.
+  # A cancel for an unknown or already-answered id is not sent.
+  #
+  # @rbs id: untyped
+  # @rbs return: void
+  def cancel: (untyped id) -> void
+
+  # The cancellation of the request the calling thread is serving, or nil off
+  # a serve thread. A handler observes the peer's $/cancel_request through it
+  # and can end early with ACP::RequestError.request_cancelled; whatever it
+  # returns, the transport sends exactly one response.
+  #
+  # @rbs return: ACP::Transport::Cancellation?
+  def cancellation: () -> ACP::Transport::Cancellation?
 
   private
 
@@ -80,6 +101,26 @@ class ACP::Transport::Stdio
   # @rbs method: String
   # @rbs return: void
   def serve: (_Handler? handler, untyped id, untyped params, String method) -> void
+
+  # Registered before the serve thread starts so a cancel racing the request
+  # cannot be missed, and dropped once the response is on the wire so later
+  # cancels for the id are ignored.
+  #
+  # @rbs id: untyped
+  # @rbs return: ACP::Transport::Cancellation
+  def register_serving: (untyped id) -> ACP::Transport::Cancellation
+
+  # @rbs id: untyped
+  # @rbs return: void
+  def unregister_serving: (untyped id) -> void
+
+  # Marks the served request the notification targets, or ignores it when the
+  # id is unknown or already answered. A notification has no reply to carry a
+  # malformed params failure.
+  #
+  # @rbs params: untyped
+  # @rbs return: void
+  def cancel_request: (untyped params) -> void
 
   # For code with no reply to carry an error: a notification handler, or a
   # Reply's after once the reply is on the wire. An exception must not kill
