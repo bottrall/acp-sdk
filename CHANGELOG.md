@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.0](https://github.com/bottrall/acp-sdk/compare/v0.7.0...v0.8.0) (2026-10-06)
+
+
+### Features
+
+* elicitation handlers on ACP::ClientConnection ([#78](https://github.com/bottrall/acp-sdk/issues/78)) ([94ee653](https://github.com/bottrall/acp-sdk/commit/94ee65374a0b463ccbd7ed57e05fe1ad76b08a62))
+
+
+### Bug Fixes
+
+* validate primitive and enum types when parsing params ([#79](https://github.com/bottrall/acp-sdk/issues/79)) ([624be63](https://github.com/bottrall/acp-sdk/commit/624be63f667468fba7c1a61064b84f43c226b060))
+
 ## [0.7.0](https://github.com/bottrall/acp-sdk/compare/v0.6.0...v0.7.0) (2026-10-05)
 
 
