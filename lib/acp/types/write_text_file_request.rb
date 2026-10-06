@@ -32,9 +32,9 @@ class ACP::Types::WriteTextFileRequest
   # @rbs return: ACP::Types::WriteTextFileRequest
   def self.from_h(hash)
     new(
-      session_id: hash.fetch('sessionId'),
-      path: hash.fetch('path'),
-      content: hash.fetch('content'),
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      path: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'path'), 'path'),
+      content: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'content'), 'content'),
       meta: hash['_meta']
     )
   end

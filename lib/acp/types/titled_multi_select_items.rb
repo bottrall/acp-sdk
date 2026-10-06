@@ -21,7 +21,10 @@ class ACP::Types::TitledMultiSelectItems
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::TitledMultiSelectItems
   def self.from_h(hash)
-    new(any_of: hash.fetch('anyOf').map { |item| ACP::Types::EnumOption.from_h(item) }, meta: hash['_meta'])
+    any_of = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'anyOf'), 'anyOf') do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::EnumOption)
+    end
+    new(any_of:, meta: hash['_meta'])
   end
 
   # @rbs return: Hash[String, untyped]

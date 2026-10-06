@@ -32,9 +32,9 @@ class ACP::Types::AvailableCommand
   # @rbs return: ACP::Types::AvailableCommand
   def self.from_h(hash)
     new(
-      name: hash.fetch('name'),
-      description: hash.fetch('description'),
-      input: hash['input']&.then { |value| ACP::Types::AvailableCommandInput.from_h(value) },
+      name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
+      description: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'description'), 'description'),
+      input: ACP::Types::Check.object(hash['input'], 'input', ACP::Types::AvailableCommandInput, allow_nil: true),
       meta: hash['_meta']
     )
   end

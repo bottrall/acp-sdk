@@ -360,7 +360,8 @@ describe ACP::AgentConnection do
     send_message({ 'jsonrpc' => '2.0', 'method' => 'session/cancel', 'params' => {} })
     call('initialize', { 'protocolVersion' => 1, 'clientCapabilities' => {} })
 
-    assert_equal [:warn, 'dropped malformed session/cancel: KeyError: key not found: "sessionId"'], @logger.pop
+    assert_equal [:warn, 'dropped malformed session/cancel: ACP::Types::ParseError: sessionId: is required'],
+                 @logger.pop
   end
 
   it 'lists sessions, filtered by cwd when given' do
@@ -497,11 +498,29 @@ describe ACP::AgentConnection do
     assert_equal([-32_601, -32_601], replies.map { |reply| reply.dig('error', 'code') })
   end
 
+  it 'names the failing param path in the invalid params data' do
+    start
+    reply = call('session/prompt', { 'sessionId' => 42, 'prompt' => [text('hello')] })
+
+    assert_equal(
+      { 'code' => -32_602, 'message' => 'Invalid params',
+        'data' => { 'errors' => ['sessionId: expected String, got Integer'] } },
+      reply['error']
+    )
+  end
+
   it 'answers malformed params with invalid params' do
     start
     replies = [call('session/new', { 'mcpServers' => [] }), call('session/prompt'), call('initialize', [1])]
 
-    assert_equal([{ 'code' => -32_602, 'message' => 'Invalid params' }] * 3, replies.map { |reply| reply['error'] })
+    assert_equal(
+      [
+        { 'code' => -32_602, 'message' => 'Invalid params', 'data' => { 'errors' => ['cwd: is required'] } },
+        { 'code' => -32_602, 'message' => 'Invalid params' },
+        { 'code' => -32_602, 'message' => 'Invalid params' }
+      ],
+      replies.map { |reply| reply['error'] }
+    )
   end
 
   it 'refuses to start when a capability is advertised without its method' do

@@ -27,8 +27,8 @@ class ACP::Types::ContentChunk
   # @rbs return: ACP::Types::ContentChunk
   def self.from_h(hash)
     new(
-      content: ACP::Types::ContentBlock.from_h(hash.fetch('content')),
-      message_id: hash['messageId'],
+      content: ACP::Types::Check.object(ACP::Types::Check.key(hash, 'content'), 'content', ACP::Types::ContentBlock),
+      message_id: ACP::Types::Check.string(hash['messageId'], 'messageId', allow_nil: true),
       meta: hash['_meta']
     )
   end

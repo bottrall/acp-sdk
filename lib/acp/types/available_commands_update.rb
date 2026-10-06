@@ -21,10 +21,13 @@ class ACP::Types::AvailableCommandsUpdate
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::AvailableCommandsUpdate
   def self.from_h(hash)
-    new(
-      available_commands: hash.fetch('availableCommands').map { |item| ACP::Types::AvailableCommand.from_h(item) },
-      meta: hash['_meta']
-    )
+    available_commands = ACP::Types::Check.array(
+      ACP::Types::Check.key(hash, 'availableCommands'),
+      'availableCommands'
+    ) do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::AvailableCommand)
+    end
+    new(available_commands:, meta: hash['_meta'])
   end
 
   # @rbs return: Hash[String, untyped]

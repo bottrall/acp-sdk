@@ -31,10 +31,13 @@ class ACP::Types::SessionConfigSelectGroup
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SessionConfigSelectGroup
   def self.from_h(hash)
+    options = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'options'), 'options') do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::SessionConfigSelectOption)
+    end
     new(
-      group: hash.fetch('group'),
-      name: hash.fetch('name'),
-      options: hash.fetch('options').map { |item| ACP::Types::SessionConfigSelectOption.from_h(item) },
+      group: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'group'), 'group'),
+      name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
+      options:,
       meta: hash['_meta']
     )
   end

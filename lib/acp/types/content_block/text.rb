@@ -27,8 +27,13 @@ class ACP::Types::ContentBlock::Text
   # @rbs return: ACP::Types::ContentBlock::Text
   def self.from_h(hash)
     new(
-      annotations: hash['annotations']&.then { |value| ACP::Types::Annotations.from_h(value) },
-      text: hash.fetch('text'),
+      annotations: ACP::Types::Check.object(
+        hash['annotations'],
+        'annotations',
+        ACP::Types::Annotations,
+        allow_nil: true
+      ),
+      text: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'text'), 'text'),
       meta: hash['_meta']
     )
   end

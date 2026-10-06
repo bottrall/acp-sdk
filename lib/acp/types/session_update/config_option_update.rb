@@ -21,10 +21,13 @@ class ACP::Types::SessionUpdate::ConfigOptionUpdate
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SessionUpdate::ConfigOptionUpdate
   def self.from_h(hash)
-    new(
-      config_options: hash.fetch('configOptions').map { |item| ACP::Types::SessionConfigOption.from_h(item) },
-      meta: hash['_meta']
-    )
+    config_options = ACP::Types::Check.array(
+      ACP::Types::Check.key(hash, 'configOptions'),
+      'configOptions'
+    ) do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::SessionConfigOption)
+    end
+    new(config_options:, meta: hash['_meta'])
   end
 
   # @rbs return: Hash[String, untyped]

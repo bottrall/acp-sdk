@@ -27,8 +27,8 @@ class ACP::Types::ElicitationCapabilities
   # @rbs return: ACP::Types::ElicitationCapabilities
   def self.from_h(hash)
     new(
-      form: hash['form']&.then { |value| ACP::Types::ElicitationFormCapabilities.from_h(value) },
-      url: hash['url']&.then { |value| ACP::Types::ElicitationUrlCapabilities.from_h(value) },
+      form: ACP::Types::Check.object(hash['form'], 'form', ACP::Types::ElicitationFormCapabilities, allow_nil: true),
+      url: ACP::Types::Check.object(hash['url'], 'url', ACP::Types::ElicitationUrlCapabilities, allow_nil: true),
       meta: hash['_meta']
     )
   end

@@ -32,8 +32,8 @@ class ACP::Types::SetSessionConfigOptionRequest
   # @rbs return: ACP::Types::SetSessionConfigOptionRequest
   def self.from_h(hash)
     new(
-      session_id: hash.fetch('sessionId'),
-      config_id: hash.fetch('configId'),
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      config_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'configId'), 'configId'),
       meta: hash['_meta'],
       value: ACP::Types::SetSessionConfigOptionRequest::Value.from_h(hash)
     )

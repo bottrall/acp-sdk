@@ -41,12 +41,19 @@ class ACP::Types::SessionInfo
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SessionInfo
   def self.from_h(hash)
+    additional_directories = ACP::Types::Check.array(
+      hash['additionalDirectories'],
+      'additionalDirectories',
+      allow_nil: true
+    ) do |item, path|
+      ACP::Types::Check.string(item, path)
+    end
     new(
-      session_id: hash.fetch('sessionId'),
-      cwd: hash.fetch('cwd'),
-      additional_directories: hash['additionalDirectories'],
-      title: hash['title'],
-      updated_at: hash['updatedAt'],
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      cwd: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'cwd'), 'cwd'),
+      additional_directories:,
+      title: ACP::Types::Check.string(hash['title'], 'title', allow_nil: true),
+      updated_at: ACP::Types::Check.string(hash['updatedAt'], 'updatedAt', allow_nil: true),
       meta: hash['_meta']
     )
   end

@@ -31,7 +31,12 @@ class ACP::Types::PromptCapabilities
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::PromptCapabilities
   def self.from_h(hash)
-    new(image: hash['image'], audio: hash['audio'], embedded_context: hash['embeddedContext'], meta: hash['_meta'])
+    new(
+      image: ACP::Types::Check.boolean(hash['image'], 'image', allow_nil: true),
+      audio: ACP::Types::Check.boolean(hash['audio'], 'audio', allow_nil: true),
+      embedded_context: ACP::Types::Check.boolean(hash['embeddedContext'], 'embeddedContext', allow_nil: true),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

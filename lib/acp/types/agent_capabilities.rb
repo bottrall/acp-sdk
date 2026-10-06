@@ -49,11 +49,26 @@ class ACP::Types::AgentCapabilities
   # @rbs return: ACP::Types::AgentCapabilities
   def self.from_h(hash)
     new(
-      load_session: hash['loadSession'],
-      prompt_capabilities: hash['promptCapabilities']&.then { |value| ACP::Types::PromptCapabilities.from_h(value) },
-      mcp_capabilities: hash['mcpCapabilities']&.then { |value| ACP::Types::McpCapabilities.from_h(value) },
-      session_capabilities: hash['sessionCapabilities']&.then { |value| ACP::Types::SessionCapabilities.from_h(value) },
-      auth: hash['auth']&.then { |value| ACP::Types::AgentAuthCapabilities.from_h(value) },
+      load_session: ACP::Types::Check.boolean(hash['loadSession'], 'loadSession', allow_nil: true),
+      prompt_capabilities: ACP::Types::Check.object(
+        hash['promptCapabilities'],
+        'promptCapabilities',
+        ACP::Types::PromptCapabilities,
+        allow_nil: true
+      ),
+      mcp_capabilities: ACP::Types::Check.object(
+        hash['mcpCapabilities'],
+        'mcpCapabilities',
+        ACP::Types::McpCapabilities,
+        allow_nil: true
+      ),
+      session_capabilities: ACP::Types::Check.object(
+        hash['sessionCapabilities'],
+        'sessionCapabilities',
+        ACP::Types::SessionCapabilities,
+        allow_nil: true
+      ),
+      auth: ACP::Types::Check.object(hash['auth'], 'auth', ACP::Types::AgentAuthCapabilities, allow_nil: true),
       meta: hash['_meta']
     )
   end

@@ -31,7 +31,12 @@ class ACP::Types::Implementation
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Implementation
   def self.from_h(hash)
-    new(name: hash.fetch('name'), title: hash['title'], version: hash.fetch('version'), meta: hash['_meta'])
+    new(
+      name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
+      title: ACP::Types::Check.string(hash['title'], 'title', allow_nil: true),
+      version: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'version'), 'version'),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

@@ -21,7 +21,10 @@ class ACP::Types::ToolCallContent::Terminal
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ToolCallContent::Terminal
   def self.from_h(hash)
-    new(terminal_id: hash.fetch('terminalId'), meta: hash['_meta'])
+    new(
+      terminal_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'terminalId'), 'terminalId'),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

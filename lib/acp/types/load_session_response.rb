@@ -26,9 +26,12 @@ class ACP::Types::LoadSessionResponse
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::LoadSessionResponse
   def self.from_h(hash)
+    config_options = ACP::Types::Check.array(hash['configOptions'], 'configOptions', allow_nil: true) do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::SessionConfigOption)
+    end
     new(
-      modes: hash['modes']&.then { |value| ACP::Types::SessionModeState.from_h(value) },
-      config_options: hash['configOptions']&.map { |item| ACP::Types::SessionConfigOption.from_h(item) },
+      modes: ACP::Types::Check.object(hash['modes'], 'modes', ACP::Types::SessionModeState, allow_nil: true),
+      config_options:,
       meta: hash['_meta']
     )
   end

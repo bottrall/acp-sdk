@@ -21,7 +21,7 @@ class ACP::Types::ReadTextFileResponse
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ReadTextFileResponse
   def self.from_h(hash)
-    new(content: hash.fetch('content'), meta: hash['_meta'])
+    new(content: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'content'), 'content'), meta: hash['_meta'])
   end
 
   # @rbs return: Hash[String, untyped]

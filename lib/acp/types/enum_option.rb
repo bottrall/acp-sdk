@@ -31,7 +31,12 @@ class ACP::Types::EnumOption
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::EnumOption
   def self.from_h(hash)
-    new(const: hash.fetch('const'), title: hash.fetch('title'), description: hash['description'], meta: hash['_meta'])
+    new(
+      const: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'const'), 'const'),
+      title: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'title'), 'title'),
+      description: ACP::Types::Check.string(hash['description'], 'description', allow_nil: true),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

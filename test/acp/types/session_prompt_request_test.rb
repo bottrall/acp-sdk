@@ -50,4 +50,24 @@ describe ACP::Types::SessionPromptRequest do
 
     assert_equal expected, blocks
   end
+
+  it 'rejects a sessionId that is not a string and names the path' do
+    error = assert_raises(ACP::Types::ParseError) { ACP::Types::SessionPromptRequest.from_h(payload.merge('sessionId' => 42)) }
+
+    assert_equal 'sessionId: expected String, got Integer', error.message
+  end
+
+  it 'rejects a text block whose text is not a string and names the nested path' do
+    invalid = payload.merge('prompt' => [{ 'type' => 'text', 'text' => 5 }])
+
+    error = assert_raises(ACP::Types::ParseError) { ACP::Types::SessionPromptRequest.from_h(invalid) }
+
+    assert_equal 'prompt[0].text: expected String, got Integer', error.message
+  end
+
+  it 'passes an unknown content block variant through' do
+    unknown = payload.merge('prompt' => [{ 'type' => 'myapp/quote', 'text' => 'hello' }])
+
+    assert_equal [unknown.dig('prompt', 0)], ACP::Types::SessionPromptRequest.from_h(unknown).prompt
+  end
 end

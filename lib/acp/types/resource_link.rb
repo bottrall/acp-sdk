@@ -52,13 +52,18 @@ class ACP::Types::ResourceLink
   # @rbs return: ACP::Types::ResourceLink
   def self.from_h(hash)
     new(
-      annotations: hash['annotations']&.then { |value| ACP::Types::Annotations.from_h(value) },
-      description: hash['description'],
-      mime_type: hash['mimeType'],
-      name: hash.fetch('name'),
-      size: hash['size'],
-      title: hash['title'],
-      uri: hash.fetch('uri'),
+      annotations: ACP::Types::Check.object(
+        hash['annotations'],
+        'annotations',
+        ACP::Types::Annotations,
+        allow_nil: true
+      ),
+      description: ACP::Types::Check.string(hash['description'], 'description', allow_nil: true),
+      mime_type: ACP::Types::Check.string(hash['mimeType'], 'mimeType', allow_nil: true),
+      name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
+      size: ACP::Types::Check.integer(hash['size'], 'size', allow_nil: true),
+      title: ACP::Types::Check.string(hash['title'], 'title', allow_nil: true),
+      uri: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'uri'), 'uri'),
       meta: hash['_meta']
     )
   end

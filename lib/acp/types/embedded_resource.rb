@@ -27,8 +27,17 @@ class ACP::Types::EmbeddedResource
   # @rbs return: ACP::Types::EmbeddedResource
   def self.from_h(hash)
     new(
-      annotations: hash['annotations']&.then { |value| ACP::Types::Annotations.from_h(value) },
-      resource: ACP::Types::EmbeddedResourceResource.from_h(hash.fetch('resource')),
+      annotations: ACP::Types::Check.object(
+        hash['annotations'],
+        'annotations',
+        ACP::Types::Annotations,
+        allow_nil: true
+      ),
+      resource: ACP::Types::Check.object(
+        ACP::Types::Check.key(hash, 'resource'),
+        'resource',
+        ACP::Types::EmbeddedResourceResource
+      ),
       meta: hash['_meta']
     )
   end

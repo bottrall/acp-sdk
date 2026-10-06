@@ -31,10 +31,13 @@ class ACP::Types::Annotations
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Annotations
   def self.from_h(hash)
+    audience = ACP::Types::Check.array(hash['audience'], 'audience', allow_nil: true) do |item, path|
+      ACP::Types::Check.enum(item, path, %w[assistant user])
+    end
     new(
-      audience: hash['audience'],
-      last_modified: hash['lastModified'],
-      priority: hash['priority'],
+      audience:,
+      last_modified: ACP::Types::Check.string(hash['lastModified'], 'lastModified', allow_nil: true),
+      priority: ACP::Types::Check.number(hash['priority'], 'priority', allow_nil: true),
       meta: hash['_meta']
     )
   end

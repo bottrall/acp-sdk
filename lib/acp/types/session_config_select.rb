@@ -22,8 +22,12 @@ class ACP::Types::SessionConfigSelect
   # @rbs return: ACP::Types::SessionConfigSelect
   def self.from_h(hash)
     new(
-      current_value: hash.fetch('currentValue'),
-      options: ACP::Types::SessionConfigSelectOptions.from_a(hash.fetch('options'))
+      current_value: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'currentValue'), 'currentValue'),
+      options: ACP::Types::Check.objects(
+        ACP::Types::Check.key(hash, 'options'),
+        'options',
+        ACP::Types::SessionConfigSelectOptions
+      )
     )
   end
 

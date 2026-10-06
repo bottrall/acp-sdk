@@ -21,7 +21,10 @@ class ACP::Types::SessionUpdate::CurrentModeUpdate
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SessionUpdate::CurrentModeUpdate
   def self.from_h(hash)
-    new(current_mode_id: hash.fetch('currentModeId'), meta: hash['_meta'])
+    new(
+      current_mode_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'currentModeId'), 'currentModeId'),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

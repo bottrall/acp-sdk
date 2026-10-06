@@ -31,7 +31,12 @@ class ACP::Types::ElicitationPropertySchema::BooleanPropertySchema
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ElicitationPropertySchema::BooleanPropertySchema
   def self.from_h(hash)
-    new(title: hash['title'], description: hash['description'], default: hash['default'], meta: hash['_meta'])
+    new(
+      title: ACP::Types::Check.string(hash['title'], 'title', allow_nil: true),
+      description: ACP::Types::Check.string(hash['description'], 'description', allow_nil: true),
+      default: ACP::Types::Check.boolean(hash['default'], 'default', allow_nil: true),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

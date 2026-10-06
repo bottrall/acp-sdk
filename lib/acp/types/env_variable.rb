@@ -26,7 +26,11 @@ class ACP::Types::EnvVariable
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::EnvVariable
   def self.from_h(hash)
-    new(name: hash.fetch('name'), value: hash.fetch('value'), meta: hash['_meta'])
+    new(
+      name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
+      value: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'value'), 'value'),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

@@ -22,9 +22,12 @@ class ACP::Types::ClientSessionCapabilities
   # @rbs return: ACP::Types::ClientSessionCapabilities
   def self.from_h(hash)
     new(
-      config_options: hash['configOptions']&.then do |value|
-        ACP::Types::SessionConfigOptionsCapabilities.from_h(value)
-      end,
+      config_options: ACP::Types::Check.object(
+        hash['configOptions'],
+        'configOptions',
+        ACP::Types::SessionConfigOptionsCapabilities,
+        allow_nil: true
+      ),
       meta: hash['_meta']
     )
   end

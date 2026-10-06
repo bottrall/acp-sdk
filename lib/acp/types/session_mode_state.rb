@@ -26,9 +26,15 @@ class ACP::Types::SessionModeState
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SessionModeState
   def self.from_h(hash)
+    available_modes = ACP::Types::Check.array(
+      ACP::Types::Check.key(hash, 'availableModes'),
+      'availableModes'
+    ) do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::SessionMode)
+    end
     new(
-      current_mode_id: hash.fetch('currentModeId'),
-      available_modes: hash.fetch('availableModes').map { |item| ACP::Types::SessionMode.from_h(item) },
+      current_mode_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'currentModeId'), 'currentModeId'),
+      available_modes:,
       meta: hash['_meta']
     )
   end

@@ -36,11 +36,24 @@ class ACP::Types::InitializeResponse
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::InitializeResponse
   def self.from_h(hash)
+    auth_methods = ACP::Types::Check.array(hash['authMethods'], 'authMethods', allow_nil: true) do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::AuthMethod)
+    end
     new(
-      protocol_version: hash.fetch('protocolVersion'),
-      agent_capabilities: hash['agentCapabilities']&.then { |value| ACP::Types::AgentCapabilities.from_h(value) },
-      auth_methods: hash['authMethods']&.map { |item| ACP::Types::AuthMethod.from_h(item) },
-      agent_info: hash['agentInfo']&.then { |value| ACP::Types::Implementation.from_h(value) },
+      protocol_version: ACP::Types::Check.integer(
+        ACP::Types::Check.key(hash, 'protocolVersion'),
+        'protocolVersion',
+        min: 0,
+        max: 65_535
+      ),
+      agent_capabilities: ACP::Types::Check.object(
+        hash['agentCapabilities'],
+        'agentCapabilities',
+        ACP::Types::AgentCapabilities,
+        allow_nil: true
+      ),
+      auth_methods:,
+      agent_info: ACP::Types::Check.object(hash['agentInfo'], 'agentInfo', ACP::Types::Implementation, allow_nil: true),
       meta: hash['_meta']
     )
   end

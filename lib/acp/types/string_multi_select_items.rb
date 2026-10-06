@@ -21,7 +21,10 @@ class ACP::Types::StringMultiSelectItems
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::StringMultiSelectItems
   def self.from_h(hash)
-    new(enum: hash.fetch('enum'), meta: hash['_meta'])
+    enum = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'enum'), 'enum') do |item, path|
+      ACP::Types::Check.string(item, path)
+    end
+    new(enum:, meta: hash['_meta'])
   end
 
   # @rbs return: Hash[String, untyped]

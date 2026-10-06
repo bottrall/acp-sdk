@@ -46,13 +46,16 @@ class ACP::Types::ElicitationPropertySchema::MultiSelectPropertySchema
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ElicitationPropertySchema::MultiSelectPropertySchema
   def self.from_h(hash)
+    default = ACP::Types::Check.array(hash['default'], 'default', allow_nil: true) do |item, path|
+      ACP::Types::Check.string(item, path)
+    end
     new(
-      title: hash['title'],
-      description: hash['description'],
-      min_items: hash['minItems'],
-      max_items: hash['maxItems'],
-      items: ACP::Types::MultiSelectItems.from_h(hash.fetch('items')),
-      default: hash['default'],
+      title: ACP::Types::Check.string(hash['title'], 'title', allow_nil: true),
+      description: ACP::Types::Check.string(hash['description'], 'description', allow_nil: true),
+      min_items: ACP::Types::Check.integer(hash['minItems'], 'minItems', min: 0, allow_nil: true),
+      max_items: ACP::Types::Check.integer(hash['maxItems'], 'maxItems', min: 0, allow_nil: true),
+      items: ACP::Types::Check.object(ACP::Types::Check.key(hash, 'items'), 'items', ACP::Types::MultiSelectItems),
+      default:,
       meta: hash['_meta']
     )
   end

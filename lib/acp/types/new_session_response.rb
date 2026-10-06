@@ -31,10 +31,13 @@ class ACP::Types::NewSessionResponse
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::NewSessionResponse
   def self.from_h(hash)
+    config_options = ACP::Types::Check.array(hash['configOptions'], 'configOptions', allow_nil: true) do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::SessionConfigOption)
+    end
     new(
-      session_id: hash.fetch('sessionId'),
-      modes: hash['modes']&.then { |value| ACP::Types::SessionModeState.from_h(value) },
-      config_options: hash['configOptions']&.map { |item| ACP::Types::SessionConfigOption.from_h(item) },
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      modes: ACP::Types::Check.object(hash['modes'], 'modes', ACP::Types::SessionModeState, allow_nil: true),
+      config_options:,
       meta: hash['_meta']
     )
   end

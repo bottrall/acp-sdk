@@ -37,10 +37,10 @@ class ACP::Types::ReadTextFileRequest
   # @rbs return: ACP::Types::ReadTextFileRequest
   def self.from_h(hash)
     new(
-      session_id: hash.fetch('sessionId'),
-      path: hash.fetch('path'),
-      line: hash['line'],
-      limit: hash['limit'],
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      path: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'path'), 'path'),
+      line: ACP::Types::Check.integer(hash['line'], 'line', min: 0, allow_nil: true),
+      limit: ACP::Types::Check.integer(hash['limit'], 'limit', min: 0, allow_nil: true),
       meta: hash['_meta']
     )
   end

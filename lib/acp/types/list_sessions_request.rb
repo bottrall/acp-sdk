@@ -26,7 +26,11 @@ class ACP::Types::ListSessionsRequest
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ListSessionsRequest
   def self.from_h(hash)
-    new(cwd: hash['cwd'], cursor: hash['cursor'], meta: hash['_meta'])
+    new(
+      cwd: ACP::Types::Check.string(hash['cwd'], 'cwd', allow_nil: true),
+      cursor: ACP::Types::Check.string(hash['cursor'], 'cursor', allow_nil: true),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

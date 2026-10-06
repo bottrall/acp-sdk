@@ -16,7 +16,12 @@ class ACP::Types::ElicitationAcceptAction
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ElicitationAcceptAction
   def self.from_h(hash)
-    new(content: hash['content'])
+    content = ACP::Types::Check.hash(hash['content'], 'content', allow_nil: true) do |value, path|
+      ACP::Types::Check.one_of(value, path, [String, Integer, Numeric, TrueClass, FalseClass, Array]) do |item, path|
+        ACP::Types::Check.string(item, path)
+      end
+    end
+    new(content:)
   end
 
   # @rbs return: Hash[String, untyped]

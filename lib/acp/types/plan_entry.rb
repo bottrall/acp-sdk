@@ -32,9 +32,13 @@ class ACP::Types::PlanEntry
   # @rbs return: ACP::Types::PlanEntry
   def self.from_h(hash)
     new(
-      content: hash.fetch('content'),
-      priority: hash.fetch('priority'),
-      status: hash.fetch('status'),
+      content: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'content'), 'content'),
+      priority: ACP::Types::Check.enum(ACP::Types::Check.key(hash, 'priority'), 'priority', %w[high medium low]),
+      status: ACP::Types::Check.enum(
+        ACP::Types::Check.key(hash, 'status'),
+        'status',
+        %w[pending in_progress completed]
+      ),
       meta: hash['_meta']
     )
   end

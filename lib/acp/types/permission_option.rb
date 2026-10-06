@@ -31,7 +31,16 @@ class ACP::Types::PermissionOption
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::PermissionOption
   def self.from_h(hash)
-    new(option_id: hash.fetch('optionId'), name: hash.fetch('name'), kind: hash.fetch('kind'), meta: hash['_meta'])
+    new(
+      option_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'optionId'), 'optionId'),
+      name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
+      kind: ACP::Types::Check.enum(
+        ACP::Types::Check.key(hash, 'kind'),
+        'kind',
+        %w[allow_once allow_always reject_once reject_always]
+      ),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

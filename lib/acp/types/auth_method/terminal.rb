@@ -41,12 +41,18 @@ class ACP::Types::AuthMethod::Terminal
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::AuthMethod::Terminal
   def self.from_h(hash)
+    args = ACP::Types::Check.array(hash['args'], 'args', allow_nil: true) do |item, path|
+      ACP::Types::Check.string(item, path)
+    end
+    env = ACP::Types::Check.hash(hash['env'], 'env', allow_nil: true) do |value, path|
+      ACP::Types::Check.string(value, path)
+    end
     new(
-      id: hash.fetch('id'),
-      name: hash.fetch('name'),
-      description: hash['description'],
-      args: hash['args'],
-      env: hash['env'],
+      id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'id'), 'id'),
+      name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
+      description: ACP::Types::Check.string(hash['description'], 'description', allow_nil: true),
+      args:,
+      env:,
       meta: hash['_meta']
     )
   end

@@ -42,13 +42,26 @@ class ACP::Types::SessionCapabilities
   # @rbs return: ACP::Types::SessionCapabilities
   def self.from_h(hash)
     new(
-      list: hash['list']&.then { |value| ACP::Types::SessionListCapabilities.from_h(value) },
-      delete: hash['delete']&.then { |value| ACP::Types::SessionDeleteCapabilities.from_h(value) },
-      additional_directories: hash['additionalDirectories']&.then do |value|
-        ACP::Types::SessionAdditionalDirectoriesCapabilities.from_h(value)
-      end,
-      resume: hash['resume']&.then { |value| ACP::Types::SessionResumeCapabilities.from_h(value) },
-      close: hash['close']&.then { |value| ACP::Types::SessionCloseCapabilities.from_h(value) },
+      list: ACP::Types::Check.object(hash['list'], 'list', ACP::Types::SessionListCapabilities, allow_nil: true),
+      delete: ACP::Types::Check.object(
+        hash['delete'],
+        'delete',
+        ACP::Types::SessionDeleteCapabilities,
+        allow_nil: true
+      ),
+      additional_directories: ACP::Types::Check.object(
+        hash['additionalDirectories'],
+        'additionalDirectories',
+        ACP::Types::SessionAdditionalDirectoriesCapabilities,
+        allow_nil: true
+      ),
+      resume: ACP::Types::Check.object(
+        hash['resume'],
+        'resume',
+        ACP::Types::SessionResumeCapabilities,
+        allow_nil: true
+      ),
+      close: ACP::Types::Check.object(hash['close'], 'close', ACP::Types::SessionCloseCapabilities, allow_nil: true),
       meta: hash['_meta']
     )
   end

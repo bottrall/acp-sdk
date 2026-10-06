@@ -31,10 +31,13 @@ class ACP::Types::McpServer::Http
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::McpServer::Http
   def self.from_h(hash)
+    headers = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'headers'), 'headers') do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::HttpHeader)
+    end
     new(
-      name: hash.fetch('name'),
-      url: hash.fetch('url'),
-      headers: hash.fetch('headers').map { |item| ACP::Types::HttpHeader.from_h(item) },
+      name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
+      url: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'url'), 'url'),
+      headers:,
       meta: hash['_meta']
     )
   end

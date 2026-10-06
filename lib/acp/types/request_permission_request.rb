@@ -31,10 +31,17 @@ class ACP::Types::RequestPermissionRequest
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::RequestPermissionRequest
   def self.from_h(hash)
+    options = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'options'), 'options') do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::PermissionOption)
+    end
     new(
-      session_id: hash.fetch('sessionId'),
-      tool_call: ACP::Types::ToolCallUpdate.from_h(hash.fetch('toolCall')),
-      options: hash.fetch('options').map { |item| ACP::Types::PermissionOption.from_h(item) },
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      tool_call: ACP::Types::Check.object(
+        ACP::Types::Check.key(hash, 'toolCall'),
+        'toolCall',
+        ACP::Types::ToolCallUpdate
+      ),
+      options:,
       meta: hash['_meta']
     )
   end

@@ -26,7 +26,11 @@ class ACP::Types::KillTerminalRequest
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::KillTerminalRequest
   def self.from_h(hash)
-    new(session_id: hash.fetch('sessionId'), terminal_id: hash.fetch('terminalId'), meta: hash['_meta'])
+    new(
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      terminal_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'terminalId'), 'terminalId'),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

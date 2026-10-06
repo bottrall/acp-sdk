@@ -54,9 +54,10 @@ class ACP::RequestError
     new(code: METHOD_NOT_FOUND, message: 'Method not found', data: method && { method: method })
   end
 
+  # @rbs errors: Array[String]?
   # @rbs return: ACP::RequestError
-  def self.invalid_params
-    new(code: INVALID_PARAMS, message: 'Invalid params')
+  def self.invalid_params(errors = nil)
+    new(code: INVALID_PARAMS, message: 'Invalid params', data: errors && { errors: errors })
   end
 
   # The method-not-found code for a method the client's capabilities do not

@@ -42,11 +42,21 @@ class ACP::Types::ClientCapabilities
   # @rbs return: ACP::Types::ClientCapabilities
   def self.from_h(hash)
     new(
-      fs: hash['fs']&.then { |value| ACP::Types::FileSystemCapabilities.from_h(value) },
-      terminal: hash['terminal'],
-      session: hash['session']&.then { |value| ACP::Types::ClientSessionCapabilities.from_h(value) },
-      auth: hash['auth']&.then { |value| ACP::Types::AuthCapabilities.from_h(value) },
-      elicitation: hash['elicitation']&.then { |value| ACP::Types::ElicitationCapabilities.from_h(value) },
+      fs: ACP::Types::Check.object(hash['fs'], 'fs', ACP::Types::FileSystemCapabilities, allow_nil: true),
+      terminal: ACP::Types::Check.boolean(hash['terminal'], 'terminal', allow_nil: true),
+      session: ACP::Types::Check.object(
+        hash['session'],
+        'session',
+        ACP::Types::ClientSessionCapabilities,
+        allow_nil: true
+      ),
+      auth: ACP::Types::Check.object(hash['auth'], 'auth', ACP::Types::AuthCapabilities, allow_nil: true),
+      elicitation: ACP::Types::Check.object(
+        hash['elicitation'],
+        'elicitation',
+        ACP::Types::ElicitationCapabilities,
+        allow_nil: true
+      ),
       meta: hash['_meta']
     )
   end

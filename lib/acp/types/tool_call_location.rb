@@ -26,7 +26,11 @@ class ACP::Types::ToolCallLocation
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ToolCallLocation
   def self.from_h(hash)
-    new(path: hash.fetch('path'), line: hash['line'], meta: hash['_meta'])
+    new(
+      path: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'path'), 'path'),
+      line: ACP::Types::Check.integer(hash['line'], 'line', min: 0, allow_nil: true),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

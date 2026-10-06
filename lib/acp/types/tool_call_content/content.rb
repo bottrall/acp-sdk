@@ -21,7 +21,10 @@ class ACP::Types::ToolCallContent::Content
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::ToolCallContent::Content
   def self.from_h(hash)
-    new(content: ACP::Types::ContentBlock.from_h(hash.fetch('content')), meta: hash['_meta'])
+    new(
+      content: ACP::Types::Check.object(ACP::Types::Check.key(hash, 'content'), 'content', ACP::Types::ContentBlock),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

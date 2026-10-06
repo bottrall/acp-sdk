@@ -21,7 +21,14 @@ class ACP::Types::RequestPermissionResponse
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::RequestPermissionResponse
   def self.from_h(hash)
-    new(outcome: ACP::Types::RequestPermissionOutcome.from_h(hash.fetch('outcome')), meta: hash['_meta'])
+    new(
+      outcome: ACP::Types::Check.object(
+        ACP::Types::Check.key(hash, 'outcome'),
+        'outcome',
+        ACP::Types::RequestPermissionOutcome
+      ),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

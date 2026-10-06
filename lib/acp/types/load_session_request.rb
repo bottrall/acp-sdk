@@ -36,11 +36,21 @@ class ACP::Types::LoadSessionRequest
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::LoadSessionRequest
   def self.from_h(hash)
+    mcp_servers = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'mcpServers'), 'mcpServers') do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::McpServer)
+    end
+    additional_directories = ACP::Types::Check.array(
+      hash['additionalDirectories'],
+      'additionalDirectories',
+      allow_nil: true
+    ) do |item, path|
+      ACP::Types::Check.string(item, path)
+    end
     new(
-      mcp_servers: hash.fetch('mcpServers').map { |item| ACP::Types::McpServer.from_h(item) },
-      cwd: hash.fetch('cwd'),
-      additional_directories: hash['additionalDirectories'],
-      session_id: hash.fetch('sessionId'),
+      mcp_servers:,
+      cwd: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'cwd'), 'cwd'),
+      additional_directories:,
+      session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
       meta: hash['_meta']
     )
   end

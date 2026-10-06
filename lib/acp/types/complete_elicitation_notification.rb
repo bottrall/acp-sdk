@@ -21,7 +21,10 @@ class ACP::Types::CompleteElicitationNotification
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::CompleteElicitationNotification
   def self.from_h(hash)
-    new(elicitation_id: hash.fetch('elicitationId'), meta: hash['_meta'])
+    new(
+      elicitation_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'elicitationId'), 'elicitationId'),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

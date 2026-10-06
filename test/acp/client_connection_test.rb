@@ -795,7 +795,28 @@ describe ACP::ClientConnection do
       transport, logger = connection
       transport.notifications['session/update'].call({ 'update' => { 'sessionUpdate' => 'agent_message_chunk' } })
 
-      assert_equal [:warn, 'dropped malformed session/update: KeyError: key not found: "sessionId"'], logger.pop
+      assert_equal [:warn, 'dropped malformed session/update: ACP::Types::ParseError: sessionId: is required'],
+                   logger.pop
+    end
+  end
+
+  describe 'a malformed request from the agent' do
+    def connection(transport)
+      ACP::ClientConnection.new(transport:, permission: ->(_request) {}).start
+      transport
+    end
+
+    it 'answers session/request_permission with invalid params naming the failing path' do
+      transport = connection(StubTransport.new({}))
+
+      error = transport.requests['session/request_permission'].call(
+        { 'sessionId' => 's1', 'toolCall' => { 'toolCallId' => 'c1' }, 'options' => [42] }
+      )
+
+      assert_equal(
+        [-32_602, 'Invalid params', { errors: ['options[0]: expected object, got Integer'] }],
+        [error.code, error.message, error.data]
+      )
     end
   end
 

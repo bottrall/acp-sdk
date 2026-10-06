@@ -27,8 +27,8 @@ class ACP::Types::ElicitationUrlMode
   # @rbs return: ACP::Types::ElicitationUrlMode
   def self.from_h(hash)
     new(
-      elicitation_id: hash.fetch('elicitationId'),
-      url: hash.fetch('url'),
+      elicitation_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'elicitationId'), 'elicitationId'),
+      url: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'url'), 'url'),
       scope: ACP::Types::ElicitationUrlMode::Scope.from_h(hash)
     )
   end

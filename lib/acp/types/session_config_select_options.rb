@@ -12,9 +12,13 @@ module ACP::Types::SessionConfigSelectOptions
   # @rbs return: t
   def self.from_a(items)
     if items.all? { |item| item.key?('value') }
-      items.map { |item| ACP::Types::SessionConfigSelectOption.from_h(item) } #: Array[ACP::Types::SessionConfigSelectOption]
+      items.each_with_index.map do |item, index|
+        ACP::Types::Check.object(item, [index], ACP::Types::SessionConfigSelectOption)
+      end #: Array[ACP::Types::SessionConfigSelectOption]
     elsif items.all? { |item| item.key?('group') }
-      items.map { |item| ACP::Types::SessionConfigSelectGroup.from_h(item) } #: Array[ACP::Types::SessionConfigSelectGroup]
+      items.each_with_index.map do |item, index|
+        ACP::Types::Check.object(item, [index], ACP::Types::SessionConfigSelectGroup)
+      end #: Array[ACP::Types::SessionConfigSelectGroup]
     else
       items
     end

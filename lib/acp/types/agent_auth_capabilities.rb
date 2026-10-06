@@ -21,7 +21,10 @@ class ACP::Types::AgentAuthCapabilities
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::AgentAuthCapabilities
   def self.from_h(hash)
-    new(logout: hash['logout']&.then { |value| ACP::Types::LogoutCapabilities.from_h(value) }, meta: hash['_meta'])
+    new(
+      logout: ACP::Types::Check.object(hash['logout'], 'logout', ACP::Types::LogoutCapabilities, allow_nil: true),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

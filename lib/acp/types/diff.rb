@@ -31,7 +31,12 @@ class ACP::Types::Diff
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Diff
   def self.from_h(hash)
-    new(path: hash.fetch('path'), old_text: hash['oldText'], new_text: hash.fetch('newText'), meta: hash['_meta'])
+    new(
+      path: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'path'), 'path'),
+      old_text: ACP::Types::Check.string(hash['oldText'], 'oldText', allow_nil: true),
+      new_text: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'newText'), 'newText'),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

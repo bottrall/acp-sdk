@@ -26,7 +26,11 @@ class ACP::Types::WaitForTerminalExitResponse
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::WaitForTerminalExitResponse
   def self.from_h(hash)
-    new(exit_code: hash['exitCode'], signal: hash['signal'], meta: hash['_meta'])
+    new(
+      exit_code: ACP::Types::Check.integer(hash['exitCode'], 'exitCode', min: 0, allow_nil: true),
+      signal: ACP::Types::Check.string(hash['signal'], 'signal', allow_nil: true),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]

@@ -21,7 +21,14 @@ class ACP::Types::PromptResponse
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::PromptResponse
   def self.from_h(hash)
-    new(stop_reason: hash.fetch('stopReason'), meta: hash['_meta'])
+    new(
+      stop_reason: ACP::Types::Check.enum(
+        ACP::Types::Check.key(hash, 'stopReason'),
+        'stopReason',
+        %w[end_turn max_tokens max_turn_requests refusal cancelled]
+      ),
+      meta: hash['_meta']
+    )
   end
 
   # @rbs return: Hash[String, untyped]
