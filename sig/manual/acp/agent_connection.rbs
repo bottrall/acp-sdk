@@ -36,6 +36,10 @@ class ACP::AgentConnection
     def logout: (ACP::Types::LogoutRequest) -> (ACP::Types::LogoutResponse | ACP::RequestError)
   end
 
+  interface _ForkSession
+    def fork_session: (ACP::Types::Unstable::ForkSessionRequest) -> (ACP::Types::Unstable::ForkSessionResponse | ACP::RequestError)
+  end
+
   interface _ChangeSessionMode
     def change_session_mode: (ACP::Types::SetSessionModeRequest) -> (ACP::Types::SetSessionModeResponse | ACP::RequestError)
   end
@@ -53,6 +57,7 @@ class ACP::AgentConnection
     include _CloseSession
     include _DeleteSession
     include _Logout
+    include _ForkSession
     include _ChangeSessionMode
     include _ChangeSessionConfigOption
   end

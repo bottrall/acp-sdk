@@ -1,0 +1,13 @@
+# Generated from lib/acp/agent_connection/optional_method/fork_session.rb with RBS::Inline
+
+module ACP::AgentConnection::OptionalMethod::ForkSession
+  # @rbs return: String
+  def rpc_method: () -> String
+
+  # @rbs return: Symbol
+  def agent_method: () -> Symbol
+
+  # @rbs initialize_response: ACP::Types::InitializeResponse
+  # @rbs return: bool
+  def advertised?: (ACP::Types::InitializeResponse initialize_response) -> bool
+end

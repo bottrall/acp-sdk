@@ -66,7 +66,9 @@ class ACP::AgentConnection
     # Routes are fixed before a client connects, so the check sees the
     # unfiltered auth methods: a terminal-capable client still needs
     # authenticate routed.
-    advertised, unadvertised = OPTIONAL.partition { |method| method.advertised?(initialize_response(@auth_methods)) }
+    advertised, unadvertised = optional_methods.partition do |method|
+      method.advertised?(initialize_response(@auth_methods))
+    end
     missing = advertised.map(&:agent_method).reject { |name| agent.respond_to?(name) }
     raise ArgumentError, "initialize advertises methods the agent lacks: #{missing.join(', ')}" unless missing.empty?
 
@@ -101,7 +103,31 @@ class ACP::AgentConnection
       'session/set_config_option' => route(ACP::Types::SetSessionConfigOptionRequest) do |request|
         full.change_session_config_option(request)
       end
+    }.merge(unstable_requests(full))
+  end
+
+  # The unstable request type is referenced while the hash is built, so without
+  # the guard start would raise NameError even for an agent that never
+  # advertises fork.
+  #
+  # @rbs full: ACP::AgentConnection::_FullAgent
+  # @rbs return: Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
+  def unstable_requests(full)
+    return {} unless defined?(ACP::Types::Unstable)
+
+    {
+      'session/fork' => route(ACP::Types::Unstable::ForkSessionRequest) { |request| full.fork_session(request) }
     }
+  end
+
+  # ForkSession's advertised? references the unstable types, so it can only be
+  # probed when the caller opted in with `require 'acp/types/unstable'`.
+  #
+  # @rbs return: Array[ACP::AgentConnection::_OptionalMethod]
+  def optional_methods
+    return OPTIONAL unless defined?(ACP::Types::Unstable)
+
+    OPTIONAL + [ACP::AgentConnection::OptionalMethod::ForkSession]
   end
 
   # @rbs agent: ACP::AgentConnection::_Agent
