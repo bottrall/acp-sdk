@@ -47,6 +47,20 @@ class ACP::AgentConnection
   # @rbs return: Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
   def requests: (ACP::AgentConnection::_Agent agent, ACP::AgentConnection::Client client) -> Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
 
+  # The unstable request type is referenced while the hash is built, so without
+  # the guard start would raise NameError even for an agent that never
+  # advertises fork.
+  #
+  # @rbs full: ACP::AgentConnection::_FullAgent
+  # @rbs return: Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
+  def unstable_requests: (ACP::AgentConnection::_FullAgent full) -> Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
+
+  # ForkSession's advertised? references the unstable types, so it can only be
+  # probed when the caller opted in with `require 'acp/types/unstable'`.
+  #
+  # @rbs return: Array[ACP::AgentConnection::_OptionalMethod]
+  def optional_methods: () -> Array[ACP::AgentConnection::_OptionalMethod]
+
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs return: Hash[String, ^(untyped) -> void]
   def notifications: (ACP::AgentConnection::_Agent agent) -> Hash[String, ^(untyped) -> void]

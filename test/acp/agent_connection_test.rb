@@ -2,8 +2,11 @@
 
 require 'test_helper'
 require 'json'
+require 'open3'
 require 'timeout'
 require_relative '../../examples/echo_agent'
+
+require 'acp/types/unstable'
 
 class FullAgent < SimpleDelegator
   def authenticate(_request)
@@ -20,6 +23,10 @@ class FullAgent < SimpleDelegator
 
   def delete_session(_request)
     ACP::Types::DeleteSessionResponse.new
+  end
+
+  def fork_session(request)
+    ACP::Types::Unstable::ForkSessionResponse.new(session_id: "forked-#{request.session_id}")
   end
 
   def logout(_request)
@@ -44,6 +51,14 @@ describe ACP::AgentConnection do
         resume: ACP::Types::SessionResumeCapabilities.new,
         close: ACP::Types::SessionCloseCapabilities.new,
         delete: ACP::Types::SessionDeleteCapabilities.new
+      )
+    )
+  end
+
+  def fork_capabilities
+    ACP::Types::AgentCapabilities.new(
+      session_capabilities: ACP::Types::Unstable::SessionCapabilities.new(
+        fork: ACP::Types::Unstable::SessionForkCapabilities.new
       )
     )
   end
@@ -428,6 +443,64 @@ describe ACP::AgentConnection do
     ]
 
     assert_equal([-32_601] * 3, replies.map { |reply| reply.dig('error', 'code') })
+  end
+
+  it 'routes session/fork when its capability is advertised' do
+    start(capabilities: fork_capabilities)
+    reply = call('session/fork', { 'sessionId' => 's', 'cwd' => '/work' })
+
+    assert_equal({ 'sessionId' => 'forked-s' }, reply['result'])
+  end
+
+  it 'answers session/fork with method not found unless advertised' do
+    start
+    reply = call('session/fork', { 'sessionId' => 's', 'cwd' => '/work' })
+
+    assert_equal(-32_601, reply.dig('error', 'code'))
+  end
+
+  it 'answers session/fork with method not found when the unstable types are not opted into' do
+    out, _err = Open3.capture3('bundle', 'exec', 'ruby', '-I', 'lib', '-e', <<~RUBY)
+      require 'acp/sdk'
+      require 'json'
+      require 'timeout'
+
+      input, peer_writer = IO.pipe
+      peer_reader, output = IO.pipe
+      transport = ACP::Transport::Stdio.new(input:, output:, logger: ACP::Transport::StderrLogger.new)
+      agent = Object.new
+      def agent.new_session(_request)
+        ACP::Types::NewSessionResponse.new(session_id: 'sess_new')
+      end
+      def agent.prompt(_request)
+        ACP::Types::PromptResponse.new(stop_reason: 'end_turn')
+      end
+      def agent.cancel(_notification); end
+      def agent.fork_session(_request)
+        ACP::Types::NewSessionResponse.new(session_id: 'sess_forked')
+      end
+      connection = ACP::AgentConnection.new(transport:, capabilities: ACP::Types::AgentCapabilities.new) { |_client| agent }
+      connection.start
+
+      def read_message(reader)
+        Timeout.timeout(2) { JSON.parse(reader.gets) }
+      end
+
+      peer_writer.puts(JSON.generate(
+        'jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => { 'protocolVersion' => 1 }
+      ))
+      initialized = read_message(peer_reader)
+      peer_writer.puts(JSON.generate(
+        'jsonrpc' => '2.0', 'id' => 2, 'method' => 'session/fork',
+        'params' => { 'sessionId' => 's', 'cwd' => '/work' }
+      ))
+      forked = read_message(peer_reader)
+
+      puts JSON.generate(initialized: !initialized['result'].nil?, fork_error: forked.dig('error', 'code'))
+    RUBY
+    result = JSON.parse(out)
+
+    assert_equal({ 'initialized' => true, 'fork_error' => -32_601 }, result)
   end
 
   it 'routes session/set_mode and session/set_config_option when the agent defines them' do

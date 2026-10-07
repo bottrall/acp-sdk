@@ -6,6 +6,8 @@ require 'rbconfig'
 require 'timeout'
 require_relative '../../examples/echo_agent'
 
+require 'acp/types/unstable'
+
 class StubTransport
   attr_reader :requests, :notifications
 
@@ -42,6 +44,26 @@ class AuthAgent
     return ACP::RequestError.auth_required unless @authenticated
 
     ACP::Types::LogoutResponse.new
+  end
+end
+
+class ForkAgent
+  def initialize(client)
+    @client = client
+  end
+
+  def new_session(_request)
+    ACP::Types::NewSessionResponse.new(session_id: 'sess_new')
+  end
+
+  def prompt(_request)
+    ACP::Types::PromptResponse.new(stop_reason: 'end_turn')
+  end
+
+  def cancel(_notification); end
+
+  def fork_session(_request)
+    ACP::Types::Unstable::ForkSessionResponse.new(session_id: 'sess_forked')
   end
 end
 
@@ -371,6 +393,54 @@ describe ACP::ClientConnection do
       response = within { connection.session_prompt(prompt_request('sess_missing', 'hello')) { nil } }
 
       assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
+    end
+
+    it 'answers fork with the agent\'s method-not-found error' do
+      connection = allowing
+      response = within do
+        connection.session_fork(
+          ACP::Types::Unstable::ForkSessionRequest.new(session_id: 'sess_missing', cwd: '/work')
+        )
+      end
+
+      assert_equal(-32_601, response.code)
+    end
+  end
+
+  describe 'forking a session' do
+    before do
+      agent_input, @client_output = IO.pipe
+      @client_input, @agent_output = IO.pipe
+      @pipes = [agent_input, @client_output, @client_input, @agent_output]
+      @agent_reader = ACP::AgentConnection.new(
+        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
+        capabilities: ACP::Types::AgentCapabilities.new(
+          session_capabilities: ACP::Types::Unstable::SessionCapabilities.new(
+            fork: ACP::Types::Unstable::SessionForkCapabilities.new
+          )
+        )
+      ) { |client| ForkAgent.new(client) }.start
+      @connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
+        permission: ->(_request) {}
+      )
+      @client_reader = @connection.start
+    end
+
+    after do
+      @client_output.close
+      @agent_reader.join(2)
+      @agent_output.close
+      @client_reader.join(2)
+      @pipes.reject(&:closed?).each(&:close)
+    end
+
+    it 'forks a session' do
+      response = within do
+        @connection.session_fork(ACP::Types::Unstable::ForkSessionRequest.new(session_id: 'sess_1', cwd: '/work'))
+      end
+
+      assert_equal({ 'sessionId' => 'sess_forked' }, response.to_h)
     end
   end
 

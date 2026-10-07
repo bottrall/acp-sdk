@@ -114,6 +114,10 @@ class ACP::ClientConnection
   # @rbs return: ACP::Types::DeleteSessionResponse | ACP::RequestError
   def session_delete: (ACP::Types::DeleteSessionRequest request) -> (ACP::Types::DeleteSessionResponse | ACP::RequestError)
 
+  # @rbs request: ACP::Types::Unstable::ForkSessionRequest
+  # @rbs return: (ACP::Types::Unstable::ForkSessionResponse | ACP::RequestError)
+  def session_fork: (ACP::Types::Unstable::ForkSessionRequest request) -> (ACP::Types::Unstable::ForkSessionResponse | ACP::RequestError)
+
   # The spec requires a pending session/request_permission to be answered with
   # the cancelled outcome once the turn is cancelled, so every queue registered
   # for the session gets one before this returns. The notification goes first
