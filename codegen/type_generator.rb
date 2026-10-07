@@ -70,8 +70,6 @@ module TypeGenerator
 
   RAW_HASH = 'Hash[String, untyped]'
 
-  # A property with none of these keys declares no type, so it accepts any
-  # JSON value, null included.
   TYPELESS_PROPERTY_KEYS = %w[type $ref allOf anyOf].freeze
 
   class Type

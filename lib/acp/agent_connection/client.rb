@@ -123,9 +123,9 @@ class ACP::AgentConnection::Client
     @peer.notify('elicitation/complete', notification.to_h)
   end
 
-  # Sends one inner MCP operation to the client's declared ACP MCP server and
-  # returns its outcome carrier: a result (possibly null), an inner MCP error,
-  # or the raw reply when it matches neither branch.
+  # Sends one inner MCP operation to the client's declared ACP MCP server. The
+  # reply's result may be null, and a reply matching neither carrier branch
+  # comes back as the raw hash.
   #
   # @rbs request: ACP::Types::Unstable::MessageMcpRequest
   # @rbs return: (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
