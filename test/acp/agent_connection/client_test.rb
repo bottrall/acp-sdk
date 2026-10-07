@@ -3,12 +3,14 @@
 require 'test_helper'
 
 class RecordingPeer
-  attr_reader :requests, :notifications
+  attr_reader :requests, :notifications, :cancelled_requests, :cancellation
 
-  def initialize(response)
+  def initialize(response, cancellation: nil)
     @response = response
     @requests = []
     @notifications = []
+    @cancelled_requests = []
+    @cancellation = cancellation
   end
 
   def request(method, params = nil)
@@ -18,6 +20,10 @@ class RecordingPeer
 
   def notify(method, params = nil)
     @notifications << [method, params]
+  end
+
+  def cancel_requests
+    @cancelled_requests << true
   end
 end
 
@@ -248,6 +254,25 @@ describe ACP::AgentConnection::Client do
          [], []],
         [refusals.map(&:code), refusals.map(&:message), peer.requests, peer.notifications]
       )
+    end
+  end
+
+  describe 'cancellation' do
+    it 'cancels its outstanding client requests through the peer' do
+      peer = RecordingPeer.new({})
+      client(peer, nil).cancel_requests
+
+      assert_equal [true], peer.cancelled_requests
+    end
+
+    it 'reports whether the client cancelled the request being served' do
+      cancellation = ACP::Transport::Cancellation.new
+      client = client(RecordingPeer.new({}, cancellation:), nil)
+
+      refute_predicate client, :cancelled?
+      cancellation.cancel
+
+      assert_predicate client, :cancelled?
     end
   end
 end

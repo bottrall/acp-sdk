@@ -36,6 +36,18 @@ class ACP::AgentConnection::Client
     call('session/request_permission', ACP::Types::RequestPermissionResponse, request)
   end
 
+  # @rbs return: void
+  def cancel_requests
+    @peer.cancel_requests
+  end
+
+  # Always false off a handler thread.
+  #
+  # @rbs return: bool
+  def cancelled?
+    !!@peer.cancellation&.cancelled?
+  end
+
   # @rbs request: ACP::Types::ReadTextFileRequest
   # @rbs return: ACP::Types::ReadTextFileResponse | ACP::RequestError
   def read_text_file(request)

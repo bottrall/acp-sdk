@@ -26,8 +26,6 @@ class ACP::Transport::Stdio
 
   CONNECTION_CLOSED: ACP::RequestError
 
-  SERVING_CANCEL: Symbol
-
   # @rbs input: _Reader
   # @rbs output: _Writer
   # @rbs logger: ACP::Transport::_Logger
@@ -58,6 +56,12 @@ class ACP::Transport::Stdio
   # @rbs id: untyped
   # @rbs return: void
   def cancel: (untyped id) -> void
+
+  # Each id is re-checked against the pending table, so one that settled
+  # between the snapshot and its cancel is not cancelled.
+  #
+  # @rbs return: void
+  def cancel_requests: () -> void
 
   # The cancellation of the request the calling thread is serving, or nil off
   # a serve thread. A handler observes the peer's $/cancel_request through it

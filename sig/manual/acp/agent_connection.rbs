@@ -72,6 +72,8 @@ class ACP::AgentConnection
     def update: (String session_id, ACP::Types::SessionUpdate::t update) -> void
     def available_commands: (String session_id, Array[ACP::Types::AvailableCommand] commands) -> void
     def request_permission: (ACP::Types::RequestPermissionRequest) -> (ACP::Types::RequestPermissionResponse | ACP::RequestError)
+    def cancel_requests: () -> void
+    def cancelled?: () -> bool
     def read_text_file: (ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError)
     def write_text_file: (ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError)
     def create_terminal: (ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError)
@@ -89,6 +91,8 @@ class ACP::AgentConnection
   interface _Peer
     def request: (String method, ?untyped params) -> (Hash[String, untyped] | ACP::RequestError)
     def notify: (String method, ?untyped params) -> void
+    def cancellation: () -> ACP::Transport::Cancellation?
+    def cancel_requests: () -> void
   end
 
   interface _Transport
