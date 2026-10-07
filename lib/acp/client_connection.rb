@@ -206,6 +206,24 @@ class ACP::ClientConnection
     parse(ACP::Types::Unstable::ForkSessionResponse, @transport.request('session/fork', request.to_h))
   end
 
+  # @rbs request: ACP::Types::Unstable::ListProvidersRequest
+  # @rbs return: (ACP::Types::Unstable::ListProvidersResponse | ACP::RequestError)
+  def providers_list(request)
+    parse(ACP::Types::Unstable::ListProvidersResponse, @transport.request('providers/list', request.to_h))
+  end
+
+  # @rbs request: ACP::Types::Unstable::SetProviderRequest
+  # @rbs return: (ACP::Types::Unstable::SetProviderResponse | ACP::RequestError)
+  def providers_set(request)
+    parse(ACP::Types::Unstable::SetProviderResponse, @transport.request('providers/set', request.to_h))
+  end
+
+  # @rbs request: ACP::Types::Unstable::DisableProviderRequest
+  # @rbs return: (ACP::Types::Unstable::DisableProviderResponse | ACP::RequestError)
+  def providers_disable(request)
+    parse(ACP::Types::Unstable::DisableProviderResponse, @transport.request('providers/disable', request.to_h))
+  end
+
   # The spec requires a pending session/request_permission to be answered with
   # the cancelled outcome once the turn is cancelled, so every queue registered
   # for the session gets one before this returns. The notification goes first

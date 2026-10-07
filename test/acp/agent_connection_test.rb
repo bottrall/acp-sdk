@@ -29,6 +29,24 @@ class FullAgent < SimpleDelegator
     ACP::Types::Unstable::ForkSessionResponse.new(session_id: "forked-#{request.session_id}")
   end
 
+  def list_providers(_request)
+    ACP::Types::Unstable::ListProvidersResponse.new(
+      providers: [ACP::Types::Unstable::ProviderInfo.new(
+        provider_id: 'anthropic', supported: ['anthropic'], required: false
+      )]
+    )
+  end
+
+  # define_method, not def: the name is the wire-mandated set_provider, which
+  # Naming/AccessorMethodName would flag on a def with one required argument.
+  define_method(:set_provider) do |_request|
+    ACP::Types::Unstable::SetProviderResponse.new
+  end
+
+  def disable_provider(_request)
+    ACP::Types::Unstable::DisableProviderResponse.new
+  end
+
   def logout(_request)
     ACP::Types::LogoutResponse.new
   end
@@ -61,6 +79,10 @@ describe ACP::AgentConnection do
         fork: ACP::Types::Unstable::SessionForkCapabilities.new
       )
     )
+  end
+
+  def providers_capabilities
+    ACP::Types::Unstable::AgentCapabilities.new(providers: ACP::Types::Unstable::ProvidersCapabilities.new)
   end
 
   before do
@@ -501,6 +523,98 @@ describe ACP::AgentConnection do
     result = JSON.parse(out)
 
     assert_equal({ 'initialized' => true, 'fork_error' => -32_601 }, result)
+  end
+
+  it 'routes providers/list, providers/set and providers/disable when the providers capability is advertised' do
+    start(capabilities: providers_capabilities)
+    set_params = { 'providerId' => 'anthropic', 'apiType' => 'anthropic', 'baseUrl' => 'https://api.example.com' }
+    replies = [
+      call('providers/list', {}),
+      call('providers/set', set_params),
+      call('providers/disable', { 'providerId' => 'anthropic' })
+    ]
+
+    assert_equal(
+      [
+        { 'providers' => [{ 'providerId' => 'anthropic', 'supported' => ['anthropic'], 'required' => false }] },
+        {},
+        {}
+      ],
+      replies.map { |reply| reply['result'] }
+    )
+  end
+
+  it 'answers providers/list, providers/set and providers/disable with method not found unless advertised' do
+    start
+    set_params = { 'providerId' => 'anthropic', 'apiType' => 'anthropic', 'baseUrl' => 'https://api.example.com' }
+    replies = [
+      call('providers/list', {}),
+      call('providers/set', set_params),
+      call('providers/disable', { 'providerId' => 'anthropic' })
+    ]
+
+    assert_equal([-32_601] * 3, replies.map { |reply| reply.dig('error', 'code') })
+  end
+
+  it 'answers the provider methods with method not found when the unstable types are not opted into' do
+    out, _err = Open3.capture3('bundle', 'exec', 'ruby', '-I', 'lib', '-e', <<~RUBY)
+      require 'acp/sdk'
+      require 'json'
+      require 'timeout'
+
+      input, peer_writer = IO.pipe
+      peer_reader, output = IO.pipe
+      transport = ACP::Transport::Stdio.new(input:, output:, logger: ACP::Transport::StderrLogger.new)
+      agent = Object.new
+      def agent.new_session(_request)
+        ACP::Types::NewSessionResponse.new(session_id: 'sess_new')
+      end
+      def agent.prompt(_request)
+        ACP::Types::PromptResponse.new(stop_reason: 'end_turn')
+      end
+      def agent.cancel(_notification); end
+      def agent.list_providers(_request)
+        ACP::Types::Unstable::ListProvidersResponse.new(providers: [])
+      end
+      def agent.set_provider(_request)
+        ACP::Types::Unstable::SetProviderResponse.new
+      end
+      def agent.disable_provider(_request)
+        ACP::Types::Unstable::DisableProviderResponse.new
+      end
+      connection = ACP::AgentConnection.new(transport:, capabilities: ACP::Types::AgentCapabilities.new) { |_client| agent }
+      connection.start
+
+      def read_message(reader)
+        Timeout.timeout(2) { JSON.parse(reader.gets) }
+      end
+
+      peer_writer.puts(JSON.generate(
+        'jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => { 'protocolVersion' => 1 }
+      ))
+      initialized = read_message(peer_reader)
+      replies = ['providers/list', 'providers/set', 'providers/disable'].each_with_index.map do |method, id|
+        peer_writer.puts(JSON.generate('jsonrpc' => '2.0', 'id' => id + 2, 'method' => method, 'params' => {}))
+        read_message(peer_reader)
+      end
+
+      puts JSON.generate(
+        { initialized: !initialized['result'].nil? }.merge(
+          replies.each_with_index.to_h { |reply, index| ["provider_\#{index}_error", reply.dig('error', 'code')] }
+        )
+      )
+    RUBY
+    result = JSON.parse(out)
+
+    assert_equal(
+      {
+        'initialized' => true,
+        'provider_0_error' => -32_601,
+        'provider_1_error' => -32_601,
+        'provider_2_error' => -32_601
+      },
+      result
+    )
   end
 
   it 'routes session/set_mode and session/set_config_option when the agent defines them' do
