@@ -722,6 +722,159 @@ describe ACP::ClientConnection do
     end
   end
 
+  describe 'answering mcp/message requests' do
+    before do
+      @client_input, @agent_output = IO.pipe
+      @agent_input, @client_output = IO.pipe
+      @mcp_replies = Thread::Queue.new
+      @mcp_requests = Thread::Queue.new
+      @connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
+        permission: ->(_request) {},
+        mcp_message: lambda { |request|
+          @mcp_requests << request
+          @mcp_replies.pop
+        }
+      )
+      @reader = @connection.start
+      @next_id = 0
+    end
+
+    after do
+      @agent_output.close
+      @reader.join(2)
+      [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
+    end
+
+    def mcp_params
+      { 'serverId' => 'srv_1', 'requestId' => 'mcp_1', 'method' => 'tools/call', 'params' => { 'name' => 'echo' } }
+    end
+
+    # Plays the agent: a raw request into the client's input, its raw reply back.
+    def reply_for(method, params)
+      id = @next_id += 1
+      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => id, 'method' => method, 'params' => params)}\n")
+      within { JSON.parse(@agent_input.gets) }
+    end
+
+    # Drives connect with a canned initialize reply carrying the given agent
+    # capabilities.
+    def connect(agent_capabilities = {})
+      thread = Thread.new do
+        @connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1))
+      rescue StandardError => e
+        e
+      end
+      request = within { JSON.parse(@agent_input.gets) }
+      result = { 'protocolVersion' => 1, 'agentCapabilities' => agent_capabilities }
+      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => request['id'], 'result' => result)}\n")
+      outcome = within { thread.value }
+      raise outcome if outcome.is_a?(StandardError)
+    end
+
+    it 'answers -32601 before connect records the agent advertisement' do
+      reply = reply_for('mcp/message', mcp_params)
+
+      assert_equal(
+        [-32_601, 'Agent does not advertise mcpCapabilities.acp'],
+        [reply.dig('error', 'code'), reply.dig('error', 'message')]
+      )
+    end
+
+    it 'answers -32601 when the agent does not advertise mcpCapabilities.acp' do
+      connect
+      reply = reply_for('mcp/message', mcp_params)
+
+      assert_equal(
+        [-32_601, 'Agent does not advertise mcpCapabilities.acp'],
+        [reply.dig('error', 'code'), reply.dig('error', 'message')]
+      )
+    end
+
+    it 'serves mcp/message when the agent advertises mcpCapabilities.acp' do
+      @mcp_replies << ACP::Types::Unstable::MessageMcpResponse::Result.new(result: { 'content' => ['hi'] })
+      connect('mcpCapabilities' => { 'acp' => true })
+      reply = reply_for('mcp/message', mcp_params)
+      request = within { @mcp_requests.pop }
+
+      assert_equal(
+        [{ 'result' => { 'content' => ['hi'] } }, %w[srv_1 mcp_1 tools/call]],
+        [reply['result'],
+         [request.server_id, request.request_id, request.method]]
+      )
+    end
+
+    it 'serves an explicit null result as a present result' do
+      @mcp_replies << ACP::Types::Unstable::MessageMcpResponse::Result.new(result: nil)
+      connect('mcpCapabilities' => { 'acp' => true })
+      reply = reply_for('mcp/message', mcp_params)
+
+      assert_equal({ 'result' => nil }, reply['result'])
+    end
+
+    it 'serves an inner MCP error carrier' do
+      @mcp_replies << ACP::Types::Unstable::MessageMcpResponse::Error.new(
+        error: ACP::Types::Unstable::McpError.new(code: -32_602, message: 'Unknown tool')
+      )
+      connect('mcpCapabilities' => { 'acp' => true })
+      reply = reply_for('mcp/message', mcp_params)
+
+      assert_equal({ 'code' => -32_602, 'message' => 'Unknown tool' }, reply.dig('result', 'error'))
+    end
+
+    it 'sends mcp_message_notification to the agent' do
+      within do
+        @connection.mcp_message_notification(
+          ACP::Types::Unstable::MessageMcpNotification.new(
+            server_id: 'srv_1', request_id: 'mcp_1', method: 'notifications/progress', params: { 'progress' => 1 }
+          )
+        )
+      end
+      notification = within { JSON.parse(@agent_input.gets) }
+
+      assert_equal(
+        ['mcp/message',
+         { 'serverId' => 'srv_1', 'requestId' => 'mcp_1', 'method' => 'notifications/progress',
+           'params' => { 'progress' => 1 } }],
+        [notification['method'], notification['params']]
+      )
+    end
+
+    it 'answers mcp/message with method not found when the unstable types are not opted into' do
+      out, _err = Open3.capture3('bundle', 'exec', 'ruby', '-I', 'lib', '-e', <<~RUBY)
+        require 'acp/sdk'
+        require 'json'
+        require 'timeout'
+
+        client_input, agent_output = IO.pipe
+        agent_input, client_output = IO.pipe
+        connection = ACP::ClientConnection.new(
+          transport: ACP::Transport::Stdio.new(
+            input: client_input, output: client_output, logger: ACP::Transport::StderrLogger.new
+          ),
+          permission: ->(_request) {},
+          mcp_message: ->(_request) { {} }
+        )
+        connection.start
+
+        def read_message(reader)
+          Timeout.timeout(2) { JSON.parse(reader.gets) }
+        end
+
+        agent_output.puts(JSON.generate(
+          'jsonrpc' => '2.0', 'id' => 1, 'method' => 'mcp/message',
+          'params' => { 'serverId' => 'srv_1', 'requestId' => 'mcp_1', 'method' => 'tools/call' }
+        ))
+        reply = read_message(agent_input)
+
+        puts JSON.generate(error: reply.dig('error', 'code'))
+      RUBY
+      result = JSON.parse(out)
+
+      assert_equal({ 'error' => -32_601 }, result)
+    end
+  end
+
   describe 'driving an agent with auth over pipes' do
     before do
       agent_input, @client_output = IO.pipe

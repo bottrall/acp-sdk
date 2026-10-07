@@ -15,6 +15,9 @@ class ACP::ClientConnection
   #   (ACP::Types::CreateElicitationResponse | ACP::RequestError))?
   # @rbs @complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
   # @rbs @updates: ACP::ClientConnection::_UpdateHandler
+  # @rbs @mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) ->
+  #   (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
+  # @rbs @mcp_advertised: bool?
   # @rbs @fs_capabilities: ACP::Types::FileSystemCapabilities?
   # @rbs @terminal: bool?
   # @rbs @elicitation_capabilities: ACP::Types::ElicitationCapabilities?
@@ -48,6 +51,8 @@ class ACP::ClientConnection
   #   (ACP::Types::CreateElicitationResponse | ACP::RequestError))?
   # @rbs complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
+  # @rbs mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) ->
+  #   (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
   # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs logger: ACP::Transport::_Logger
@@ -65,6 +70,7 @@ class ACP::ClientConnection
     elicitation: nil,
     complete_elicitation: nil,
     updates: IGNORE,
+    mcp_message: nil,
     extension_requests: {},
     extension_notifications: {},
     logger: ACP::Transport::StderrLogger.new
@@ -81,6 +87,8 @@ class ACP::ClientConnection
     @elicitation = elicitation
     @complete_elicitation = complete_elicitation
     @updates = updates
+    @mcp_message = mcp_message
+    @mcp_advertised = nil
     @fs_capabilities = nil
     @terminal = nil
     @elicitation_capabilities = nil
@@ -108,7 +116,7 @@ class ACP::ClientConnection
         'terminal/kill' => method(:kill_terminal),
         'terminal/release' => method(:release_terminal),
         'elicitation/create' => method(:create_elicitation)
-      }.merge(@extension_requests),
+      }.merge(mcp_requests).merge(@extension_requests),
       notifications: { 'session/update' => method(:dispatch),
                        'elicitation/complete' => method(:complete_elicitation) }.merge(@extension_notifications)
     )
@@ -141,16 +149,17 @@ class ACP::ClientConnection
     @fs_capabilities = capabilities
     @terminal = terminal
     @elicitation_capabilities = elicitation
-    parse(ACP::Types::InitializeResponse, @transport.request('initialize', request.to_h)).then do |response|
-      next response if response.is_a?(ACP::RequestError)
+    result = @transport.request('initialize', request.to_h)
+    response = parse(ACP::Types::InitializeResponse, result)
+    return response if response.is_a?(ACP::RequestError)
 
-      next response if response.protocol_version == PROTOCOL_VERSION
+    @mcp_advertised = agent_mcp_advertised?(result)
+    return response if response.protocol_version == PROTOCOL_VERSION
 
-      ACP::RequestError.unsupported_protocol_version(
-        requested: request.protocol_version,
-        returned: response.protocol_version
-      )
-    end
+    ACP::RequestError.unsupported_protocol_version(
+      requested: request.protocol_version,
+      returned: response.protocol_version
+    )
   end
 
   # @rbs request: ACP::Types::NewSessionRequest
@@ -291,7 +300,43 @@ class ACP::ClientConnection
     @transport.notify(method, params)
   end
 
+  # Unlike the mcp/message serve route, this send is not gated: a notification
+  # has no reply to carry a refusal, and the agent drops what it did not
+  # advertise.
+  #
+  # @rbs notification: ACP::Types::Unstable::MessageMcpNotification
+  # @rbs return: void
+  def mcp_message_notification(notification)
+    @transport.notify('mcp/message', notification.to_h)
+  end
+
   private
+
+  # The route is only registered when a handler serves it, but the agent's
+  # advertisement is only known after connect, so an unadvertised request
+  # still reaches the route and is refused there.
+  #
+  # @rbs return: Hash[String, ACP::Transport::Stdio::_Handler]
+  def mcp_requests
+    return {} unless @mcp_message
+
+    { 'mcp/message' => method(:mcp_message) }
+  end
+
+  # The stable McpCapabilities has no acp field, so the gate re-reads the raw
+  # initialize reply with the unstable types when they are opted into.
+  #
+  # @rbs result: (Hash[String, untyped] | ACP::RequestError)
+  # @rbs return: bool
+  def agent_mcp_advertised?(result)
+    return false unless defined?(ACP::Types::Unstable)
+    return false unless result.is_a?(Hash)
+
+    mcp = ACP::Types::Unstable::McpCapabilities.from_h(result['agentCapabilities']['mcpCapabilities'] || {})
+    mcp.acp ? true : false
+  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError
+    false
+  end
 
   # @rbs type: ACP::AgentConnection::_Parser
   # @rbs result: (Hash[String, untyped] | ACP::RequestError)
@@ -522,6 +567,25 @@ class ACP::ClientConnection
   else
     # Safe: connect refuses an advertised capability no handler serves.
     handler = @release_terminal #: ^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
+    handler.call(request)
+  end
+
+  # The route is registered at start, before connect records the agent's
+  # advertisement, so an unadvertised request answers -32601 until then.
+  #
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
+  def mcp_message(params)
+    return ACP::RequestError.unadvertised_agent('mcpCapabilities.acp') unless @mcp_advertised
+
+    request = ACP::Types::Unstable::MessageMcpRequest.from_h(params)
+  rescue ACP::Types::ParseError => e
+    ACP::RequestError.invalid_params([e.message])
+  rescue KeyError, TypeError, NoMethodError
+    ACP::RequestError.invalid_params
+  else
+    # Safe: the route is only registered when a handler serves it.
+    handler = @mcp_message #: ^(ACP::Types::Unstable::MessageMcpRequest) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
     handler.call(request)
   end
 

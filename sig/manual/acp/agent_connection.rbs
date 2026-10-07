@@ -87,6 +87,11 @@ class ACP::AgentConnection
     def session_created: (ACP::Types::NewSessionResponse) -> void
   end
 
+  interface _McpMessageNotification
+    # Runs on the transport's reader thread, so it must return quickly.
+    def mcp_message_notification: (ACP::Types::Unstable::MessageMcpNotification notification) -> void
+  end
+
   # What an agent sees of ACP::AgentConnection::Client, so tests can pass a fake.
   interface _Client
     def update: (String session_id, ACP::Types::SessionUpdate::t update) -> void
@@ -103,6 +108,7 @@ class ACP::AgentConnection
     def release_terminal: (ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
     def create_elicitation: (ACP::Types::CreateElicitationRequest request) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError)
     def complete_elicitation: (ACP::Types::CompleteElicitationNotification notification) -> void
+    def mcp_message: (ACP::Types::Unstable::MessageMcpRequest request) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
     def ext_request: (String method, ?untyped params) -> (Hash[String, untyped] | ACP::RequestError)
     def ext_notify: (String method, ?untyped params) -> void
     def capabilities: () -> ACP::Types::ClientCapabilities?

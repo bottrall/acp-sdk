@@ -70,6 +70,8 @@ module TypeGenerator
 
   RAW_HASH = 'Hash[String, untyped]'
 
+  TYPELESS_PROPERTY_KEYS = %w[type $ref allOf anyOf].freeze
+
   class Type
     attr_reader :rbs, :from, :to, :check
 
@@ -360,7 +362,10 @@ module TypeGenerator
     required = schema.fetch('required', [])
     schema.fetch('properties', {}).except(*except).map do |json, property|
       type = resolve(defs, property)
-      nullable = type.nullable? || Array(property['type']).include?('null') ||
+      # A property with no declared type accepts any JSON value, null included,
+      # so its nil must survive the optional fields' compaction in to_h.
+      untyped = TYPELESS_PROPERTY_KEYS.none? { |key| property.key?(key) }
+      nullable = untyped || type.nullable? || Array(property['type']).include?('null') ||
                  Array(property['anyOf']).any? { |option| option['type'] == 'null' }
       Field.new(
         json:,

@@ -2,6 +2,8 @@
 
 require 'test_helper'
 
+require 'acp/types/unstable'
+
 class RecordingPeer
   attr_reader :requests, :notifications, :cancelled_requests, :cancellation
 
@@ -253,6 +255,41 @@ describe ACP::AgentConnection::Client do
          (['Client does not advertise elicitation.url'] * 2) + (['Client does not advertise elicitation.form'] * 2),
          [], []],
         [refusals.map(&:code), refusals.map(&:message), peer.requests, peer.notifications]
+      )
+    end
+  end
+
+  describe 'mcp' do
+    let(:request) do
+      ACP::Types::Unstable::MessageMcpRequest.new(
+        server_id: 'srv_1', request_id: 'mcp_1', method: 'tools/call', params: { 'name' => 'echo' }
+      )
+    end
+
+    it 'sends mcp/message to a peer when the agent advertised mcpCapabilities.acp' do
+      peer = RecordingPeer.new({ 'result' => { 'content' => ['hi'] } })
+      response = ACP::AgentConnection::Client.new(peer:, mcp_advertised: true).mcp_message(request)
+
+      assert_equal(
+        [ACP::Types::Unstable::MessageMcpResponse::Result, { 'content' => ['hi'] }, [['mcp/message', request.to_h]]],
+        [response.class, response.result, peer.requests]
+      )
+    end
+
+    it 'parses an explicit null result as a present result' do
+      peer = RecordingPeer.new({ 'result' => nil })
+      response = ACP::AgentConnection::Client.new(peer:, mcp_advertised: true).mcp_message(request)
+
+      assert_nil response.result
+    end
+
+    it 'refuses without a round trip unless the agent advertised mcpCapabilities.acp' do
+      peer = RecordingPeer.new({})
+      response = ACP::AgentConnection::Client.new(peer:).mcp_message(request)
+
+      assert_equal(
+        [-32_601, 'Agent does not advertise mcpCapabilities.acp', []],
+        [response.code, response.message, peer.requests]
       )
     end
   end

@@ -70,6 +70,14 @@ class ACP::RequestError
   # @rbs return: ACP::RequestError
   def self.unadvertised_mode: (String mode) -> ACP::RequestError
 
+  # unadvertised names a capability of the client's, this one a capability of
+  # the agent's: the same method-not-found code, with a message naming which
+  # side's advertisement is missing.
+  #
+  # @rbs capability: String
+  # @rbs return: ACP::RequestError
+  def self.unadvertised_agent: (String capability) -> ACP::RequestError
+
   # @rbs return: ACP::RequestError
   def self.internal_error: () -> ACP::RequestError
 
