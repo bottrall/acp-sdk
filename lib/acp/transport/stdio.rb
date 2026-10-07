@@ -75,10 +75,8 @@ class ACP::Transport::Stdio
     write({ 'jsonrpc' => '2.0', 'method' => method, 'params' => params }.compact)
   end
 
-  # Cancels a pending outbound request: the peer is told $/cancel_request for
-  # the request's id, and the waiting caller is released with -32800 only if
-  # the peer answers that way, as the spec requires it to answer either way.
-  # A cancel for an unknown or already-answered id is not sent.
+  # The waiting caller is released only by the peer's answer, which the spec
+  # requires to be either a result or the -32800 error.
   #
   # @rbs id: untyped
   # @rbs return: void
@@ -200,9 +198,8 @@ class ACP::Transport::Stdio
     @lock.synchronize { @serving.delete(id) }
   end
 
-  # Marks the served request the notification targets, or ignores it when the
-  # id is unknown or already answered. A notification has no reply to carry a
-  # malformed params failure.
+  # A notification has no reply to carry a malformed params failure, so one
+  # is warned and dropped rather than answered.
   #
   # @rbs params: untyped
   # @rbs return: void
