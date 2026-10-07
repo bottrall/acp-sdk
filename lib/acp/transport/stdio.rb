@@ -13,6 +13,7 @@ class ACP::Transport::Stdio
   # @rbs @write_lock: Thread::Mutex
   # @rbs @lock: Thread::Mutex
   # @rbs @pending: Hash[untyped, Thread::Queue]
+  # @rbs @serving: Hash[untyped, ACP::Transport::Cancellation]
   # @rbs @next_id: Integer
   # @rbs @closed: bool
   # @rbs @logger: ACP::Transport::_Logger
@@ -20,6 +21,9 @@ class ACP::Transport::Stdio
   CONNECTION_CLOSED = ACP::RequestError.new(
     code: ACP::RequestError::INTERNAL_ERROR, message: 'Connection closed'
   ) #: ACP::RequestError
+
+  SERVING_CANCEL = :acp_serving_cancellation #: Symbol
+  private_constant :SERVING_CANCEL
 
   # @rbs input: _Reader
   # @rbs output: _Writer
@@ -31,6 +35,7 @@ class ACP::Transport::Stdio
     @write_lock = Mutex.new
     @lock = Mutex.new
     @pending = {}
+    @serving = {}
     @next_id = 0
     @closed = false
     @logger = logger
@@ -70,6 +75,26 @@ class ACP::Transport::Stdio
     write({ 'jsonrpc' => '2.0', 'method' => method, 'params' => params }.compact)
   end
 
+  # The waiting caller is released only by the peer's answer, which the spec
+  # requires to be either a result or the -32800 error.
+  #
+  # @rbs id: untyped
+  # @rbs return: void
+  def cancel(id)
+    pending = @lock.synchronize { @pending.key?(id) }
+    notify('$/cancel_request', { 'requestId' => id }) if pending
+  end
+
+  # The cancellation of the request the calling thread is serving, or nil off
+  # a serve thread. A handler observes the peer's $/cancel_request through it
+  # and can end early with ACP::RequestError.request_cancelled; whatever it
+  # returns, the transport sends exactly one response.
+  #
+  # @rbs return: ACP::Transport::Cancellation?
+  def cancellation
+    Thread.current[SERVING_CANCEL] #: ACP::Transport::Cancellation?
+  end
+
   private
 
   # @rbs line: String
@@ -91,7 +116,11 @@ class ACP::Transport::Stdio
   def route(message, requests, notifications)
     method = message['method']
     error = message['error']
-    if method.is_a?(String) && message.key?('id')
+    if method == '$/cancel_request' && !message.key?('id')
+      # Cancellation is transport-owned: the notification targets a request
+      # the transport is serving, not application state.
+      cancel_request(message['params'])
+    elsif method.is_a?(String) && message.key?('id')
       serve(requests[method], message['id'], message['params'], method)
     elsif method.is_a?(String)
       # Run on the reader thread so notifications (session/update) keep their
@@ -136,7 +165,9 @@ class ACP::Transport::Stdio
   # @rbs method: String
   # @rbs return: void
   def serve(handler, id, params, method)
+    cancellation = register_serving(id)
     Thread.new do
+      Thread.current[SERVING_CANCEL] = cancellation
       outcome = handler ? invoke(handler, params) : ACP::RequestError.method_not_found(method)
       case outcome
       when ACP::Transport::Reply
@@ -144,7 +175,42 @@ class ACP::Transport::Stdio
         quietly('reply after callback', &outcome.after)
       else reply(id, outcome)
       end
+    ensure
+      unregister_serving(id)
     end
+  end
+
+  # Registered before the serve thread starts so a cancel racing the request
+  # cannot be missed, and dropped once the response is on the wire so later
+  # cancels for the id are ignored.
+  #
+  # @rbs id: untyped
+  # @rbs return: ACP::Transport::Cancellation
+  def register_serving(id)
+    cancellation = ACP::Transport::Cancellation.new
+    @lock.synchronize { @serving[id] = cancellation }
+    cancellation
+  end
+
+  # @rbs id: untyped
+  # @rbs return: void
+  def unregister_serving(id)
+    @lock.synchronize { @serving.delete(id) }
+  end
+
+  # A notification has no reply to carry a malformed params failure, so one
+  # is warned and dropped rather than answered.
+  #
+  # @rbs params: untyped
+  # @rbs return: void
+  def cancel_request(params)
+    id = params.is_a?(Hash) ? params['requestId'] : nil
+    unless id.is_a?(String) || id.is_a?(Integer)
+      return @logger.warn('dropped malformed $/cancel_request: missing requestId')
+    end
+
+    cancellation = @lock.synchronize { @serving[id] }
+    cancellation&.cancel
   end
 
   # For code with no reply to carry an error: a notification handler, or a

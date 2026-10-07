@@ -1,0 +1,19 @@
+# Generated from lib/acp/transport/cancellation.rb with RBS::Inline
+
+# Whether the peer cancelled one request. The transport creates one per served
+# request, marks it when the peer's $/cancel_request arrives, and hands it to
+# the serving thread, whose handler can observe it and end the request early.
+class ACP::Transport::Cancellation
+  @lock: Thread::Mutex
+
+  @cancelled: bool
+
+  # @rbs return: void
+  def initialize: () -> void
+
+  # @rbs return: void
+  def cancel: () -> void
+
+  # @rbs return: bool
+  def cancelled?: () -> bool
+end
