@@ -300,10 +300,9 @@ class ACP::ClientConnection
     @transport.notify(method, params)
   end
 
-  # Sends the provider's notification for an active mcp/message request.
-  # Whether the agent supports the binding is the agent's own advertisement,
-  # so this is not gated: a notification for a request the agent never sent
-  # is dropped on its side.
+  # Unlike the mcp/message serve route, this send is not gated: a notification
+  # has no reply to carry a refusal, and the agent drops what it did not
+  # advertise.
   #
   # @rbs notification: ACP::Types::Unstable::MessageMcpNotification
   # @rbs return: void
