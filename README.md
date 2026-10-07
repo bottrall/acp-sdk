@@ -11,7 +11,7 @@ Every ACP request, response and notification is a generated Ruby class under `AC
 
 ## Installation
 
-Requires Ruby 4.0 or later.
+Requires Ruby 3.4 or later (CI tests 3.4 and 4.0).
 
 Add the gem to your Gemfile:
 
