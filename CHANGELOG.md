@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/bottrall/acp-sdk/compare/v0.8.0...v0.9.0) (2026-10-07)
+
+
+### Features
+
+* $/cancel_request in ACP::Transport::Stdio ([#82](https://github.com/bottrall/acp-sdk/issues/82)) ([8679883](https://github.com/bottrall/acp-sdk/commit/86798837ce9e35949c7cc3770e52f3191d81bc6f))
+* opt-in types for the unstable schema ([#83](https://github.com/bottrall/acp-sdk/issues/83)) ([a49a5cc](https://github.com/bottrall/acp-sdk/commit/a49a5ccba84e599fc8fae95fe2336a4eb3169835))
+
 ## [0.8.0](https://github.com/bottrall/acp-sdk/compare/v0.7.0...v0.8.0) (2026-10-06)
 
 
