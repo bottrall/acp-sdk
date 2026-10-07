@@ -9,7 +9,7 @@ group :development, :test do
   gem 'rake', '~> 13.0'
 
   gem 'rubocop', '~> 1.91', require: false
-  gem 'rubocop-minitest', '~> 0.40', require: false
+  gem 'rubocop-minitest', '~> 0.41', require: false
   gem 'rubocop-performance', '~> 1.26', require: false
   gem 'rubocop-rake', '~> 0.7', require: false
 
