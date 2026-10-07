@@ -252,6 +252,13 @@ class ACP::ClientConnection
     @transport.request(method, params)
   end
 
+  # Always false off a handler thread.
+  #
+  # @rbs return: bool
+  def cancelled?
+    !!@transport.cancellation&.cancelled?
+  end
+
   # @rbs method: String
   # @rbs params: untyped
   # @rbs return: void
@@ -340,7 +347,11 @@ class ACP::ClientConnection
   else
     replies = Thread::Queue.new
     register_permission(request.session_id, replies)
+    # The handler runs on this connection's own thread, so the serving
+    # identity must be carried over for cancelled? to see the cancel there.
+    serving = @transport.cancellation
     Thread.new do
+      ACP::Transport::Cancellation.current = serving
       # A raised StandardError is not a returned ACP::RequestError, so the two
       # need distinct shapes on the queue.
       replies << begin

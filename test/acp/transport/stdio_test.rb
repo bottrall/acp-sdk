@@ -249,6 +249,56 @@ describe ACP::Transport::Stdio do
     assert_equal [:ok, { 'content' => 'A' }], outcome(pending)
   end
 
+  it 'cancels every pending outbound request at once' do
+    start
+    first = Thread.new { @transport.request('fs/read_text_file') }
+    first_id = receive_message.fetch('id')
+    second = Thread.new { @transport.request('session/request_permission') }
+    second_id = receive_message.fetch('id')
+    @transport.cancel_requests
+
+    assert_equal(
+      [
+        { 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => first_id } },
+        { 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => second_id } }
+      ],
+      [receive_message, receive_message].sort_by { |message| message['params'].fetch('requestId') }
+    )
+    send_message(
+      { 'jsonrpc' => '2.0', 'id' => first_id,
+        'error' => { 'code' => -32_800, 'message' => 'Request cancelled' } }
+    )
+    send_message(
+      { 'jsonrpc' => '2.0', 'id' => second_id,
+        'error' => { 'code' => -32_800, 'message' => 'Request cancelled' } }
+    )
+
+    assert_equal(
+      [
+        [:error, { 'code' => -32_800, 'message' => 'Request cancelled' }],
+        [:error, { 'code' => -32_800, 'message' => 'Request cancelled' }]
+      ],
+      [outcome(first), outcome(second)]
+    )
+  end
+
+  it 'does not cancel an outbound request that settled before cancel_requests' do
+    start
+    settled = Thread.new { @transport.request('fs/read_text_file') }
+    settled_id = receive_message.fetch('id')
+    send_message({ 'jsonrpc' => '2.0', 'id' => settled_id, 'result' => { 'content' => 'A' } })
+
+    assert_equal [:ok, { 'content' => 'A' }], outcome(settled)
+    @transport.cancel_requests
+    pending = Thread.new { @transport.request('session/request_permission') }
+    # The next message must be the new request itself, not a stale cancel for
+    # the settled id.
+    id = receive_message.fetch('id')
+    send_message({ 'jsonrpc' => '2.0', 'id' => id, 'result' => { 'outcome' => 'selected' } })
+
+    assert_equal [:ok, { 'outcome' => 'selected' }], outcome(pending)
+  end
+
   it 'dispatches inbound messages while a handler waits on its own outbound request' do
     session = { 'sessionId' => 'sess_1' }
     cancels = Thread::Queue.new

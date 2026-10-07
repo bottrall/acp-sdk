@@ -22,9 +22,6 @@ class ACP::Transport::Stdio
     code: ACP::RequestError::INTERNAL_ERROR, message: 'Connection closed'
   ) #: ACP::RequestError
 
-  SERVING_CANCEL = :acp_serving_cancellation #: Symbol
-  private_constant :SERVING_CANCEL
-
   # @rbs input: _Reader
   # @rbs output: _Writer
   # @rbs logger: ACP::Transport::_Logger
@@ -85,6 +82,14 @@ class ACP::Transport::Stdio
     notify('$/cancel_request', { 'requestId' => id }) if pending
   end
 
+  # Each id is re-checked against the pending table, so one that settled
+  # between the snapshot and its cancel is not cancelled.
+  #
+  # @rbs return: void
+  def cancel_requests
+    @lock.synchronize { @pending.keys }.each { |id| cancel(id) }
+  end
+
   # The cancellation of the request the calling thread is serving, or nil off
   # a serve thread. A handler observes the peer's $/cancel_request through it
   # and can end early with ACP::RequestError.request_cancelled; whatever it
@@ -92,7 +97,7 @@ class ACP::Transport::Stdio
   #
   # @rbs return: ACP::Transport::Cancellation?
   def cancellation
-    Thread.current[SERVING_CANCEL] #: ACP::Transport::Cancellation?
+    ACP::Transport::Cancellation.current
   end
 
   private
@@ -167,7 +172,7 @@ class ACP::Transport::Stdio
   def serve(handler, id, params, method)
     cancellation = register_serving(id)
     Thread.new do
-      Thread.current[SERVING_CANCEL] = cancellation
+      ACP::Transport::Cancellation.current = cancellation
       outcome = handler ? invoke(handler, params) : ACP::RequestError.method_not_found(method)
       case outcome
       when ACP::Transport::Reply

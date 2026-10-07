@@ -151,6 +151,11 @@ class ACP::ClientConnection
   # @rbs return: (Hash[String, untyped] | ACP::RequestError)
   def ext_request: (String method, ?untyped params) -> (Hash[String, untyped] | ACP::RequestError)
 
+  # Always false off a handler thread.
+  #
+  # @rbs return: bool
+  def cancelled?: () -> bool
+
   # @rbs method: String
   # @rbs params: untyped
   # @rbs return: void
