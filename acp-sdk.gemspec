@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
   spec.summary = 'A Ruby SDK for the Agent Client Protocol.'
   spec.homepage = 'https://github.com/bottrall/acp-sdk'
   spec.license = 'MIT'
-  spec.required_ruby_version = '>= 4.0'
+  spec.required_ruby_version = '>= 3.4'
   spec.metadata['rubygems_mfa_required'] = 'true'
   spec.metadata['changelog_uri'] = 'https://github.com/bottrall/acp-sdk/blob/main/CHANGELOG.md'
   spec.metadata['source_code_uri'] = spec.homepage
