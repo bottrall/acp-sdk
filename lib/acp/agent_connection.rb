@@ -106,9 +106,9 @@ class ACP::AgentConnection
     }.merge(unstable_requests(full))
   end
 
-  # The unstable request type is referenced while the hash is built, so without
-  # the guard start would raise NameError even for an agent that never
-  # advertises fork.
+  # The unstable request types are referenced while the hash is built, so
+  # without the guard start would raise NameError even for an agent that never
+  # advertises fork or providers.
   #
   # @rbs full: ACP::AgentConnection::_FullAgent
   # @rbs return: Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
@@ -116,18 +116,27 @@ class ACP::AgentConnection
     return {} unless defined?(ACP::Types::Unstable)
 
     {
-      'session/fork' => route(ACP::Types::Unstable::ForkSessionRequest) { |request| full.fork_session(request) }
+      'session/fork' => route(ACP::Types::Unstable::ForkSessionRequest) { |request| full.fork_session(request) },
+      'providers/list' => route(ACP::Types::Unstable::ListProvidersRequest) { |request| full.list_providers(request) },
+      'providers/set' => route(ACP::Types::Unstable::SetProviderRequest) { |request| full.set_provider(request) },
+      'providers/disable' => route(ACP::Types::Unstable::DisableProviderRequest) { |request| full.disable_provider(request) }
     }
   end
 
-  # ForkSession's advertised? references the unstable types, so it can only be
-  # probed when the caller opted in with `require 'acp/types/unstable'`.
+  # ForkSession's and the provider methods' advertised? reference the unstable
+  # types, so they can only be probed when the caller opted in with
+  # `require 'acp/types/unstable'`.
   #
   # @rbs return: Array[ACP::AgentConnection::_OptionalMethod]
   def optional_methods
     return OPTIONAL unless defined?(ACP::Types::Unstable)
 
-    OPTIONAL + [ACP::AgentConnection::OptionalMethod::ForkSession]
+    OPTIONAL + [
+      ACP::AgentConnection::OptionalMethod::ForkSession,
+      ACP::AgentConnection::OptionalMethod::ListProviders,
+      ACP::AgentConnection::OptionalMethod::SetProvider,
+      ACP::AgentConnection::OptionalMethod::DisableProvider
+    ]
   end
 
   # @rbs agent: ACP::AgentConnection::_Agent

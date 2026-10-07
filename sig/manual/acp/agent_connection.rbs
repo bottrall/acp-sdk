@@ -40,6 +40,18 @@ class ACP::AgentConnection
     def fork_session: (ACP::Types::Unstable::ForkSessionRequest) -> (ACP::Types::Unstable::ForkSessionResponse | ACP::RequestError)
   end
 
+  interface _ListProviders
+    def list_providers: (ACP::Types::Unstable::ListProvidersRequest) -> (ACP::Types::Unstable::ListProvidersResponse | ACP::RequestError)
+  end
+
+  interface _SetProvider
+    def set_provider: (ACP::Types::Unstable::SetProviderRequest) -> (ACP::Types::Unstable::SetProviderResponse | ACP::RequestError)
+  end
+
+  interface _DisableProvider
+    def disable_provider: (ACP::Types::Unstable::DisableProviderRequest) -> (ACP::Types::Unstable::DisableProviderResponse | ACP::RequestError)
+  end
+
   interface _ChangeSessionMode
     def change_session_mode: (ACP::Types::SetSessionModeRequest) -> (ACP::Types::SetSessionModeResponse | ACP::RequestError)
   end
@@ -58,6 +70,9 @@ class ACP::AgentConnection
     include _DeleteSession
     include _Logout
     include _ForkSession
+    include _ListProviders
+    include _SetProvider
+    include _DisableProvider
     include _ChangeSessionMode
     include _ChangeSessionConfigOption
   end

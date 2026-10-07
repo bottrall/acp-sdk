@@ -67,6 +67,40 @@ class ForkAgent
   end
 end
 
+class ProvidersAgent
+  def initialize(client)
+    @client = client
+  end
+
+  def new_session(_request)
+    ACP::Types::NewSessionResponse.new(session_id: 'sess_new')
+  end
+
+  def prompt(_request)
+    ACP::Types::PromptResponse.new(stop_reason: 'end_turn')
+  end
+
+  def cancel(_notification); end
+
+  def list_providers(_request)
+    ACP::Types::Unstable::ListProvidersResponse.new(
+      providers: [ACP::Types::Unstable::ProviderInfo.new(
+        provider_id: 'anthropic', supported: ['anthropic'], required: false
+      )]
+    )
+  end
+
+  # define_method, not def: the name is the wire-mandated set_provider, which
+  # Naming/AccessorMethodName would flag on a def with one required argument.
+  define_method(:set_provider) do |_request|
+    ACP::Types::Unstable::SetProviderResponse.new
+  end
+
+  def disable_provider(_request)
+    ACP::Types::Unstable::DisableProviderResponse.new
+  end
+end
+
 class ModesAgent
   def change_session_mode(request)
     return ACP::RequestError.new(code: -32_000, message: 'No such mode') unless request.mode_id == 'code'
@@ -441,6 +475,59 @@ describe ACP::ClientConnection do
       end
 
       assert_equal({ 'sessionId' => 'sess_forked' }, response.to_h)
+    end
+  end
+
+  describe 'configuring providers' do
+    before do
+      agent_input, @client_output = IO.pipe
+      @client_input, @agent_output = IO.pipe
+      @pipes = [agent_input, @client_output, @client_input, @agent_output]
+      @agent_reader = ACP::AgentConnection.new(
+        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
+        capabilities: ACP::Types::Unstable::AgentCapabilities.new(
+          providers: ACP::Types::Unstable::ProvidersCapabilities.new
+        )
+      ) { |client| ProvidersAgent.new(client) }.start
+      @connection = ACP::ClientConnection.new(
+        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
+        permission: ->(_request) {}
+      )
+      @client_reader = @connection.start
+    end
+
+    after do
+      @client_output.close
+      @agent_reader.join(2)
+      @agent_output.close
+      @client_reader.join(2)
+      @pipes.reject(&:closed?).each(&:close)
+    end
+
+    it 'lists providers' do
+      response = within { @connection.providers_list(ACP::Types::Unstable::ListProvidersRequest.new) }
+
+      assert_equal(
+        { 'providers' => [{ 'providerId' => 'anthropic', 'supported' => ['anthropic'], 'required' => false }] },
+        response.to_h
+      )
+    end
+
+    it 'sets a provider' do
+      request = ACP::Types::Unstable::SetProviderRequest.new(
+        provider_id: 'anthropic', api_type: 'anthropic', base_url: 'https://api.example.com'
+      )
+      response = within { @connection.providers_set(request) }
+
+      assert_equal({}, response.to_h)
+    end
+
+    it 'disables a provider' do
+      response = within do
+        @connection.providers_disable(ACP::Types::Unstable::DisableProviderRequest.new(provider_id: 'anthropic'))
+      end
+
+      assert_equal({}, response.to_h)
     end
   end
 
