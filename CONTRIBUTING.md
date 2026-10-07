@@ -11,7 +11,7 @@ Every project chore is a script in `bin/`. The Rakefile behind them is an implem
 | `bin/lint`      | Run RuboCop. Arguments are forwarded, e.g. `bin/lint -a`                                                       |
 | `bin/typecheck` | Check `lib/acp/types`, the rbs collection lockfile and `sig/generated` are current, then type-check with Steep |
 | `bin/rbs`       | Regenerate `sig/generated` from the inline annotations in `lib/`                                               |
-| `bin/types`     | Regenerate `lib/acp/types` from `schema/schema.json`, then `sig/generated`                                     |
+| `bin/types`     | Regenerate `lib/acp/types` from `schema/schema.json` and `schema/schema.unstable.json`, then `sig/generated`    |
 | `bin/rbs-watch` | Regenerate `sig/generated` whenever `lib/` changes                                                             |
 | `bin/ci`        | Run everything CI runs, serially. Use before pushing                                                           |
 | `bin/build`     | Build the gem into `pkg/`; the publish workflow runs this before `gem push`                                    |

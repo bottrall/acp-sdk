@@ -1,0 +1,7 @@
+# Generated from lib/acp/types/unstable/text_document_sync_kind.rb with RBS::Inline
+
+module ACP::Types::Unstable::TextDocumentSyncKind
+  FULL: ::String
+
+  INCREMENTAL: ::String
+end

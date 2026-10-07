@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/mcp_server/acp.rb with RBS::Inline
+
+class ACP::Types::Unstable::McpServer::Acp
+  # @dynamic name
+  attr_reader name: String
+
+  # @dynamic server_id
+  attr_reader server_id: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs name: String
+  # @rbs server_id: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (name: String, server_id: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::McpServer::Acp
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::McpServer::Acp
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

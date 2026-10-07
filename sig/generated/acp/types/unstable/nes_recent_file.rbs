@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/unstable/nes_recent_file.rb with RBS::Inline
+
+class ACP::Types::Unstable::NesRecentFile
+  # @dynamic uri
+  attr_reader uri: String
+
+  # @dynamic language_id
+  attr_reader language_id: String
+
+  # @dynamic text
+  attr_reader text: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs uri: String
+  # @rbs language_id: String
+  # @rbs text: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (uri: String, language_id: String, text: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::NesRecentFile
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::NesRecentFile
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

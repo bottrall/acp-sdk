@@ -1,0 +1,37 @@
+# Generated from lib/acp/types/unstable/nes_document_event_capabilities.rb with RBS::Inline
+
+class ACP::Types::Unstable::NesDocumentEventCapabilities
+  # @dynamic did_open
+  attr_reader did_open: ACP::Types::Unstable::NesDocumentDidOpenCapabilities?
+
+  # @dynamic did_change
+  attr_reader did_change: ACP::Types::Unstable::NesDocumentDidChangeCapabilities?
+
+  # @dynamic did_close
+  attr_reader did_close: ACP::Types::Unstable::NesDocumentDidCloseCapabilities?
+
+  # @dynamic did_save
+  attr_reader did_save: ACP::Types::Unstable::NesDocumentDidSaveCapabilities?
+
+  # @dynamic did_focus
+  attr_reader did_focus: ACP::Types::Unstable::NesDocumentDidFocusCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs did_open: ACP::Types::Unstable::NesDocumentDidOpenCapabilities?
+  # @rbs did_change: ACP::Types::Unstable::NesDocumentDidChangeCapabilities?
+  # @rbs did_close: ACP::Types::Unstable::NesDocumentDidCloseCapabilities?
+  # @rbs did_save: ACP::Types::Unstable::NesDocumentDidSaveCapabilities?
+  # @rbs did_focus: ACP::Types::Unstable::NesDocumentDidFocusCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?did_open: ACP::Types::Unstable::NesDocumentDidOpenCapabilities?, ?did_change: ACP::Types::Unstable::NesDocumentDidChangeCapabilities?, ?did_close: ACP::Types::Unstable::NesDocumentDidCloseCapabilities?, ?did_save: ACP::Types::Unstable::NesDocumentDidSaveCapabilities?, ?did_focus: ACP::Types::Unstable::NesDocumentDidFocusCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::NesDocumentEventCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::NesDocumentEventCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

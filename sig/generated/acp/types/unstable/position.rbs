@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/position.rb with RBS::Inline
+
+class ACP::Types::Unstable::Position
+  # @dynamic line
+  attr_reader line: Integer
+
+  # @dynamic character
+  attr_reader character: Integer
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs line: Integer
+  # @rbs character: Integer
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (line: Integer, character: Integer, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::Position
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::Position
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

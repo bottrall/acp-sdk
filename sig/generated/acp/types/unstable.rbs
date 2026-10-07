@@ -1,0 +1,4 @@
+# Generated from lib/acp/types/unstable.rb with RBS::Inline
+
+module ACP::Types::Unstable
+end

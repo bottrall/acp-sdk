@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/unstable/start_nes_request.rb with RBS::Inline
+
+class ACP::Types::Unstable::StartNesRequest
+  # @dynamic workspace_uri
+  attr_reader workspace_uri: String?
+
+  # @dynamic workspace_folders
+  attr_reader workspace_folders: Array[ACP::Types::Unstable::WorkspaceFolder]?
+
+  # @dynamic repository
+  attr_reader repository: ACP::Types::Unstable::NesRepository?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs workspace_uri: String?
+  # @rbs workspace_folders: Array[ACP::Types::Unstable::WorkspaceFolder]?
+  # @rbs repository: ACP::Types::Unstable::NesRepository?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?workspace_uri: String?, ?workspace_folders: Array[ACP::Types::Unstable::WorkspaceFolder]?, ?repository: ACP::Types::Unstable::NesRepository?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::StartNesRequest
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::StartNesRequest
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

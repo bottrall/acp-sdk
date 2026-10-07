@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/unstable/nes_suggestion/jump.rb with RBS::Inline
+
+class ACP::Types::Unstable::NesSuggestion::Jump
+  # @dynamic id
+  attr_reader id: String
+
+  # @dynamic uri
+  attr_reader uri: String
+
+  # @dynamic position
+  attr_reader position: ACP::Types::Unstable::Position
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs id: String
+  # @rbs uri: String
+  # @rbs position: ACP::Types::Unstable::Position
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (id: String, uri: String, position: ACP::Types::Unstable::Position, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::NesSuggestion::Jump
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::NesSuggestion::Jump
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

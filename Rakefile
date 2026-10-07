@@ -18,7 +18,8 @@ RuboCop::RakeTask.new do |t|
 end
 
 def write_types(dir)
-  TypeGenerator.files(JSON.parse(File.read('schema/schema.json'))).each do |path, source|
+  schemas = [JSON.parse(File.read('schema/schema.json')), JSON.parse(File.read('schema/schema.unstable.json'))]
+  TypeGenerator.files(*schemas).each do |path, source|
     target = File.join(dir, path)
     mkdir_p File.dirname(target), verbose: false
     File.write(target, source)
@@ -26,13 +27,13 @@ def write_types(dir)
 end
 
 namespace :types do
-  desc 'Generate lib/acp/types from schema/schema.json'
+  desc 'Generate lib/acp/types from schema/schema.json and schema/schema.unstable.json'
   task :generate do
     rm_rf 'lib/acp/types', verbose: false
     write_types('lib/acp/types')
   end
 
-  desc 'Fail if lib/acp/types is out of date with schema/schema.json'
+  desc 'Fail if lib/acp/types is out of date with the vendored schemas'
   task :check do
     Dir.mktmpdir('types-check') do |dir|
       write_types(dir)

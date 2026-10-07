@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/unstable/session_update/plan_update.rb with RBS::Inline
+
+class ACP::Types::Unstable::SessionUpdate::PlanUpdate
+  # @dynamic plan
+  attr_reader plan: ACP::Types::Unstable::PlanUpdateContent::t
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs plan: ACP::Types::Unstable::PlanUpdateContent::t
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (plan: ACP::Types::Unstable::PlanUpdateContent::t, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SessionUpdate::PlanUpdate
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SessionUpdate::PlanUpdate
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

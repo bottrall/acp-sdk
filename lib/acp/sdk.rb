@@ -9,5 +9,7 @@ root = __dir__ #: String
 loader = Zeitwerk::Loader.new
 loader.tag = 'acp-sdk'
 loader.push_dir(root, namespace: ACP)
-loader.ignore(__FILE__, "#{root}/version.rb")
+# The unstable types load only through `require 'acp/types/unstable'`, so
+# Zeitwerk must not map them.
+loader.ignore(__FILE__, "#{root}/version.rb", "#{root}/types/unstable.rb", "#{root}/types/unstable")
 loader.setup

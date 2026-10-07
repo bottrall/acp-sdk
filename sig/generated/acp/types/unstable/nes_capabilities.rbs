@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/nes_capabilities.rb with RBS::Inline
+
+class ACP::Types::Unstable::NesCapabilities
+  # @dynamic events
+  attr_reader events: ACP::Types::Unstable::NesEventCapabilities?
+
+  # @dynamic context
+  attr_reader context: ACP::Types::Unstable::NesContextCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs events: ACP::Types::Unstable::NesEventCapabilities?
+  # @rbs context: ACP::Types::Unstable::NesContextCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?events: ACP::Types::Unstable::NesEventCapabilities?, ?context: ACP::Types::Unstable::NesContextCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::NesCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::NesCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/unstable/nes_document_did_change_capabilities.rb with RBS::Inline
+
+class ACP::Types::Unstable::NesDocumentDidChangeCapabilities
+  # @dynamic sync_kind
+  attr_reader sync_kind: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs sync_kind: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (sync_kind: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::NesDocumentDidChangeCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::NesDocumentDidChangeCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

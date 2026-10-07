@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/workspace_folder.rb with RBS::Inline
+
+class ACP::Types::Unstable::WorkspaceFolder
+  # @dynamic uri
+  attr_reader uri: String
+
+  # @dynamic name
+  attr_reader name: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs uri: String
+  # @rbs name: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (uri: String, name: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::WorkspaceFolder
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::WorkspaceFolder
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

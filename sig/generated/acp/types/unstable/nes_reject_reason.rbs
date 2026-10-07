@@ -1,0 +1,11 @@
+# Generated from lib/acp/types/unstable/nes_reject_reason.rb with RBS::Inline
+
+module ACP::Types::Unstable::NesRejectReason
+  REJECTED: ::String
+
+  IGNORED: ::String
+
+  REPLACED: ::String
+
+  CANCELLED: ::String
+end

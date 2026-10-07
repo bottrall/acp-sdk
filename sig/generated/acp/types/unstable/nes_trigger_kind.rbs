@@ -1,0 +1,9 @@
+# Generated from lib/acp/types/unstable/nes_trigger_kind.rb with RBS::Inline
+
+module ACP::Types::Unstable::NesTriggerKind
+  AUTOMATIC: ::String
+
+  DIAGNOSTIC: ::String
+
+  MANUAL: ::String
+end

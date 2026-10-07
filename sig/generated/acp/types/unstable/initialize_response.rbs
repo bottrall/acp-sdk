@@ -1,0 +1,33 @@
+# Generated from lib/acp/types/unstable/initialize_response.rb with RBS::Inline
+
+class ACP::Types::Unstable::InitializeResponse
+  # @dynamic protocol_version
+  attr_reader protocol_version: Integer
+
+  # @dynamic agent_capabilities
+  attr_reader agent_capabilities: ACP::Types::Unstable::AgentCapabilities?
+
+  # @dynamic auth_methods
+  attr_reader auth_methods: Array[ACP::Types::AuthMethod::t]?
+
+  # @dynamic agent_info
+  attr_reader agent_info: ACP::Types::Implementation?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs protocol_version: Integer
+  # @rbs agent_capabilities: ACP::Types::Unstable::AgentCapabilities?
+  # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]?
+  # @rbs agent_info: ACP::Types::Implementation?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (protocol_version: Integer, ?agent_capabilities: ACP::Types::Unstable::AgentCapabilities?, ?auth_methods: Array[ACP::Types::AuthMethod::t]?, ?agent_info: ACP::Types::Implementation?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::InitializeResponse
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::InitializeResponse
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

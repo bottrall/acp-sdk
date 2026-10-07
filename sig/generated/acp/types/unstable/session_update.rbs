@@ -1,0 +1,9 @@
+# Generated from lib/acp/types/unstable/session_update.rb with RBS::Inline
+
+module ACP::Types::Unstable::SessionUpdate
+  type t = ACP::Types::Unstable::SessionUpdate::UserMessageChunk | ACP::Types::Unstable::SessionUpdate::AgentMessageChunk | ACP::Types::Unstable::SessionUpdate::AgentThoughtChunk | ACP::Types::Unstable::SessionUpdate::ToolCall | ACP::Types::Unstable::SessionUpdate::ToolCallUpdate | ACP::Types::Unstable::SessionUpdate::Plan | ACP::Types::Unstable::SessionUpdate::PlanUpdate | ACP::Types::Unstable::SessionUpdate::PlanRemoved | ACP::Types::Unstable::SessionUpdate::AvailableCommandsUpdate | ACP::Types::Unstable::SessionUpdate::CurrentModeUpdate | ACP::Types::Unstable::SessionUpdate::ConfigOptionUpdate | ACP::Types::Unstable::SessionUpdate::SessionInfoUpdate | ACP::Types::Unstable::SessionUpdate::UsageUpdate | ACP::Types::Unstable::SessionUpdate::Notice | ACP::Types::Unstable::SessionUpdate::CompactionUpdate | ACP::Types::Unstable::SessionUpdate::CompactionSummaryChunk | ACP::Types::Unstable::SessionUpdate::SubagentUpdate | ACP::Types::Unstable::SessionUpdate::SessionMessage | ACP::Types::Unstable::SessionUpdate::SessionMessageChunk | Hash[String, untyped]
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: t
+  def self.from_h: (Hash[String, untyped] hash) -> t
+end

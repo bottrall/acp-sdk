@@ -1,0 +1,49 @@
+# Generated from lib/acp/types/unstable/agent_capabilities.rb with RBS::Inline
+
+class ACP::Types::Unstable::AgentCapabilities
+  # @dynamic load_session
+  attr_reader load_session: bool?
+
+  # @dynamic prompt_capabilities
+  attr_reader prompt_capabilities: ACP::Types::PromptCapabilities?
+
+  # @dynamic mcp_capabilities
+  attr_reader mcp_capabilities: ACP::Types::Unstable::McpCapabilities?
+
+  # @dynamic session_capabilities
+  attr_reader session_capabilities: ACP::Types::Unstable::SessionCapabilities?
+
+  # @dynamic auth
+  attr_reader auth: ACP::Types::AgentAuthCapabilities?
+
+  # @dynamic providers
+  attr_reader providers: ACP::Types::Unstable::ProvidersCapabilities?
+
+  # @dynamic nes
+  attr_reader nes: ACP::Types::Unstable::NesCapabilities?
+
+  # @dynamic position_encoding
+  attr_reader position_encoding: String?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs load_session: bool?
+  # @rbs prompt_capabilities: ACP::Types::PromptCapabilities?
+  # @rbs mcp_capabilities: ACP::Types::Unstable::McpCapabilities?
+  # @rbs session_capabilities: ACP::Types::Unstable::SessionCapabilities?
+  # @rbs auth: ACP::Types::AgentAuthCapabilities?
+  # @rbs providers: ACP::Types::Unstable::ProvidersCapabilities?
+  # @rbs nes: ACP::Types::Unstable::NesCapabilities?
+  # @rbs position_encoding: String?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?load_session: bool?, ?prompt_capabilities: ACP::Types::PromptCapabilities?, ?mcp_capabilities: ACP::Types::Unstable::McpCapabilities?, ?session_capabilities: ACP::Types::Unstable::SessionCapabilities?, ?auth: ACP::Types::AgentAuthCapabilities?, ?providers: ACP::Types::Unstable::ProvidersCapabilities?, ?nes: ACP::Types::Unstable::NesCapabilities?, ?position_encoding: String?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::AgentCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::AgentCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

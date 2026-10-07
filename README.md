@@ -111,6 +111,18 @@ connection = ACP::ClientConnection.new(
 
 Extensions work the same way in both directions: `extension_requests` and `extension_notifications` are hashes keyed by the raw `_`-prefixed wire name, `ext_request` sends one to the agent and returns its result as-is, and `ext_notify` sends an extension notification. A handler name without the `_` prefix raises `ArgumentError`, and an extension request nothing answers gets `-32601`.
 
+## Unstable types
+
+Some protocol features are not part of the spec yet, so their schema lives in a separate unstable file: draft session updates (`plan_update`, `plan_removed`, `notice`, `compaction_update`, `compaction_summary_chunk`, `subagent_update`, `session_message`, `session_message_chunk`), `PromptResponse#usage`, the NE (next edit) and provider methods, and the matching capabilities. They are generated under `ACP::Types::Unstable` and load only when you opt in:
+
+```ruby
+require 'acp/types/unstable'
+```
+
+Until then, referencing `ACP::Types::Unstable` is a `NameError`, and the stable `ACP::Types` namespace is byte-identical either way: types the unstable schema shares with the stable one resolve to the same generated classes, so opting in adds names without changing or duplicating any stable one.
+
+These types are **unstable**: they are not part of the ACP spec, agents and clients must not rely on the peer supporting them, and any of them may change or disappear between releases without a major version bump. When a stable schema absorbs one of them, the unstable twin goes away and the stable name stays.
+
 ## Contributing
 
 Bug reports and pull requests are welcome on [GitHub](https://github.com/bottrall/acp-sdk). See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and workflow. Everyone interacting in the project is expected to follow the [code of conduct](CODE_OF_CONDUCT.md).

@@ -1,0 +1,33 @@
+# Generated from lib/acp/types/unstable/fork_session_request.rb with RBS::Inline
+
+class ACP::Types::Unstable::ForkSessionRequest
+  # @dynamic session_id
+  attr_reader session_id: String
+
+  # @dynamic cwd
+  attr_reader cwd: String
+
+  # @dynamic additional_directories
+  attr_reader additional_directories: Array[String]?
+
+  # @dynamic mcp_servers
+  attr_reader mcp_servers: Array[ACP::Types::Unstable::McpServer::t]?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs session_id: String
+  # @rbs cwd: String
+  # @rbs additional_directories: Array[String]?
+  # @rbs mcp_servers: Array[ACP::Types::Unstable::McpServer::t]?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (session_id: String, cwd: String, ?additional_directories: Array[String]?, ?mcp_servers: Array[ACP::Types::Unstable::McpServer::t]?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::ForkSessionRequest
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::ForkSessionRequest
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

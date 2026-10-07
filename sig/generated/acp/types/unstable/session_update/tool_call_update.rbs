@@ -1,0 +1,53 @@
+# Generated from lib/acp/types/unstable/session_update/tool_call_update.rb with RBS::Inline
+
+class ACP::Types::Unstable::SessionUpdate::ToolCallUpdate
+  # @dynamic tool_call_id
+  attr_reader tool_call_id: String
+
+  # @dynamic kind
+  attr_reader kind: String?
+
+  # @dynamic status
+  attr_reader status: String?
+
+  # @dynamic title
+  attr_reader title: String?
+
+  # @dynamic name
+  attr_reader name: String?
+
+  # @dynamic content
+  attr_reader content: Array[ACP::Types::ToolCallContent::t]?
+
+  # @dynamic locations
+  attr_reader locations: Array[ACP::Types::ToolCallLocation]?
+
+  # @dynamic raw_input
+  attr_reader raw_input: untyped
+
+  # @dynamic raw_output
+  attr_reader raw_output: untyped
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs tool_call_id: String
+  # @rbs kind: String?
+  # @rbs status: String?
+  # @rbs title: String?
+  # @rbs name: String?
+  # @rbs content: Array[ACP::Types::ToolCallContent::t]?
+  # @rbs locations: Array[ACP::Types::ToolCallLocation]?
+  # @rbs raw_input: untyped
+  # @rbs raw_output: untyped
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (tool_call_id: String, ?kind: String?, ?status: String?, ?title: String?, ?name: String?, ?content: Array[ACP::Types::ToolCallContent::t]?, ?locations: Array[ACP::Types::ToolCallLocation]?, ?raw_input: untyped, ?raw_output: untyped, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SessionUpdate::ToolCallUpdate
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SessionUpdate::ToolCallUpdate
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end
