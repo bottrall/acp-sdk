@@ -25,6 +25,10 @@ class ACP::ClientConnection
 
   @updates: ACP::ClientConnection::_UpdateHandler
 
+  @mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
+
+  @mcp_advertised: bool?
+
   @fs_capabilities: ACP::Types::FileSystemCapabilities?
 
   @terminal: bool?
@@ -65,11 +69,13 @@ class ACP::ClientConnection
   #   (ACP::Types::CreateElicitationResponse | ACP::RequestError))?
   # @rbs complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
+  # @rbs mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) ->
+  #   (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
   # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
-  def initialize: (transport: ACP::AgentConnection::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?, ?write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?, ?create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?, ?terminal_output: (^(ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError))?, ?wait_for_terminal_exit: (^(ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?, ?kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?, ?release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?, ?elicitation: (^(ACP::Types::CreateElicitationRequest) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError))?, ?complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?, ?updates: ACP::ClientConnection::_UpdateHandler, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) -> void
+  def initialize: (transport: ACP::AgentConnection::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?, ?write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?, ?create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?, ?terminal_output: (^(ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError))?, ?wait_for_terminal_exit: (^(ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?, ?kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?, ?release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?, ?elicitation: (^(ACP::Types::CreateElicitationRequest) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError))?, ?complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?, ?updates: ACP::ClientConnection::_UpdateHandler, ?mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) -> void
 
   # @rbs return: Thread
   def start: () -> Thread
@@ -177,7 +183,30 @@ class ACP::ClientConnection
   # @rbs return: void
   def ext_notify: (String method, ?untyped params) -> void
 
+  # Sends the provider's notification for an active mcp/message request.
+  # Whether the agent supports the binding is the agent's own advertisement,
+  # so this is not gated: a notification for a request the agent never sent
+  # is dropped on its side.
+  #
+  # @rbs notification: ACP::Types::Unstable::MessageMcpNotification
+  # @rbs return: void
+  def mcp_message_notification: (ACP::Types::Unstable::MessageMcpNotification notification) -> void
+
   private
+
+  # The route is only registered when a handler serves it, but the agent's
+  # advertisement is only known after connect, so an unadvertised request
+  # still reaches the route and is refused there.
+  #
+  # @rbs return: Hash[String, ACP::Transport::Stdio::_Handler]
+  def mcp_requests: () -> Hash[String, ACP::Transport::Stdio::_Handler]
+
+  # The stable McpCapabilities has no acp field, so the gate re-reads the raw
+  # initialize reply with the unstable types when they are opted into.
+  #
+  # @rbs result: (Hash[String, untyped] | ACP::RequestError)
+  # @rbs return: bool
+  def agent_mcp_advertised?: (Hash[String, untyped] | ACP::RequestError result) -> bool
 
   # @rbs type: ACP::AgentConnection::_Parser
   # @rbs result: (Hash[String, untyped] | ACP::RequestError)
@@ -257,6 +286,13 @@ class ACP::ClientConnection
   # @rbs params: untyped
   # @rbs return: (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
   def release_terminal: (untyped params) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
+
+  # The route is registered at start, before connect records the agent's
+  # advertisement, so an unadvertised request answers -32601 until then.
+  #
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
+  def mcp_message: (untyped params) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
 
   # The routes are registered at start, before connect records the advertised
   # capabilities, so a request for an unadvertised mode answers -32602.

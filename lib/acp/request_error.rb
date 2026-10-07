@@ -82,6 +82,16 @@ class ACP::RequestError
     new(code: INVALID_PARAMS, message: "Client does not advertise #{mode}")
   end
 
+  # unadvertised names a capability of the client's, this one a capability of
+  # the agent's: the same method-not-found code, with a message naming which
+  # side's advertisement is missing.
+  #
+  # @rbs capability: String
+  # @rbs return: ACP::RequestError
+  def self.unadvertised_agent(capability)
+    new(code: METHOD_NOT_FOUND, message: "Agent does not advertise #{capability}")
+  end
+
   # @rbs return: ACP::RequestError
   def self.internal_error
     new(code: INTERNAL_ERROR, message: 'Internal error')

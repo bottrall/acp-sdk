@@ -27,6 +27,6 @@ class ACP::Types::Unstable::MessageMcpResponse::Result
 
   # @rbs return: Hash[String, untyped]
   def to_h
-    { 'result' => result, '_meta' => meta }.compact
+    { '_meta' => meta }.compact.merge('result' => result)
   end
 end

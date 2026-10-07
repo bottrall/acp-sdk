@@ -73,6 +73,20 @@ class ACP::AgentConnection
   # @rbs return: void
   def cancel: (ACP::AgentConnection::_Agent agent, untyped params) -> void
 
+  # The unstable gates reference the unstable types, so they can only be
+  # probed when the caller opted in with `require 'acp/types/unstable'`; the
+  # stable McpCapabilities has no acp field at all.
+  #
+  # @rbs return: bool
+  def mcp_acp_advertised?: () -> bool
+
+  # A notification has no reply to carry a parse failure.
+  #
+  # @rbs agent: ACP::AgentConnection::_Agent
+  # @rbs params: untyped
+  # @rbs return: void
+  def mcp_message_notification: (ACP::AgentConnection::_Agent agent, untyped params) -> void
+
   # Generated from_h raises on a missing key or a value of the wrong shape.
   #
   # @rbs type: ACP::AgentConnection::_Parser

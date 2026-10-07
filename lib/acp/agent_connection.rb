@@ -61,7 +61,7 @@ class ACP::AgentConnection
 
   # @rbs return: Thread
   def start
-    client = ACP::AgentConnection::Client.new(peer: @transport)
+    client = ACP::AgentConnection::Client.new(peer: @transport, mcp_advertised: mcp_acp_advertised?)
     agent = @factory.call(client)
     # Routes are fixed before a client connects, so the check sees the
     # unfiltered auth methods: a terminal-capable client still needs
@@ -71,6 +71,10 @@ class ACP::AgentConnection
     end
     missing = advertised.map(&:agent_method).reject { |name| agent.respond_to?(name) }
     raise ArgumentError, "initialize advertises methods the agent lacks: #{missing.join(', ')}" unless missing.empty?
+
+    if mcp_acp_advertised? && !agent.respond_to?(:mcp_message_notification)
+      raise ArgumentError, 'initialize advertises mcpCapabilities.acp but the agent lacks mcp_message_notification'
+    end
 
     unrouted = unadvertised.map(&:rpc_method) + PER_SESSION.reject { |_, name| agent.respond_to?(name) }.keys
     @transport.start(
@@ -142,7 +146,10 @@ class ACP::AgentConnection
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs return: Hash[String, ^(untyped) -> void]
   def notifications(agent)
-    { 'session/cancel' => ->(params) { cancel(agent, params) } }
+    routes = { 'session/cancel' => ->(params) { cancel(agent, params) } }
+    return routes unless mcp_acp_advertised?
+
+    routes.merge('mcp/message' => ->(params) { mcp_message_notification(agent, params) })
   end
 
   # A notification has no reply to carry a parse failure.
@@ -156,6 +163,34 @@ class ACP::AgentConnection
     @logger.warn("dropped malformed session/cancel: #{e.class}: #{e.message}")
   else
     agent.cancel(notification)
+  end
+
+  # The unstable gates reference the unstable types, so they can only be
+  # probed when the caller opted in with `require 'acp/types/unstable'`; the
+  # stable McpCapabilities has no acp field at all.
+  #
+  # @rbs return: bool
+  def mcp_acp_advertised?
+    return false unless defined?(ACP::Types::Unstable)
+
+    mcp = @capabilities.mcp_capabilities #: ACP::Types::McpCapabilities | ACP::Types::Unstable::McpCapabilities?
+    return false unless mcp.is_a?(ACP::Types::Unstable::McpCapabilities)
+
+    mcp.acp ? true : false
+  end
+
+  # A notification has no reply to carry a parse failure.
+  #
+  # @rbs agent: ACP::AgentConnection::_Agent
+  # @rbs params: untyped
+  # @rbs return: void
+  def mcp_message_notification(agent, params)
+    notification = ACP::Types::Unstable::MessageMcpNotification.from_h(params)
+  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError => e
+    @logger.warn("dropped malformed mcp/message: #{e.class}: #{e.message}")
+  else
+    hook = agent #: ACP::AgentConnection::_Agent & ACP::AgentConnection::_McpMessageNotification
+    hook.mcp_message_notification(notification)
   end
 
   # Generated from_h raises on a missing key or a value of the wrong shape.

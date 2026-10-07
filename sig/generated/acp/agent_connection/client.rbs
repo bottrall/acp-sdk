@@ -1,14 +1,17 @@
 # Generated from lib/acp/agent_connection/client.rb with RBS::Inline
 
 class ACP::AgentConnection::Client
+  @mcp_advertised: bool
+
   @peer: ACP::AgentConnection::_Peer
 
   # @dynamic capabilities, capabilities=
   attr_accessor capabilities: ACP::Types::ClientCapabilities?
 
   # @rbs peer: ACP::AgentConnection::_Peer
+  # @rbs mcp_advertised: bool
   # @rbs return: void
-  def initialize: (peer: ACP::AgentConnection::_Peer) -> void
+  def initialize: (peer: ACP::AgentConnection::_Peer, ?mcp_advertised: bool) -> void
 
   # @rbs session_id: String
   # @rbs update: ACP::Types::SessionUpdate::t
@@ -70,6 +73,14 @@ class ACP::AgentConnection::Client
   # @rbs notification: ACP::Types::CompleteElicitationNotification
   # @rbs return: void
   def complete_elicitation: (ACP::Types::CompleteElicitationNotification notification) -> void
+
+  # Sends one inner MCP operation to the client's declared ACP MCP server and
+  # returns its outcome carrier: a result (possibly null), an inner MCP error,
+  # or the raw reply when it matches neither branch.
+  #
+  # @rbs request: ACP::Types::Unstable::MessageMcpRequest
+  # @rbs return: (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
+  def mcp_message: (ACP::Types::Unstable::MessageMcpRequest request) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
 
   # Sends an extension request, keyed by its raw `_`-prefixed wire name, and
   # returns the client's reply as-is: extension methods have no schema to

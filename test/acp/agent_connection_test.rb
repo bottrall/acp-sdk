@@ -60,6 +60,32 @@ class FullAgent < SimpleDelegator
   end
 end
 
+# Sends one mcp/message request per prompt turn and records the reply it gets,
+# so the test can inspect the parsed outcome; the prompt text is otherwise
+# unused.
+class McpAgent < SimpleDelegator
+  attr_reader :reply, :notifications
+
+  def initialize(agent, client)
+    super(agent)
+    @client = client
+    @notifications = []
+  end
+
+  def prompt(_request)
+    @reply = @client.mcp_message(
+      ACP::Types::Unstable::MessageMcpRequest.new(
+        server_id: 'srv_1', request_id: 'mcp_1', method: 'tools/call', params: { 'name' => 'echo' }
+      )
+    )
+    ACP::Types::PromptResponse.new(stop_reason: 'end_turn')
+  end
+
+  def mcp_message_notification(notification)
+    @notifications << notification
+  end
+end
+
 describe ACP::AgentConnection do
   let(:token) { ACP::Types::AuthMethodAgent.new(id: 'token', name: 'Token') }
   let(:terminal_method) { ACP::Types::AuthMethod::Terminal.new(id: 'terminal', name: 'Terminal') }
@@ -85,6 +111,10 @@ describe ACP::AgentConnection do
     ACP::Types::Unstable::AgentCapabilities.new(providers: ACP::Types::Unstable::ProvidersCapabilities.new)
   end
 
+  def acp_capabilities
+    ACP::Types::AgentCapabilities.new(mcp_capabilities: ACP::Types::Unstable::McpCapabilities.new(acp: true))
+  end
+
   before do
     @input, @peer_writer = IO.pipe
     @peer_reader, @output = IO.pipe
@@ -103,6 +133,7 @@ describe ACP::AgentConnection do
     capabilities: EchoAgent::CAPABILITIES,
     auth_methods: [],
     full: true,
+    mcp: false,
     extension_requests: {},
     extension_notifications: {}
   )
@@ -118,6 +149,8 @@ describe ACP::AgentConnection do
     ) do |client|
       @client = client
       agent = EchoAgent.new(client:)
+      agent = McpAgent.new(agent, client) if mcp
+      @mcp_agent = agent if mcp
       full ? FullAgent.new(agent) : agent
     end
     @reader = connection.start
@@ -615,6 +648,109 @@ describe ACP::AgentConnection do
       },
       result
     )
+  end
+
+  describe 'mcp/message' do
+    # A prompt turn whose reply is used as the barrier for the agent's own
+    # mcp/message send.
+    def mcp_turn
+      start(capabilities: acp_capabilities, mcp: true)
+      connect({})
+      session_id = new_session
+      send_request('session/prompt', { 'sessionId' => session_id, 'prompt' => [text('mcp')] })
+      request = receive_message
+      [session_id, request]
+    end
+
+    it 'sends mcp/message to the client when mcpCapabilities.acp is advertised' do
+      _session_id, request = mcp_turn
+      send_message(
+        { 'jsonrpc' => '2.0', 'id' => request.fetch('id'), 'result' => { 'result' => { 'content' => [] } } }
+      )
+      receive_message
+
+      assert_equal(
+        ['mcp/message',
+         { 'serverId' => 'srv_1', 'requestId' => 'mcp_1', 'method' => 'tools/call', 'params' => { 'name' => 'echo' } }],
+        [request['method'], request['params']]
+      )
+      assert_equal({ 'content' => [] }, @mcp_agent.reply.result)
+    end
+
+    it 'parses an explicit null result as a present result' do
+      _session_id, request = mcp_turn
+      send_message({ 'jsonrpc' => '2.0', 'id' => request.fetch('id'), 'result' => { 'result' => nil } })
+      receive_message
+
+      assert_instance_of ACP::Types::Unstable::MessageMcpResponse::Result, @mcp_agent.reply
+      assert_nil @mcp_agent.reply.result
+    end
+
+    it 'parses an inner MCP error carrier' do
+      _session_id, request = mcp_turn
+      error = { 'code' => -32_602, 'message' => 'Unknown tool', 'data' => { 'name' => 'echo' } }
+      send_message({ 'jsonrpc' => '2.0', 'id' => request.fetch('id'), 'result' => { 'error' => error } })
+      receive_message
+
+      assert_equal(
+        [-32_602, 'Unknown tool', { 'name' => 'echo' }],
+        [@mcp_agent.reply.error.code, @mcp_agent.reply.error.message, @mcp_agent.reply.error.data]
+      )
+    end
+
+    it 'refuses mcp/message without a round trip unless mcpCapabilities.acp is advertised' do
+      start(mcp: true)
+      connect({})
+      session_id = new_session
+      send_request('session/prompt', { 'sessionId' => session_id, 'prompt' => [text('mcp')] })
+      reply = receive_message
+
+      assert_equal(
+        [-32_601, 'Agent does not advertise mcpCapabilities.acp', 'end_turn'],
+        [@mcp_agent.reply.code, @mcp_agent.reply.message, reply.dig('result', 'stopReason')]
+      )
+    end
+
+    it 'routes mcp/message notifications to the agent when advertised' do
+      start(capabilities: acp_capabilities, mcp: true)
+      connect({})
+      session_id = new_session
+      send_message(
+        { 'jsonrpc' => '2.0', 'method' => 'mcp/message',
+          'params' => { 'serverId' => 'srv_1', 'requestId' => 'mcp_1', 'method' => 'notifications/progress',
+                        'params' => { 'progress' => 1 } } }
+      )
+      call('session/set_mode', { 'sessionId' => session_id, 'modeId' => 'code' })
+
+      assert_equal(
+        [['srv_1', 'mcp_1', 'notifications/progress', { 'progress' => 1 }]],
+        @mcp_agent.notifications.map do |notification|
+          [notification.server_id, notification.request_id, notification.method, notification.params]
+        end
+      )
+    end
+
+    it 'drops mcp/message notifications when mcpCapabilities.acp is not advertised' do
+      start(mcp: true)
+      connect({})
+      session_id = new_session
+      send_message(
+        { 'jsonrpc' => '2.0', 'method' => 'mcp/message',
+          'params' => { 'serverId' => 'srv_1', 'requestId' => 'mcp_1', 'method' => 'notifications/progress' } }
+      )
+      call('session/set_mode', { 'sessionId' => session_id, 'modeId' => 'code' })
+
+      assert_equal [], @mcp_agent.notifications
+    end
+
+    it 'refuses to start when mcpCapabilities.acp is advertised without a notification handler' do
+      error = assert_raises(ArgumentError) { start(capabilities: acp_capabilities) }
+
+      assert_equal(
+        'initialize advertises mcpCapabilities.acp but the agent lacks mcp_message_notification',
+        error.message
+      )
+    end
   end
 
   it 'routes session/set_mode and session/set_config_option when the agent defines them' do

@@ -2,14 +2,20 @@
 
 class ACP::AgentConnection::Client
   # @rbs @peer: ACP::AgentConnection::_Peer
+  # @rbs @mcp_advertised: bool
 
   # @dynamic capabilities, capabilities=
   attr_accessor :capabilities #: ACP::Types::ClientCapabilities?
 
   # @rbs peer: ACP::AgentConnection::_Peer
+  # @rbs mcp_advertised: bool
   # @rbs return: void
-  def initialize(peer:)
+  def initialize(peer:, mcp_advertised: false)
     @peer = peer
+    # The agent's own initialize advertisement of mcpCapabilities.acp, which
+    # licenses this side's mcp/message sends; the client's advertisement is
+    # the separate capabilities accessor.
+    @mcp_advertised = mcp_advertised
     @capabilities = nil
   end
 
@@ -115,6 +121,18 @@ class ACP::AgentConnection::Client
     return ACP::RequestError.unadvertised('elicitation.url') unless capabilities&.elicitation&.url
 
     @peer.notify('elicitation/complete', notification.to_h)
+  end
+
+  # Sends one inner MCP operation to the client's declared ACP MCP server and
+  # returns its outcome carrier: a result (possibly null), an inner MCP error,
+  # or the raw reply when it matches neither branch.
+  #
+  # @rbs request: ACP::Types::Unstable::MessageMcpRequest
+  # @rbs return: (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
+  def mcp_message(request)
+    return ACP::RequestError.unadvertised_agent('mcpCapabilities.acp') unless @mcp_advertised
+
+    call('mcp/message', ACP::Types::Unstable::MessageMcpResponse, request)
   end
 
   # Sends an extension request, keyed by its raw `_`-prefixed wire name, and
