@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.10.0](https://github.com/bottrall/acp-sdk/compare/v0.9.0...v0.10.0) (2026-10-07)
+
+
+### Features
+
+* MCP-over-ACP mcp/message (unstable) ([#89](https://github.com/bottrall/acp-sdk/issues/89)) ([3d6d30c](https://github.com/bottrall/acp-sdk/commit/3d6d30c6e31e88dd0fe78e08a5bc4308948cacdd))
+* providers/list, providers/set and providers/disable (unstable) ([#88](https://github.com/bottrall/acp-sdk/issues/88)) ([eac16f7](https://github.com/bottrall/acp-sdk/commit/eac16f78809ea5a677835c6fe064063dcb64c162)), closes [#50](https://github.com/bottrall/acp-sdk/issues/50)
+* request cancellation on the agent and client connections ([#85](https://github.com/bottrall/acp-sdk/issues/85)) ([58ae0ab](https://github.com/bottrall/acp-sdk/commit/58ae0abe6387e2887482ec14e361cfac91cd54ea))
+* session/fork (unstable) ([#86](https://github.com/bottrall/acp-sdk/issues/86)) ([9868cb6](https://github.com/bottrall/acp-sdk/commit/9868cb666a8111c414bf3b041167d6aa022e1e95)), closes [#49](https://github.com/bottrall/acp-sdk/issues/49)
+* support all currently supported Ruby versions ([#90](https://github.com/bottrall/acp-sdk/issues/90)) ([343d07b](https://github.com/bottrall/acp-sdk/commit/343d07b9e6d98b1c24201c5eef8b250858c0626b)), closes [#73](https://github.com/bottrall/acp-sdk/issues/73)
+
 ## [0.9.0](https://github.com/bottrall/acp-sdk/compare/v0.8.0...v0.9.0) (2026-10-07)
 
 
