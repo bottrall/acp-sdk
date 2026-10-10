@@ -8,11 +8,11 @@ module TypeGenerator::Plan
   def files(schema, unstable_schema = nil)
     defs = schema.fetch('$defs')
     roots = defs.select { |_, definition| definition.key?('x-method') }.keys
-    stable = reachable(defs, roots, [])
-             .flat_map { |name| TypeGenerator::Resolve.definition_files(TypeGenerator::Schema.new(defs), name) }
-             .concat(TypeGenerator::ALIASES.map { |name, target| alias_file(name, target) })
-             .sort
-             .to_h
+    pass = TypeGenerator::Schema.new(defs)
+    generated, = generate(pass, roots)
+    stable = generated
+             .merge(TypeGenerator::ALIASES.to_h { |name, target| alias_file(pass, name, pass.const(target)) })
+             .sort.to_h
     return stable unless unstable_schema
 
     stable.merge(unstable_files(defs, unstable_schema))
@@ -28,16 +28,17 @@ module TypeGenerator::Plan
     twins = unstable_defs.reject { |name, definition| defs[name] == definition }.keys
     roots = unstable_defs.select { |_, definition| definition.key?('x-method') }.keys
     schema = TypeGenerator::Schema.new(unstable_defs, header: TypeGenerator::UNSTABLE_HEADER, twins:)
-    generated = reachable(unstable_defs, roots, [])
-                .flat_map { |name| TypeGenerator::Resolve.definition_files(schema, name) }.sort.to_h
-    generated.merge(opt_in_file(generated.keys))
+    generated, aliases = generate(schema, roots)
+    generated.merge(opt_in_file(generated.keys, aliases))
   end
 
   # lib/acp/types/unstable.rb is the opt-in: the only entry into
   # lib/acp/types/unstable, which Zeitwerk ignores so nothing loads until a
-  # caller requires this file.
-  def opt_in_file(paths)
-    requires = paths.map { |path| "require_relative '#{path.delete_suffix('.rb')}'" }
+  # caller requires this file. Aliases are required after the classes they
+  # alias: nothing autoloads here, so constant assignment evaluates its target.
+  def opt_in_file(paths, aliases)
+    classes, alias_files = paths.partition { |path| !aliases.include?(path) }
+    requires = [*classes, *alias_files].map { |path| "require_relative '#{path.delete_suffix('.rb')}'" }
     { 'unstable.rb' => <<~RUBY }
       # frozen_string_literal: true
 
@@ -56,26 +57,73 @@ module TypeGenerator::Plan
     RUBY
   end
 
+  # One pass's file set: a class file per def a normal edge reaches, an alias
+  # file per def a single variant class subsumes — replacing only that def's
+  # own class file, since its nested union modules are still referenced — and
+  # nothing for a def several variant classes subsume (no single alias target)
+  # or that the stable pass already emitted. Returns the files plus the paths
+  # of the alias files among them.
+  def generate(schema, roots)
+    seen = reachable(schema, roots.map { |name| [name, :normal] }, {})
+    subsumed = seen.filter_map { |name, status| [name, status.first] if status.is_a?(Array) && status.size == 1 }.to_h
+    defs = schema.with_subsumed(subsumed)
+    files = seen.flat_map do |name, status|
+      next [] unless schema.generated?(name)
+      next TypeGenerator::Resolve.definition_files(defs, name) if status == :normal
+
+      kept = TypeGenerator::Resolve.definition_files(defs, name).reject { |path, _| path == path(schema.const(name)) }
+      kept.push(alias_file(schema, name, subsumed[name])) if subsumed[name]
+      kept
+    end.sort.to_h
+    aliases = subsumed.filter_map { |name, _| path(schema.const(name)) if schema.generated?(name) }.sort
+    [files, aliases]
+  end
+
+  # Walks the defs out from the roots, classifying each by how it is reached:
+  # :normal keeps its own class, while a subsuming variant option's allOf ref
+  # hands the def to the variant classes claiming it — collected as an array
+  # of their constants. A def a normal edge also reaches is never subsumed.
+  # Traversal continues through subsumed defs: their fields inline into the
+  # variant classes, so refs inside them still generate classes.
   def reachable(defs, pending, seen)
     return seen if pending.empty?
 
-    name, *rest = pending
-    return reachable(defs, rest, seen) if seen.include?(name)
+    ((name, edge), *rest) = pending
+    prior = seen[name]
+    return reachable(defs, rest, seen) if prior == :normal
+    return reachable(defs, rest, seen.merge(name => edge == :normal ? :normal : prior | edge)) if prior
 
-    reachable(defs, rest + refs(defs.fetch(name)), seen + [name])
+    reachable(defs, rest + edges(defs, name), seen.merge(name => edge))
   end
 
-  def refs(node)
+  # A def's outgoing edges as [name, edge] pairs: :normal for every ref in
+  # the def, and a claimed constant for each def its own variant classes
+  # subsume.
+  def edges(defs, name)
+    definition = defs.fetch(name)
+    plain_refs(definition).map { |ref| [ref, :normal] } +
+      subsumed_edges(defs, name).map { |ref, variant| [ref, [variant]] }
+  end
+
+  # A subsuming option's allOf ref is not a normal edge — the refed def's
+  # fields inline into the variant class — but the option's own properties
+  # keep theirs.
+  def plain_refs(node)
     case node
-    when Hash then node.flat_map { |key, value| key == '$ref' ? [ref_name(value)] : refs(value) }
-    when Array then node.flat_map { |value| refs(value) }
+    when Hash
+      node = node.except('allOf') if TypeGenerator::Unions.subsumes_ref?(node)
+      node.flat_map { |key, value| key == '$ref' ? [ref_name(value)] : plain_refs(value) }
+    when Array then node.flat_map { |value| plain_refs(value) }
     else []
     end
   end
 
-  def ref_name(ref) = ref.delete_prefix('#/$defs/')
+  def subsumed_edges(defs, name)
+    union = TypeGenerator::Resolve.union_const(defs, name)
+    union ? TypeGenerator::Unions.variant_refs(defs, union, defs.fetch(name)) : []
+  end
 
-  def const(name) = "#{TypeGenerator::NAMESPACE}::#{name}"
+  def ref_name(ref) = ref.delete_prefix('#/$defs/')
 
   def path(const)
     "#{const.delete_prefix("#{TypeGenerator::NAMESPACE}::").split('::').map { |part| snake(part) }.join('/')}.rb"
@@ -85,8 +133,8 @@ module TypeGenerator::Plan
 
   def camel(name) = name.split(/[^a-zA-Z\d]/).map(&:capitalize).join
 
-  def alias_file(name, target)
-    rbs = "# @rbs!\n#   class #{const(name)} = #{const(target)}\n"
-    [path(const(name)), "#{TypeGenerator::HEADER}\n#{rbs}\n#{const(name)} = #{const(target)}\n"]
+  def alias_file(schema, name, target)
+    rbs = "# @rbs!\n#   class #{schema.const(name)} = #{target}\n"
+    [path(schema.const(name)), "#{schema.header}\n#{rbs}\n#{schema.const(name)} = #{target}\n"]
   end
 end

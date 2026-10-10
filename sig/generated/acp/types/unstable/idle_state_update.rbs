@@ -1,25 +1,3 @@
 # Generated from lib/acp/types/unstable/idle_state_update.rb with RBS::Inline
 
-class ACP::Types::Unstable::IdleStateUpdate
-  # @dynamic stop_reason
-  attr_reader stop_reason: String?
-
-  # @dynamic usage
-  attr_reader usage: ACP::Types::Unstable::Usage?
-
-  # @dynamic meta
-  attr_reader meta: Hash[String, untyped]?
-
-  # @rbs stop_reason: String?
-  # @rbs usage: ACP::Types::Unstable::Usage?
-  # @rbs meta: Hash[String, untyped]?
-  # @rbs return: void
-  def initialize: (?stop_reason: String?, ?usage: ACP::Types::Unstable::Usage?, ?meta: Hash[String, untyped]?) -> void
-
-  # @rbs hash: Hash[String, untyped]
-  # @rbs return: ACP::Types::Unstable::IdleStateUpdate
-  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::IdleStateUpdate
-
-  # @rbs return: Hash[String, untyped]
-  def to_h: () -> Hash[String, untyped]
-end
+class ACP::Types::Unstable::IdleStateUpdate = ACP::Types::Unstable::StateUpdate::Idle

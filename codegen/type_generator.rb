@@ -6,6 +6,13 @@
 # defs exist and which files they become, Resolve turns schema JSON into
 # Type/Field, Emit renders those as Ruby source, and Unions emits the union,
 # array-union, and enum strategies.
+#
+# A def reached only through a variant option's allOf ref is subsumed by that
+# variant class — the option carries its own properties, so the variant's
+# fields already inline the def's. The def gets no class file of its own
+# (its standalone to_h would drop the discriminator tag the variant stamps);
+# instead the flat name becomes an alias constant of the variant constant, or,
+# when several variant constants subsume it, no constant at all.
 module TypeGenerator
   extend self
 
@@ -120,20 +127,28 @@ module TypeGenerator
 
   # The defs of one generation pass. In the unstable pass `twins` marks the
   # defs generated under the unstable namespace; every other def resolves to
-  # the identical stable class.
+  # the identical stable class. `subsumed` maps a def a variant class absorbs
+  # to that variant's constant.
   class Schema
     attr_reader :header
 
-    def initialize(defs, header: HEADER, twins: nil)
+    def initialize(defs, header: HEADER, twins: nil, subsumed: nil)
       @defs = defs
       @header = header
       @twins = twins
+      @subsumed = subsumed
       freeze
     end
 
     def fetch(name) = @defs.fetch(name)
     def const(name) = "#{@twins&.include?(name) ? UNSTABLE_NAMESPACE : NAMESPACE}::#{name}"
     def generated?(name) = @twins.nil? || @twins.include?(name)
+
+    # A subsumed def's nested declarations live under the variant constant
+    # that absorbed it: RBS can't declare a namespace under a class alias.
+    def nested_const(name) = @subsumed&.fetch(name, nil) || const(name)
+
+    def with_subsumed(subsumed) = Schema.new(@defs, header: @header, twins: @twins, subsumed:)
   end
 
   class Dispatch

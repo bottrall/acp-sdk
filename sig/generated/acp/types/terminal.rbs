@@ -1,21 +1,3 @@
 # Generated from lib/acp/types/terminal.rb with RBS::Inline
 
-class ACP::Types::Terminal
-  # @dynamic terminal_id
-  attr_reader terminal_id: String
-
-  # @dynamic meta
-  attr_reader meta: Hash[String, untyped]?
-
-  # @rbs terminal_id: String
-  # @rbs meta: Hash[String, untyped]?
-  # @rbs return: void
-  def initialize: (terminal_id: String, ?meta: Hash[String, untyped]?) -> void
-
-  # @rbs hash: Hash[String, untyped]
-  # @rbs return: ACP::Types::Terminal
-  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Terminal
-
-  # @rbs return: Hash[String, untyped]
-  def to_h: () -> Hash[String, untyped]
-end
+class ACP::Types::Terminal = ACP::Types::ToolCallContent::Terminal

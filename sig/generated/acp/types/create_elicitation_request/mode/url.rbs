@@ -8,13 +8,13 @@ class ACP::Types::CreateElicitationRequest::Mode::Url
   attr_reader url: String
 
   # @dynamic scope
-  attr_reader scope: ACP::Types::ElicitationUrlMode::Scope::t
+  attr_reader scope: ACP::Types::CreateElicitationRequest::Mode::Url::Scope::t
 
   # @rbs elicitation_id: String
   # @rbs url: String
-  # @rbs scope: ACP::Types::ElicitationUrlMode::Scope::t
+  # @rbs scope: ACP::Types::CreateElicitationRequest::Mode::Url::Scope::t
   # @rbs return: void
-  def initialize: (elicitation_id: String, url: String, scope: ACP::Types::ElicitationUrlMode::Scope::t) -> void
+  def initialize: (elicitation_id: String, url: String, scope: ACP::Types::CreateElicitationRequest::Mode::Url::Scope::t) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::CreateElicitationRequest::Mode::Url

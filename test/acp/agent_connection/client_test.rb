@@ -201,11 +201,13 @@ describe ACP::AgentConnection::Client do
       response = client_with(peer, capabilities(form: ACP::Types::ElicitationFormCapabilities.new))
                  .create_elicitation(form_request)
 
+      color = { 'type' => 'string', 'title' => 'Color' }
+      expected_schema = { 'type' => 'object', 'properties' => { 'color' => color } }
+
       assert_equal(
         [ACP::Types::CreateElicitationResponse::Action::Accept,
          [['elicitation/create',
-           { 'message' => 'Pick one', 'mode' => 'form', 'sessionId' => 's',
-             'requestedSchema' => { 'type' => 'object', 'properties' => { 'color' => { 'title' => 'Color' } } } }]]],
+           { 'message' => 'Pick one', 'mode' => 'form', 'sessionId' => 's', 'requestedSchema' => expected_schema }]]],
         [response.action.class, peer.requests]
       )
     end

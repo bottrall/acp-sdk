@@ -8,8 +8,11 @@ describe ACP::Types::SessionInfoUpdate do
     'an absent key that leaves the field unchanged' => {},
     'a new value' => { 'title' => 'Implement user authentication', 'updatedAt' => '2026-09-28T10:00:00Z' }
   }.each do |description, payload|
+    # SessionInfoUpdate is an alias of the SessionUpdate variant class, so both
+    # round-trips carry the discriminator tag.
     it "round-trips #{description}" do
-      assert_equal payload, ACP::Types::SessionInfoUpdate.from_h(payload).to_h
+      assert_equal payload.merge('sessionUpdate' => 'session_info_update'),
+                   ACP::Types::SessionInfoUpdate.from_h(payload).to_h
     end
 
     it "round-trips #{description} as a session update" do
@@ -20,6 +23,9 @@ describe ACP::Types::SessionInfoUpdate do
   end
 
   it 'sends null for a field set to nil and omits one left unset' do
-    assert_equal({ 'title' => nil }, ACP::Types::SessionInfoUpdate.new(title: nil).to_h)
+    assert_equal(
+      { 'sessionUpdate' => 'session_info_update', 'title' => nil },
+      ACP::Types::SessionInfoUpdate.new(title: nil).to_h
+    )
   end
 end

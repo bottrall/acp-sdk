@@ -1,25 +1,3 @@
 # Generated from lib/acp/types/embedded_resource.rb with RBS::Inline
 
-class ACP::Types::EmbeddedResource
-  # @dynamic annotations
-  attr_reader annotations: ACP::Types::Annotations?
-
-  # @dynamic resource
-  attr_reader resource: ACP::Types::EmbeddedResourceResource::t
-
-  # @dynamic meta
-  attr_reader meta: Hash[String, untyped]?
-
-  # @rbs annotations: ACP::Types::Annotations?
-  # @rbs resource: ACP::Types::EmbeddedResourceResource::t
-  # @rbs meta: Hash[String, untyped]?
-  # @rbs return: void
-  def initialize: (resource: ACP::Types::EmbeddedResourceResource::t, ?annotations: ACP::Types::Annotations?, ?meta: Hash[String, untyped]?) -> void
-
-  # @rbs hash: Hash[String, untyped]
-  # @rbs return: ACP::Types::EmbeddedResource
-  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::EmbeddedResource
-
-  # @rbs return: Hash[String, untyped]
-  def to_h: () -> Hash[String, untyped]
-end
+class ACP::Types::EmbeddedResource = ACP::Types::ContentBlock::Resource

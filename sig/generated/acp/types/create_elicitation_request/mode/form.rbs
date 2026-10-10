@@ -5,12 +5,12 @@ class ACP::Types::CreateElicitationRequest::Mode::Form
   attr_reader requested_schema: ACP::Types::ElicitationSchema
 
   # @dynamic scope
-  attr_reader scope: ACP::Types::ElicitationFormMode::Scope::t
+  attr_reader scope: ACP::Types::CreateElicitationRequest::Mode::Form::Scope::t
 
   # @rbs requested_schema: ACP::Types::ElicitationSchema
-  # @rbs scope: ACP::Types::ElicitationFormMode::Scope::t
+  # @rbs scope: ACP::Types::CreateElicitationRequest::Mode::Form::Scope::t
   # @rbs return: void
-  def initialize: (requested_schema: ACP::Types::ElicitationSchema, scope: ACP::Types::ElicitationFormMode::Scope::t) -> void
+  def initialize: (requested_schema: ACP::Types::ElicitationSchema, scope: ACP::Types::CreateElicitationRequest::Mode::Form::Scope::t) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::CreateElicitationRequest::Mode::Form

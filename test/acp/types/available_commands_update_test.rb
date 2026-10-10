@@ -16,8 +16,11 @@ describe ACP::Types::AvailableCommandsUpdate do
     }
   end
 
+  # AvailableCommandsUpdate is an alias of the SessionUpdate variant class, so
+  # the discriminator tag rides along in to_h.
   it 'round-trips the slash commands example from the protocol docs' do
-    assert_equal payload, ACP::Types::AvailableCommandsUpdate.from_h(payload).to_h
+    assert_equal payload.merge('sessionUpdate' => 'available_commands_update'),
+                 ACP::Types::AvailableCommandsUpdate.from_h(payload).to_h
   end
 
   it 'builds unstructured command input' do

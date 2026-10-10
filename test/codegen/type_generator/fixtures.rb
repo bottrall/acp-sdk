@@ -21,7 +21,9 @@ module FixtureSchemas
           'choice' => { '$ref' => '#/$defs/Choice' },
           'blend' => { '$ref' => '#/$defs/Blend' },
           'listing' => { '$ref' => '#/$defs/AnyList' },
-          'amount' => { '$ref' => '#/$defs/Amount' }
+          'amount' => { '$ref' => '#/$defs/Amount' },
+          'vessel' => { '$ref' => '#/$defs/Vessel' },
+          'shade' => { '$ref' => '#/$defs/Shade' }
         },
         'required' => ['label']
       },
@@ -77,6 +79,45 @@ module FixtureSchemas
         ]
       },
       'Amount' => { 'oneOf' => [{ 'type' => 'string' }, { 'type' => 'integer' }] },
+      # Mug is referenced nowhere but Vessel's subsuming option, so the flat
+      # def becomes an alias of the variant class; Lamp is referenced by both
+      # of Shade's options, so no single alias target exists and it is dropped.
+      'Vessel' => {
+        'oneOf' => [
+          {
+            'title' => 'Cup', 'type' => 'object',
+            'properties' => { 'type' => { 'type' => 'string', 'const' => 'cup' } },
+            'allOf' => [{ '$ref' => '#/$defs/Mug' }],
+            'required' => ['type']
+          }
+        ]
+      },
+      'Mug' => {
+        'type' => 'object',
+        'properties' => { 'oz' => { 'type' => 'integer' } },
+        'required' => ['oz']
+      },
+      'Shade' => {
+        'oneOf' => [
+          {
+            'title' => 'Dim', 'type' => 'object',
+            'properties' => { 'type' => { 'type' => 'string', 'const' => 'dim' } },
+            'allOf' => [{ '$ref' => '#/$defs/Lamp' }],
+            'required' => ['type']
+          },
+          {
+            'title' => 'Bright', 'type' => 'object',
+            'properties' => { 'type' => { 'type' => 'string', 'const' => 'bright' } },
+            'allOf' => [{ '$ref' => '#/$defs/Lamp' }],
+            'required' => ['type']
+          }
+        ]
+      },
+      'Lamp' => {
+        'type' => 'object',
+        'properties' => { 'watts' => { 'type' => 'integer' } },
+        'required' => ['watts']
+      },
       'Orphan' => { 'type' => 'object', 'properties' => { 'ghost' => { 'type' => 'string' } } }
     }
   }.freeze

@@ -1,25 +1,3 @@
 # Generated from lib/acp/types/unstable/compaction_summary_chunk.rb with RBS::Inline
 
-class ACP::Types::Unstable::CompactionSummaryChunk
-  # @dynamic compaction_id
-  attr_reader compaction_id: String
-
-  # @dynamic content
-  attr_reader content: ACP::Types::ContentBlock::t
-
-  # @dynamic meta
-  attr_reader meta: Hash[String, untyped]?
-
-  # @rbs compaction_id: String
-  # @rbs content: ACP::Types::ContentBlock::t
-  # @rbs meta: Hash[String, untyped]?
-  # @rbs return: void
-  def initialize: (compaction_id: String, content: ACP::Types::ContentBlock::t, ?meta: Hash[String, untyped]?) -> void
-
-  # @rbs hash: Hash[String, untyped]
-  # @rbs return: ACP::Types::Unstable::CompactionSummaryChunk
-  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::CompactionSummaryChunk
-
-  # @rbs return: Hash[String, untyped]
-  def to_h: () -> Hash[String, untyped]
-end
+class ACP::Types::Unstable::CompactionSummaryChunk = ACP::Types::Unstable::SessionUpdate::CompactionSummaryChunk
