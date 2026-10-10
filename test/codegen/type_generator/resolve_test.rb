@@ -19,6 +19,10 @@ describe TypeGenerator::Resolve do
         'Blend' => :union,
         'AnyList' => :array_union,
         'Amount' => :primitive_union,
+        'Vessel' => :union,
+        'Mug' => :object,
+        'Shade' => :union,
+        'Lamp' => :object,
         'Orphan' => :object
       },
       kinds

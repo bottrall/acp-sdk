@@ -1,37 +1,3 @@
 # Generated from lib/acp/types/unstable/nes_search_and_replace_suggestion.rb with RBS::Inline
 
-class ACP::Types::Unstable::NesSearchAndReplaceSuggestion
-  # @dynamic id
-  attr_reader id: String
-
-  # @dynamic uri
-  attr_reader uri: String
-
-  # @dynamic search
-  attr_reader search: String
-
-  # @dynamic replace
-  attr_reader replace: String
-
-  # @dynamic is_regex
-  attr_reader is_regex: bool?
-
-  # @dynamic meta
-  attr_reader meta: Hash[String, untyped]?
-
-  # @rbs id: String
-  # @rbs uri: String
-  # @rbs search: String
-  # @rbs replace: String
-  # @rbs is_regex: bool?
-  # @rbs meta: Hash[String, untyped]?
-  # @rbs return: void
-  def initialize: (id: String, uri: String, search: String, replace: String, ?is_regex: bool?, ?meta: Hash[String, untyped]?) -> void
-
-  # @rbs hash: Hash[String, untyped]
-  # @rbs return: ACP::Types::Unstable::NesSearchAndReplaceSuggestion
-  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::NesSearchAndReplaceSuggestion
-
-  # @rbs return: Hash[String, untyped]
-  def to_h: () -> Hash[String, untyped]
-end
+class ACP::Types::Unstable::NesSearchAndReplaceSuggestion = ACP::Types::Unstable::NesSuggestion::Searchandreplace

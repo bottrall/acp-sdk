@@ -28,7 +28,7 @@ module TypeGenerator::Resolve
     definition = defs.fetch(name)
     case kind(definition)
     when :object then object_files(defs, name)
-    when :union then TypeGenerator::Unions.union_files(defs, defs.const(name), definition)
+    when :union then TypeGenerator::Unions.union_files(defs, union_const(defs, name), definition)
     when :array_union then [TypeGenerator::Unions.array_union_file(defs, defs.const(name), definition)]
     when :enum then [TypeGenerator::Unions.enum_file(defs, defs.const(name), definition)]
     else []
@@ -172,10 +172,21 @@ module TypeGenerator::Resolve
     class_file = TypeGenerator::Emit.class_file(defs, defs.const(name), object_fields(defs, name))
     return [class_file] unless variants(definition)
 
-    [class_file, *TypeGenerator::Unions.union_files(defs, flattened_union(defs, name), definition)]
+    [class_file, *TypeGenerator::Unions.union_files(defs, union_const(defs, name), definition)]
+  end
+
+  # The union constant a def's variants nest under — itself for a bare union,
+  # flattened into the object for a schemars-flattened one; nil when the def
+  # has no variants.
+  def union_const(defs, name)
+    definition = defs.fetch(name)
+    case kind(definition)
+    when :union then defs.const(name)
+    when :object then flattened_union(defs, name) if variants(definition)
+    end
   end
 
   def flattened_union(defs, name)
-    "#{defs.const(name)}::#{TypeGenerator::Plan.camel(TypeGenerator::FLATTENED_UNION_ATTRS.fetch(name))}"
+    "#{defs.nested_const(name)}::#{TypeGenerator::Plan.camel(TypeGenerator::FLATTENED_UNION_ATTRS.fetch(name))}"
   end
 end

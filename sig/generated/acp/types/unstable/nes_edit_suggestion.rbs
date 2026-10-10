@@ -1,33 +1,3 @@
 # Generated from lib/acp/types/unstable/nes_edit_suggestion.rb with RBS::Inline
 
-class ACP::Types::Unstable::NesEditSuggestion
-  # @dynamic id
-  attr_reader id: String
-
-  # @dynamic uri
-  attr_reader uri: String
-
-  # @dynamic edits
-  attr_reader edits: Array[ACP::Types::Unstable::NesTextEdit]
-
-  # @dynamic cursor_position
-  attr_reader cursor_position: ACP::Types::Unstable::Position?
-
-  # @dynamic meta
-  attr_reader meta: Hash[String, untyped]?
-
-  # @rbs id: String
-  # @rbs uri: String
-  # @rbs edits: Array[ACP::Types::Unstable::NesTextEdit]
-  # @rbs cursor_position: ACP::Types::Unstable::Position?
-  # @rbs meta: Hash[String, untyped]?
-  # @rbs return: void
-  def initialize: (id: String, uri: String, edits: Array[ACP::Types::Unstable::NesTextEdit], ?cursor_position: ACP::Types::Unstable::Position?, ?meta: Hash[String, untyped]?) -> void
-
-  # @rbs hash: Hash[String, untyped]
-  # @rbs return: ACP::Types::Unstable::NesEditSuggestion
-  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::NesEditSuggestion
-
-  # @rbs return: Hash[String, untyped]
-  def to_h: () -> Hash[String, untyped]
-end
+class ACP::Types::Unstable::NesEditSuggestion = ACP::Types::Unstable::NesSuggestion::Edit

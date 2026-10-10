@@ -10,11 +10,11 @@ class ACP::Types::CreateElicitationRequest::Mode::Url
   attr_reader :url #: String
 
   # @dynamic scope
-  attr_reader :scope #: ACP::Types::ElicitationUrlMode::Scope::t
+  attr_reader :scope #: ACP::Types::CreateElicitationRequest::Mode::Url::Scope::t
 
   # @rbs elicitation_id: String
   # @rbs url: String
-  # @rbs scope: ACP::Types::ElicitationUrlMode::Scope::t
+  # @rbs scope: ACP::Types::CreateElicitationRequest::Mode::Url::Scope::t
   # @rbs return: void
   def initialize(elicitation_id:, url:, scope:)
     @elicitation_id = elicitation_id
@@ -29,7 +29,7 @@ class ACP::Types::CreateElicitationRequest::Mode::Url
     new(
       elicitation_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'elicitationId'), 'elicitationId'),
       url: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'url'), 'url'),
-      scope: ACP::Types::ElicitationUrlMode::Scope.from_h(hash)
+      scope: ACP::Types::CreateElicitationRequest::Mode::Url::Scope.from_h(hash)
     )
   end
 

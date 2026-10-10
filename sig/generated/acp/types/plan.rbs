@@ -1,21 +1,3 @@
 # Generated from lib/acp/types/plan.rb with RBS::Inline
 
-class ACP::Types::Plan
-  # @dynamic entries
-  attr_reader entries: Array[ACP::Types::PlanEntry]
-
-  # @dynamic meta
-  attr_reader meta: Hash[String, untyped]?
-
-  # @rbs entries: Array[ACP::Types::PlanEntry]
-  # @rbs meta: Hash[String, untyped]?
-  # @rbs return: void
-  def initialize: (entries: Array[ACP::Types::PlanEntry], ?meta: Hash[String, untyped]?) -> void
-
-  # @rbs hash: Hash[String, untyped]
-  # @rbs return: ACP::Types::Plan
-  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Plan
-
-  # @rbs return: Hash[String, untyped]
-  def to_h: () -> Hash[String, untyped]
-end
+class ACP::Types::Plan = ACP::Types::SessionUpdate::Plan

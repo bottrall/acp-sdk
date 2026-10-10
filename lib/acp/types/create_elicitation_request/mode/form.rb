@@ -7,10 +7,10 @@ class ACP::Types::CreateElicitationRequest::Mode::Form
   attr_reader :requested_schema #: ACP::Types::ElicitationSchema
 
   # @dynamic scope
-  attr_reader :scope #: ACP::Types::ElicitationFormMode::Scope::t
+  attr_reader :scope #: ACP::Types::CreateElicitationRequest::Mode::Form::Scope::t
 
   # @rbs requested_schema: ACP::Types::ElicitationSchema
-  # @rbs scope: ACP::Types::ElicitationFormMode::Scope::t
+  # @rbs scope: ACP::Types::CreateElicitationRequest::Mode::Form::Scope::t
   # @rbs return: void
   def initialize(requested_schema:, scope:)
     @requested_schema = requested_schema
@@ -27,7 +27,7 @@ class ACP::Types::CreateElicitationRequest::Mode::Form
         'requestedSchema',
         ACP::Types::ElicitationSchema
       ),
-      scope: ACP::Types::ElicitationFormMode::Scope.from_h(hash)
+      scope: ACP::Types::CreateElicitationRequest::Mode::Form::Scope.from_h(hash)
     )
   end
 

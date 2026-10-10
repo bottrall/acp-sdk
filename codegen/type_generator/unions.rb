@@ -12,27 +12,51 @@ module TypeGenerator::Unions
   end
 
   def union_files(defs, union, definition)
-    options = TypeGenerator::Resolve.variants(definition).reject { |option| option.key?('not') }
-    tag = discriminator(options)
-    tagged, untagged = options.partition { |option| tag && option.dig('properties', tag, 'const') }
-    tagged_names = variant_names(tagged, tag)
-    tag_values = tagged.map { |option| option.dig('properties', tag, 'const') }
-    tagged_consts = tagged_names.map { |name| "#{union}::#{name}" }
-    tagged_classes = tagged.zip(tagged_consts, tag_values).map do |option, variant, value|
+    tag, tagged, untagged = variant_consts(defs, union, definition)
+    tagged_classes = tagged.map do |option, variant|
+      value = option.dig('properties', tag, 'const')
       TypeGenerator::Emit.class_file(defs, variant, variant_fields(defs, option, tag), tag: [tag, value])
     end
-    untagged_consts = untagged.map { |option| untagged_const(defs, union, option) }
-    untagged_classes = untagged.zip(untagged_consts).filter_map do |option, variant|
+    untagged_classes = untagged.filter_map do |option, variant|
       next unless variant.start_with?("#{union}::")
 
       TypeGenerator::Emit.class_file(defs, variant, variant_fields(defs, option, tag))
     end
     dispatch = TypeGenerator::Dispatch.new(
       tag:,
-      tagged: tag_values.zip(tagged_consts),
-      untagged: untagged_consts.zip(unique_keys(untagged.map { |option| required_keys(defs, option) }))
+      tagged: tagged.map { |option, variant| [option.dig('properties', tag, 'const'), variant] },
+      untagged: untagged.map(&:last).zip(unique_keys(untagged.map { |option, _| required_keys(defs, option) }))
     )
     [union_file(defs, union, dispatch), *tagged_classes, *untagged_classes]
+  end
+
+  # The discriminator tag plus the variant constants union_files emits, paired
+  # with their option and partitioned by the tag: tagged options name
+  # themselves after the discriminator value (falling back to the allOf ref
+  # when that would shadow a core class), untagged ones after their title —
+  # or, when the option is just the refed def, the def's own constant.
+  def variant_consts(defs, union, definition)
+    options = TypeGenerator::Resolve.variants(definition).reject { |option| option.key?('not') }
+    tag = discriminator(options)
+    tagged, untagged = options.partition { |option| tag && option.dig('properties', tag, 'const') }
+    tagged_pairs = tagged.zip(variant_names(tagged, tag)).map { |option, name| [option, "#{union}::#{name}"] }
+    untagged_pairs = untagged.map { |option| [option, untagged_const(defs, union, option)] }
+    [tag, tagged_pairs, untagged_pairs]
+  end
+
+  # A def reached only through an option like this is subsumed by the variant
+  # class: the option carries its own properties, which inline the refed def's
+  # fields, so no flat class is emitted for it. `not` options never become
+  # variants, so their refs stay normal edges.
+  def subsumes_ref?(option) = option.key?('properties') && !option.key?('not') && variant_ref(option)
+
+  # The defs a union's variant classes subsume, as [refed_def, variant_const]
+  # pairs — the same constants union_files emits for those options.
+  def variant_refs(defs, union, definition)
+    _, tagged, untagged = variant_consts(defs, union, definition)
+    [*tagged, *untagged].filter_map do |option, variant|
+      [variant_ref(option), variant] if subsumes_ref?(option)
+    end
   end
 
   def variant_names(options, tag)
