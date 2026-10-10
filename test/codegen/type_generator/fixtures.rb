@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../codegen/type_generator'
+require_relative '../../../codegen/type_generator'
 
 # Hand-written fixture schemas for the codegen tests. Each def exercises one
 # emitter branch (object, union, array_union, enum, primitive_union); the
