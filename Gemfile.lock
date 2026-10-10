@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    acp-sdk (0.10.0)
+    acp-sdk (0.10.1)
       zeitwerk (~> 2.8)
 
 GEM

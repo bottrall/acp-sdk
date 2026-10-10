@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/bottrall/acp-sdk/compare/v0.10.0...v0.10.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **codegen:** subsume union-variant twins into variant aliases ([#103](https://github.com/bottrall/acp-sdk/issues/103)) ([bdc0005](https://github.com/bottrall/acp-sdk/commit/bdc0005460c0fd133a09f10cf61f9f5717012e16)), closes [#93](https://github.com/bottrall/acp-sdk/issues/93)
+
 ## [0.10.0](https://github.com/bottrall/acp-sdk/compare/v0.9.0...v0.10.0) (2026-10-07)
 
 
