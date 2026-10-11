@@ -478,45 +478,6 @@ describe ACP::ClientConnection do
     end
   end
 
-  describe 'the deprecated wire-order senders' do
-    def connection(result)
-      ACP::ClientConnection.new(transport: StubTransport.new(result), permission: ->(_request) {})
-    end
-
-    it 'keeps every renamed sender available as a deprecated alias' do
-      connection = connection({})
-      deprecated = %w[
-        session_new
-        session_prompt
-        session_load
-        session_list
-        session_resume
-        session_close
-        session_delete
-        session_fork
-        session_cancel
-        session_set_mode
-        session_set_config_option
-        providers_list
-        providers_set
-        providers_disable
-      ]
-
-      deprecated.each { |old| assert_respond_to connection, old }
-    end
-
-    it 'warns and delegates to the verb-noun sender' do
-      response = nil
-      _out, stderr = capture_io do
-        request = ACP::Types::SetSessionModeRequest.new(session_id: 's1', mode_id: 'code')
-        response = connection({}).session_set_mode(request)
-      end
-
-      assert_equal({}, response.to_h)
-      assert_match(/acp: ACP::ClientConnection#session_set_mode is deprecated; use #set_session_mode instead/, stderr)
-    end
-  end
-
   describe 'serving the agent\'s file requests' do
     before do
       agent_input, @client_output = IO.pipe

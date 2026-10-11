@@ -365,110 +365,6 @@ class ACP::ClientConnection
     parse(ACP::Types::SetSessionConfigOptionResponse, @transport.request('session/set_config_option', request.to_h))
   end
 
-  # Deprecated wire-order aliases for the senders above, kept so callers of
-  # the pre-convention names do not break in place; they will be removed in a
-  # future release.
-  #
-  # @rbs request: ACP::Types::NewSessionRequest
-  # @rbs return: ACP::Types::NewSessionResponse | ACP::RequestError
-  def session_new(request)
-    deprecate('session_new', 'new_session')
-    new_session(request)
-  end
-
-  # @rbs request: ACP::Types::PromptRequest
-  # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
-  # @rbs return: ACP::Types::PromptResponse | ACP::RequestError
-  def session_prompt(request, &)
-    deprecate('session_prompt', 'prompt_session')
-    prompt_session(request, &)
-  end
-
-  # @rbs request: ACP::Types::LoadSessionRequest
-  # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
-  # @rbs return: ACP::Types::LoadSessionResponse | ACP::RequestError
-  def session_load(request, &)
-    deprecate('session_load', 'load_session')
-    load_session(request, &)
-  end
-
-  # @rbs request: ACP::Types::ListSessionsRequest
-  # @rbs return: ACP::Types::ListSessionsResponse | ACP::RequestError
-  def session_list(request)
-    deprecate('session_list', 'list_sessions')
-    list_sessions(request)
-  end
-
-  # @rbs request: ACP::Types::ResumeSessionRequest
-  # @rbs return: ACP::Types::ResumeSessionResponse | ACP::RequestError
-  def session_resume(request)
-    deprecate('session_resume', 'resume_session')
-    resume_session(request)
-  end
-
-  # @rbs request: ACP::Types::CloseSessionRequest
-  # @rbs return: ACP::Types::CloseSessionResponse | ACP::RequestError
-  def session_close(request)
-    deprecate('session_close', 'close_session')
-    close_session(request)
-  end
-
-  # @rbs request: ACP::Types::DeleteSessionRequest
-  # @rbs return: ACP::Types::DeleteSessionResponse | ACP::RequestError
-  def session_delete(request)
-    deprecate('session_delete', 'delete_session')
-    delete_session(request)
-  end
-
-  # @rbs request: ACP::Types::Unstable::ForkSessionRequest
-  # @rbs return: (ACP::Types::Unstable::ForkSessionResponse | ACP::RequestError)
-  def session_fork(request)
-    deprecate('session_fork', 'fork_session')
-    fork_session(request)
-  end
-
-  # @rbs request: ACP::Types::Unstable::ListProvidersRequest
-  # @rbs return: (ACP::Types::Unstable::ListProvidersResponse | ACP::RequestError)
-  def providers_list(request)
-    deprecate('providers_list', 'list_providers')
-    list_providers(request)
-  end
-
-  # @rbs request: ACP::Types::Unstable::SetProviderRequest
-  # @rbs return: (ACP::Types::Unstable::SetProviderResponse | ACP::RequestError)
-  def providers_set(request)
-    deprecate('providers_set', 'set_provider')
-    set_provider(request)
-  end
-
-  # @rbs request: ACP::Types::Unstable::DisableProviderRequest
-  # @rbs return: (ACP::Types::Unstable::DisableProviderResponse | ACP::RequestError)
-  def providers_disable(request)
-    deprecate('providers_disable', 'disable_provider')
-    disable_provider(request)
-  end
-
-  # @rbs notification: ACP::Types::CancelNotification
-  # @rbs return: void
-  def session_cancel(notification)
-    deprecate('session_cancel', 'cancel_session')
-    cancel_session(notification)
-  end
-
-  # @rbs request: ACP::Types::SetSessionModeRequest
-  # @rbs return: ACP::Types::SetSessionModeResponse | ACP::RequestError
-  def session_set_mode(request)
-    deprecate('session_set_mode', 'set_session_mode')
-    set_session_mode(request)
-  end
-
-  # @rbs request: ACP::Types::SetSessionConfigOptionRequest
-  # @rbs return: ACP::Types::SetSessionConfigOptionResponse | ACP::RequestError
-  def session_set_config_option(request)
-    deprecate('session_set_config_option', 'set_session_config_option')
-    set_session_config_option(request)
-  end
-
   # @rbs request: ACP::Types::AuthenticateRequest
   # @rbs return: ACP::Types::AuthenticateResponse | ACP::RequestError
   def authenticate(request)
@@ -595,16 +491,6 @@ class ACP::ClientConnection
     type.from_h(result)
   rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError
     ACP::RequestError.invalid_response(result)
-  end
-
-  # uplevel 2 names the caller of the deprecated alias rather than this
-  # helper or the alias itself.
-  #
-  # @rbs old: String
-  # @rbs new: String
-  # @rbs return: void
-  def deprecate(old, new)
-    warn("acp: ACP::ClientConnection##{old} is deprecated; use ##{new} instead", uplevel: 2)
   end
 
   # The route is registered at start, before connect records the advertised
