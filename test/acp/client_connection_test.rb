@@ -194,7 +194,7 @@ describe ACP::ClientConnection do
     end
 
     def new_session(connection, cwd = '/work')
-      session_id = within { connection.session_new(new_session_request(cwd)) }.session_id
+      session_id = within { connection.new_session(new_session_request(cwd)) }.session_id
       within { @updates.pop }
       session_id
     end
@@ -218,7 +218,7 @@ describe ACP::ClientConnection do
           )
         )
       end
-      session_id = within { connection.session_new(new_session_request) }.session_id
+      session_id = within { connection.new_session(new_session_request) }.session_id
       notification = within { @updates.pop }
 
       assert_equal(
@@ -240,7 +240,7 @@ describe ACP::ClientConnection do
       # The permission handler waits for the tool call to be yielded, so this
       # would time out if updates were only yielded once the turn ended.
       response = within do
-        connection.session_prompt(prompt_request(session_id, 'hello', 'world')) do |update|
+        connection.prompt_session(prompt_request(session_id, 'hello', 'world')) do |update|
           updates << update
           seen << true
         end
@@ -264,7 +264,7 @@ describe ACP::ClientConnection do
       connection = start { choose('reject') }
       session_id = new_session(connection)
       updates = []
-      response = within { connection.session_prompt(prompt_request(session_id, 'hi')) { |update| updates << update } }
+      response = within { connection.prompt_session(prompt_request(session_id, 'hi')) { |update| updates << update } }
 
       assert_equal(
         ['end_turn', [['tool_call', 'Echo the prompt']]],
@@ -276,12 +276,12 @@ describe ACP::ClientConnection do
       error = ACP::RequestError.new(code: -32_000, message: 'No user')
       connection = start { error }
       session_id = new_session(connection)
-      response = within { connection.session_prompt(prompt_request(session_id, 'hello')) { nil } }
+      response = within { connection.prompt_session(prompt_request(session_id, 'hello')) { nil } }
 
       assert_equal(error.to_h, response.to_h)
     end
 
-    it 'cancels a turn with session_cancel' do
+    it 'cancels a turn with cancel_session' do
       cancelled = Thread::Queue.new
       connection = start do
         within { cancelled.pop }
@@ -289,8 +289,8 @@ describe ACP::ClientConnection do
       end
       session_id = new_session(connection)
       response = within do
-        connection.session_prompt(prompt_request(session_id, 'hello')) do
-          connection.session_cancel(ACP::Types::CancelNotification.new(session_id:))
+        connection.prompt_session(prompt_request(session_id, 'hello')) do
+          connection.cancel_session(ACP::Types::CancelNotification.new(session_id:))
           cancelled << true
         end
       end
@@ -298,13 +298,13 @@ describe ACP::ClientConnection do
       assert_equal 'cancelled', response.stop_reason
     end
 
-    it 'yields the replayed history from session_load' do
+    it 'yields the replayed history from load_session' do
       connection = allowing
       session_id = new_session(connection)
-      within { connection.session_prompt(prompt_request(session_id, 'hello')) { nil } }
+      within { connection.prompt_session(prompt_request(session_id, 'hello')) { nil } }
       updates = []
       request = ACP::Types::LoadSessionRequest.new(session_id:, cwd: '/work', mcp_servers: [])
-      response = within { connection.session_load(request) { |update| updates << update } }
+      response = within { connection.load_session(request) { |update| updates << update } }
 
       assert_equal(
         [{}, [%w[user_message_chunk hello], %w[agent_message_chunk hello]]],
@@ -316,7 +316,7 @@ describe ACP::ClientConnection do
       connection = allowing
       first = new_session(connection, '/a')
       new_session(connection, '/b')
-      response = within { connection.session_list(ACP::Types::ListSessionsRequest.new(cwd: '/a')) }
+      response = within { connection.list_sessions(ACP::Types::ListSessionsRequest.new(cwd: '/a')) }
 
       assert_equal([[first, '/a']], response.sessions.map { |info| [info.session_id, info.cwd] })
     end
@@ -324,8 +324,8 @@ describe ACP::ClientConnection do
     it 'resumes a session without replaying its history' do
       connection = allowing
       session_id = new_session(connection)
-      within { connection.session_prompt(prompt_request(session_id, 'hello')) { nil } }
-      response = within { connection.session_resume(ACP::Types::ResumeSessionRequest.new(session_id:, cwd: '/work')) }
+      within { connection.prompt_session(prompt_request(session_id, 'hello')) { nil } }
+      response = within { connection.resume_session(ACP::Types::ResumeSessionRequest.new(session_id:, cwd: '/work')) }
 
       assert_equal([{}, true], [response.to_h, @updates.empty?])
     end
@@ -333,7 +333,7 @@ describe ACP::ClientConnection do
     it 'answers resume of an unknown session with the agent\'s error' do
       connection = allowing
       response = within do
-        connection.session_resume(ACP::Types::ResumeSessionRequest.new(session_id: 'sess_missing', cwd: '/work'))
+        connection.resume_session(ACP::Types::ResumeSessionRequest.new(session_id: 'sess_missing', cwd: '/work'))
       end
 
       assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
@@ -342,14 +342,14 @@ describe ACP::ClientConnection do
     it 'closes a session' do
       connection = allowing
       session_id = new_session(connection)
-      response = within { connection.session_close(ACP::Types::CloseSessionRequest.new(session_id:)) }
+      response = within { connection.close_session(ACP::Types::CloseSessionRequest.new(session_id:)) }
 
       assert_equal({}, response.to_h)
     end
 
     it 'answers close of an unknown session with the agent\'s error' do
       connection = allowing
-      response = within { connection.session_close(ACP::Types::CloseSessionRequest.new(session_id: 'sess_missing')) }
+      response = within { connection.close_session(ACP::Types::CloseSessionRequest.new(session_id: 'sess_missing')) }
 
       assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
     end
@@ -357,21 +357,21 @@ describe ACP::ClientConnection do
     it 'deletes a session' do
       connection = allowing
       session_id = new_session(connection)
-      response = within { connection.session_delete(ACP::Types::DeleteSessionRequest.new(session_id:)) }
+      response = within { connection.delete_session(ACP::Types::DeleteSessionRequest.new(session_id:)) }
 
       assert_equal({}, response.to_h)
     end
 
     it 'answers delete of an unknown session with the agent\'s error' do
       connection = allowing
-      response = within { connection.session_delete(ACP::Types::DeleteSessionRequest.new(session_id: 'sess_missing')) }
+      response = within { connection.delete_session(ACP::Types::DeleteSessionRequest.new(session_id: 'sess_missing')) }
 
       assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
     end
 
     it 'returns the agent\'s error response' do
       connection = allowing
-      response = within { connection.session_prompt(prompt_request('sess_missing', 'hello')) { nil } }
+      response = within { connection.prompt_session(prompt_request('sess_missing', 'hello')) { nil } }
 
       assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
     end
@@ -379,7 +379,7 @@ describe ACP::ClientConnection do
     it 'answers fork with the agent\'s method-not-found error' do
       connection = allowing
       response = within do
-        connection.session_fork(
+        connection.fork_session(
           ACP::Types::Unstable::ForkSessionRequest.new(session_id: 'sess_missing', cwd: '/work')
         )
       end
@@ -418,7 +418,7 @@ describe ACP::ClientConnection do
 
     it 'forks a session' do
       response = within do
-        @connection.session_fork(ACP::Types::Unstable::ForkSessionRequest.new(session_id: 'sess_1', cwd: '/work'))
+        @connection.fork_session(ACP::Types::Unstable::ForkSessionRequest.new(session_id: 'sess_1', cwd: '/work'))
       end
 
       assert_equal({ 'sessionId' => 'sess_forked' }, response.to_h)
@@ -452,7 +452,7 @@ describe ACP::ClientConnection do
     end
 
     it 'lists providers' do
-      response = within { @connection.providers_list(ACP::Types::Unstable::ListProvidersRequest.new) }
+      response = within { @connection.list_providers(ACP::Types::Unstable::ListProvidersRequest.new) }
 
       assert_equal(
         { 'providers' => [{ 'providerId' => 'anthropic', 'supported' => ['anthropic'], 'required' => false }] },
@@ -464,14 +464,14 @@ describe ACP::ClientConnection do
       request = ACP::Types::Unstable::SetProviderRequest.new(
         provider_id: 'anthropic', api_type: 'anthropic', base_url: 'https://api.example.com'
       )
-      response = within { @connection.providers_set(request) }
+      response = within { @connection.set_provider(request) }
 
       assert_equal({}, response.to_h)
     end
 
     it 'disables a provider' do
       response = within do
-        @connection.providers_disable(ACP::Types::Unstable::DisableProviderRequest.new(provider_id: 'anthropic'))
+        @connection.disable_provider(ACP::Types::Unstable::DisableProviderRequest.new(provider_id: 'anthropic'))
       end
 
       assert_equal({}, response.to_h)
@@ -541,7 +541,7 @@ describe ACP::ClientConnection do
     end
 
     def new_session(connection)
-      session_id = within { connection.session_new(new_session_request) }.session_id
+      session_id = within { connection.new_session(new_session_request) }.session_id
       within { @updates.pop }
       session_id
     end
@@ -552,7 +552,7 @@ describe ACP::ClientConnection do
       session_id = new_session(connection)
       updates = []
       response = within do
-        connection.session_prompt(prompt_request(session_id, '/read /a.txt')) { |update| updates << update }
+        connection.prompt_session(prompt_request(session_id, '/read /a.txt')) { |update| updates << update }
       end
 
       assert_equal(
@@ -565,7 +565,7 @@ describe ACP::ClientConnection do
       connection = start
       connect(connection)
       session_id = new_session(connection)
-      response = within { connection.session_prompt(prompt_request(session_id, '/write /a.txt hello')) { nil } }
+      response = within { connection.prompt_session(prompt_request(session_id, '/write /a.txt hello')) { nil } }
       written = within { @write_requests.pop }
 
       assert_equal(['/a.txt', 'hello', 'end_turn'], [written.path, written.content, response.stop_reason])
@@ -577,7 +577,7 @@ describe ACP::ClientConnection do
       @read_replies << ACP::RequestError.resource_not_found
       connect(connection)
       session_id = new_session(connection)
-      response = within { connection.session_prompt(prompt_request(session_id, '/read /missing')) { nil } }
+      response = within { connection.prompt_session(prompt_request(session_id, '/read /missing')) { nil } }
 
       assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
     end
@@ -910,13 +910,13 @@ describe ACP::ClientConnection do
 
     def set_mode(mode_id = 'code')
       within do
-        @connection.session_set_mode(ACP::Types::SetSessionModeRequest.new(session_id: 's1', mode_id:))
+        @connection.set_session_mode(ACP::Types::SetSessionModeRequest.new(session_id: 's1', mode_id:))
       end
     end
 
     def set_config_option(config_id, value)
       request = ACP::Types::SetSessionConfigOptionRequest.new(session_id: 's1', config_id:, value:)
-      within { @connection.session_set_config_option(request) }
+      within { @connection.set_session_config_option(request) }
     end
 
     it 'sets the mode' do
@@ -954,21 +954,21 @@ describe ACP::ClientConnection do
     end
 
     it 'answers a reply missing a required key with invalid response' do
-      error = within { connection({}).session_new(new_session_request) }
+      error = within { connection({}).new_session(new_session_request) }
 
       assert_equal [-32_603, 'Invalid response', {}], [error.code, error.message, error.data]
     end
 
     it 'answers a reply with a wrongly shaped value with invalid response' do
       response = { 'sessionId' => 's', 'modes' => [] }
-      error = within { connection(response).session_new(new_session_request) }
+      error = within { connection(response).new_session(new_session_request) }
 
       assert_same response, error.data
       assert_equal [-32_603, 'Invalid response'], [error.code, error.message]
     end
 
     it 'answers a null result with invalid response' do
-      error = within { connection(nil).session_new(new_session_request) }
+      error = within { connection(nil).new_session(new_session_request) }
 
       assert_equal [-32_603, 'Invalid response', nil], [error.code, error.message, error.data]
     end
@@ -995,9 +995,9 @@ describe ACP::ClientConnection do
       reader = connection.start
       texts = within(10) do
         connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1))
-        session_id = connection.session_new(new_session_request).session_id
+        session_id = connection.new_session(new_session_request).session_id
         chunks = []
-        connection.session_prompt(prompt_request(session_id, 'hello')) do |update|
+        connection.prompt_session(prompt_request(session_id, 'hello')) do |update|
           chunks << update.content.text if update.is_a?(ACP::Types::SessionUpdate::AgentMessageChunk)
         end
         chunks

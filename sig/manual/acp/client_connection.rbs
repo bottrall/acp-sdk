@@ -5,7 +5,7 @@ class ACP::ClientConnection
   end
 
   # Receives the session/update notifications that arrive outside a
-  # session_prompt or session_load call for the same session.
+  # prompt_session or load_session call for the same session.
   interface _UpdateHandler
     # Runs on the transport's reader thread, so it must return quickly.
     def call: (ACP::Types::SessionNotification) -> void

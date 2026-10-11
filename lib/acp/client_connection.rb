@@ -267,72 +267,73 @@ class ACP::ClientConnection
 
   # @rbs request: ACP::Types::NewSessionRequest
   # @rbs return: ACP::Types::NewSessionResponse | ACP::RequestError
-  def session_new(request)
+  def new_session(request)
     parse(ACP::Types::NewSessionResponse, @transport.request('session/new', request.to_h))
   end
 
   # @rbs request: ACP::Types::PromptRequest
   # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
   # @rbs return: ACP::Types::PromptResponse | ACP::RequestError
-  def session_prompt(request, &)
+  def prompt_session(request, &)
     parse(ACP::Types::PromptResponse, @streams.stream(request.session_id, 'session/prompt', request.to_h, &))
   end
 
   # @rbs request: ACP::Types::LoadSessionRequest
   # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
   # @rbs return: ACP::Types::LoadSessionResponse | ACP::RequestError
-  def session_load(request, &)
+  def load_session(request, &)
     parse(ACP::Types::LoadSessionResponse, @streams.stream(request.session_id, 'session/load', request.to_h, &))
   end
 
   # @rbs request: ACP::Types::ListSessionsRequest
   # @rbs return: ACP::Types::ListSessionsResponse | ACP::RequestError
-  def session_list(request)
+  def list_sessions(request)
     parse(ACP::Types::ListSessionsResponse, @transport.request('session/list', request.to_h))
   end
 
-  # The agent does not replay history on resume, so unlike session_load there
+  # The agent does not replay history on resume, so unlike load_session there
   # is nothing to stream and no block is taken.
   #
   # @rbs request: ACP::Types::ResumeSessionRequest
   # @rbs return: ACP::Types::ResumeSessionResponse | ACP::RequestError
-  def session_resume(request)
+  def resume_session(request)
     parse(ACP::Types::ResumeSessionResponse, @transport.request('session/resume', request.to_h))
   end
 
   # @rbs request: ACP::Types::CloseSessionRequest
   # @rbs return: ACP::Types::CloseSessionResponse | ACP::RequestError
-  def session_close(request)
+  def close_session(request)
     parse(ACP::Types::CloseSessionResponse, @transport.request('session/close', request.to_h))
   end
 
   # @rbs request: ACP::Types::DeleteSessionRequest
   # @rbs return: ACP::Types::DeleteSessionResponse | ACP::RequestError
-  def session_delete(request)
+  def delete_session(request)
     parse(ACP::Types::DeleteSessionResponse, @transport.request('session/delete', request.to_h))
   end
 
   # @rbs request: ACP::Types::Unstable::ForkSessionRequest
   # @rbs return: (ACP::Types::Unstable::ForkSessionResponse | ACP::RequestError)
-  def session_fork(request)
+  def fork_session(request)
     parse(ACP::Types::Unstable::ForkSessionResponse, @transport.request('session/fork', request.to_h))
   end
 
   # @rbs request: ACP::Types::Unstable::ListProvidersRequest
   # @rbs return: (ACP::Types::Unstable::ListProvidersResponse | ACP::RequestError)
-  def providers_list(request)
+  def list_providers(request)
     parse(ACP::Types::Unstable::ListProvidersResponse, @transport.request('providers/list', request.to_h))
   end
 
   # @rbs request: ACP::Types::Unstable::SetProviderRequest
   # @rbs return: (ACP::Types::Unstable::SetProviderResponse | ACP::RequestError)
-  def providers_set(request)
+  # The name is the wire-mandated providers/set, not an attribute writer.
+  def set_provider(request) # rubocop:disable Naming/AccessorMethodName
     parse(ACP::Types::Unstable::SetProviderResponse, @transport.request('providers/set', request.to_h))
   end
 
   # @rbs request: ACP::Types::Unstable::DisableProviderRequest
   # @rbs return: (ACP::Types::Unstable::DisableProviderResponse | ACP::RequestError)
-  def providers_disable(request)
+  def disable_provider(request)
     parse(ACP::Types::Unstable::DisableProviderResponse, @transport.request('providers/disable', request.to_h))
   end
 
@@ -342,14 +343,15 @@ class ACP::ClientConnection
   #
   # @rbs notification: ACP::Types::CancelNotification
   # @rbs return: void
-  def session_cancel(notification)
+  def cancel_session(notification)
     @transport.notify('session/cancel', notification.to_h)
     @streams.cancel(notification.session_id)
   end
 
   # @rbs request: ACP::Types::SetSessionModeRequest
   # @rbs return: ACP::Types::SetSessionModeResponse | ACP::RequestError
-  def session_set_mode(request)
+  # The name is the wire-mandated session/set_mode, not an attribute writer.
+  def set_session_mode(request) # rubocop:disable Naming/AccessorMethodName
     parse(ACP::Types::SetSessionModeResponse, @transport.request('session/set_mode', request.to_h))
   end
 
@@ -358,7 +360,8 @@ class ACP::ClientConnection
   #
   # @rbs request: ACP::Types::SetSessionConfigOptionRequest
   # @rbs return: ACP::Types::SetSessionConfigOptionResponse | ACP::RequestError
-  def session_set_config_option(request)
+  # The name is the wire-mandated session/set_config_option, not an attribute writer.
+  def set_session_config_option(request) # rubocop:disable Naming/AccessorMethodName
     parse(ACP::Types::SetSessionConfigOptionResponse, @transport.request('session/set_config_option', request.to_h))
   end
 

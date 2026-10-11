@@ -22,9 +22,9 @@ describe ACP::AgentProcess do
 
   def prompt_turn(connection)
     connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1))
-    session = connection.session_new(ACP::Types::NewSessionRequest.new(cwd: Dir.pwd, mcp_servers: []))
+    session = connection.new_session(ACP::Types::NewSessionRequest.new(cwd: Dir.pwd, mcp_servers: []))
     prompt = [ACP::Types::ContentBlock::Text.new(text: 'hello')]
-    connection.session_prompt(ACP::Types::PromptRequest.new(session_id: session.session_id, prompt:)) { nil }
+    connection.prompt_session(ACP::Types::PromptRequest.new(session_id: session.session_id, prompt:)) { nil }
   end
 
   def wait_for_stderr(process, fragment)
