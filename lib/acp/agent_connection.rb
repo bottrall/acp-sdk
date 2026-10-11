@@ -11,15 +11,6 @@ class ACP::AgentConnection
   # @rbs @logger: ACP::Transport::_Logger
 
   PROTOCOL_VERSION = 1 #: Integer
-  OPTIONAL = [
-    ACP::AgentConnection::OptionalMethod::LoadSession,
-    ACP::AgentConnection::OptionalMethod::ListSessions,
-    ACP::AgentConnection::OptionalMethod::Authenticate,
-    ACP::AgentConnection::OptionalMethod::ResumeSession,
-    ACP::AgentConnection::OptionalMethod::CloseSession,
-    ACP::AgentConnection::OptionalMethod::DeleteSession,
-    ACP::AgentConnection::OptionalMethod::Logout
-  ].freeze #: Array[ACP::AgentConnection::_OptionalMethod]
   # The schema has no initialize capability for modes or config options: an
   # agent offers them per session, in its session responses, so they are
   # routed whenever the agent defines them.
@@ -127,20 +118,16 @@ class ACP::AgentConnection
     }
   end
 
-  # ForkSession's and the provider methods' advertised? reference the unstable
-  # types, so they can only be probed when the caller opted in with
-  # `require 'acp/types/unstable'`.
+  # The unstable specs pair with the unstable request routes, which reference
+  # the unstable request classes, so both are only probed after the caller
+  # opted in with `require 'acp/types/unstable'`.
   #
-  # @rbs return: Array[ACP::AgentConnection::_OptionalMethod]
+  # @rbs return: Array[ACP::AgentConnection::OptionalMethod::Spec]
   def optional_methods
-    return OPTIONAL unless defined?(ACP::Types::Unstable)
+    specs = ACP::AgentConnection::OptionalMethod::SPECS
+    return specs unless defined?(ACP::Types::Unstable)
 
-    OPTIONAL + [
-      ACP::AgentConnection::OptionalMethod::ForkSession,
-      ACP::AgentConnection::OptionalMethod::ListProviders,
-      ACP::AgentConnection::OptionalMethod::SetProvider,
-      ACP::AgentConnection::OptionalMethod::DisableProvider
-    ]
+    specs + ACP::AgentConnection::OptionalMethod::UNSTABLE_SPECS
   end
 
   # @rbs agent: ACP::AgentConnection::_Agent
