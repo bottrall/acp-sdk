@@ -130,7 +130,6 @@ module TypeGenerator::Plan
   end
 
   def snake(name) = name.delete_prefix('_').gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
-
   def camel(name) = name.split(/[^a-zA-Z\d]/).map(&:capitalize).join
 
   def alias_file(schema, name, target)

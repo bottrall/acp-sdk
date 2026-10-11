@@ -1,0 +1,119 @@
+# Generated from lib/acp/types/check.rb with RBS::Inline
+
+# The guards the generated from_h methods call. Each takes the fetched value
+# and the path to it, and raises ParseError naming that path when the value
+# does not match the schema type. Nested from_h failures come back with the
+# field path prepended, so the reported path is absolute.
+module ACP::Types::Check
+  # @rbs hash: Hash[String, untyped]
+  # @rbs key: String
+  # @rbs return: untyped
+  def self.key: (Hash[String, untyped] hash, String key) -> untyped
+
+  # @rbs value: untyped
+  # @rbs path: String | Array[String | Integer]
+  # @rbs allow_nil: bool
+  # @rbs allow_unset: bool
+  # @rbs return: untyped
+  def self.string: (untyped value, String | Array[String | Integer] path, ?allow_nil: bool, ?allow_unset: bool) -> untyped
+
+  # @rbs value: untyped
+  # @rbs path: String | Array[String | Integer]
+  # @rbs allow_nil: bool
+  # @rbs allow_unset: bool
+  # @rbs return: untyped
+  def self.boolean: (untyped value, String | Array[String | Integer] path, ?allow_nil: bool, ?allow_unset: bool) -> untyped
+
+  # @rbs value: untyped
+  # @rbs path: String | Array[String | Integer]
+  # @rbs min: Integer?
+  # @rbs max: Integer?
+  # @rbs allow_nil: bool
+  # @rbs allow_unset: bool
+  # @rbs return: untyped
+  def self.integer: (untyped value, String | Array[String | Integer] path, ?min: Integer?, ?max: Integer?, ?allow_nil: bool, ?allow_unset: bool) -> untyped
+
+  # @rbs value: untyped
+  # @rbs path: String | Array[String | Integer]
+  # @rbs min: Integer?
+  # @rbs max: Integer?
+  # @rbs allow_nil: bool
+  # @rbs allow_unset: bool
+  # @rbs return: untyped
+  def self.number: (untyped value, String | Array[String | Integer] path, ?min: Integer?, ?max: Integer?, ?allow_nil: bool, ?allow_unset: bool) -> untyped
+
+  # @rbs value: untyped
+  # @rbs path: String | Array[String | Integer]
+  # @rbs values: Array[untyped]
+  # @rbs allow_nil: bool
+  # @rbs allow_unset: bool
+  # @rbs return: untyped
+  def self.enum: (untyped value, String | Array[String | Integer] path, Array[untyped] values, ?allow_nil: bool, ?allow_unset: bool) -> untyped
+
+  # @rbs value: untyped
+  # @rbs path: String | Array[String | Integer]
+  # @rbs classes: Array[untyped]
+  # @rbs allow_nil: bool
+  # @rbs allow_unset: bool
+  # @rbs ?&items: (untyped, Array[String | Integer]) -> void
+  # @rbs return: untyped
+  def self.one_of: (untyped value, String | Array[String | Integer] path, Array[untyped] classes, ?allow_nil: bool, ?allow_unset: bool) ?{ (?) -> untyped } -> untyped
+
+  # @rbs value: untyped
+  # @rbs path: String | Array[String | Integer]
+  # @rbs allow_nil: bool
+  # @rbs allow_unset: bool
+  # @rbs &check: (untyped, Array[String | Integer]) -> void
+  # @rbs return: untyped
+  def self.hash: (untyped value, String | Array[String | Integer] path, ?allow_nil: bool, ?allow_unset: bool) { (untyped, Array[String | Integer]) -> void } -> untyped
+
+  # @rbs value: untyped
+  # @rbs path: String | Array[String | Integer]
+  # @rbs allow_nil: bool
+  # @rbs allow_unset: bool
+  # @rbs &check: (untyped, Array[String | Integer]) -> void
+  # @rbs return: untyped
+  def self.array: (untyped value, String | Array[String | Integer] path, ?allow_nil: bool, ?allow_unset: bool) { (untyped, Array[String | Integer]) -> void } -> untyped
+
+  # @rbs value: untyped
+  # @rbs path: String | Array[String | Integer]
+  # @rbs klass: untyped
+  # @rbs allow_nil: bool
+  # @rbs allow_unset: bool
+  # @rbs return: untyped
+  def self.object: (untyped value, String | Array[String | Integer] path, untyped klass, ?allow_nil: bool, ?allow_unset: bool) -> untyped
+
+  # @rbs value: untyped
+  # @rbs path: String | Array[String | Integer]
+  # @rbs klass: untyped
+  # @rbs allow_nil: bool
+  # @rbs allow_unset: bool
+  # @rbs return: untyped
+  def self.objects: (untyped value, String | Array[String | Integer] path, untyped klass, ?allow_nil: bool, ?allow_unset: bool) -> untyped
+
+  # @rbs value: untyped
+  # @rbs allow_nil: bool
+  # @rbs allow_unset: bool
+  # @rbs return: bool
+  def self.skipped?: (untyped value, bool allow_nil, bool allow_unset) -> bool
+
+  # @rbs path: String | Array[String | Integer]
+  # @rbs return: Array[String | Integer]
+  def self.segments: (String | Array[String | Integer] path) -> Array[String | Integer]
+
+  # @rbs value: untyped
+  # @rbs return: String
+  def self.describe: (untyped value) -> String
+
+  # @rbs value: Numeric
+  # @rbs min: Integer?
+  # @rbs max: Integer?
+  # @rbs return: bool
+  def self.within?: (Numeric value, Integer? min, Integer? max) -> bool
+
+  # @rbs name: String
+  # @rbs min: Integer?
+  # @rbs max: Integer?
+  # @rbs return: String
+  def self.bounded: (String name, Integer? min, Integer? max) -> String
+end
