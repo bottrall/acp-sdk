@@ -18,6 +18,12 @@ module TypeGenerator
 
   NAMESPACE = 'ACP::Types'
   UNSTABLE_NAMESPACE = "#{NAMESPACE}::Unstable".freeze
+
+  # Hand-authored files living inside the generated tree: every generated
+  # from_h raises ParseError and calls Check, but no schema def produces them.
+  # The Rakefile neither emits nor deletes them, so regeneration preserves them
+  # and types:check's diff still covers the whole tree.
+  SUPPORT_FILES = %w[check.rb parse_error.rb].freeze
   HEADER = <<~TEXT
     # frozen_string_literal: true
 

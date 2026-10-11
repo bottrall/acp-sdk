@@ -29,7 +29,8 @@ end
 namespace :types do
   desc 'Generate lib/acp/types from schema/schema.json and schema/schema.unstable.json'
   task :generate do
-    rm_rf 'lib/acp/types', verbose: false
+    stale = Dir.children('lib/acp/types') - TypeGenerator::SUPPORT_FILES
+    stale.each { |entry| rm_rf File.join('lib/acp/types', entry), verbose: false }
     write_types('lib/acp/types')
   end
 
@@ -37,6 +38,7 @@ namespace :types do
   task :check do
     Dir.mktmpdir('types-check') do |dir|
       write_types(dir)
+      TypeGenerator::SUPPORT_FILES.each { |f| FileUtils.cp("lib/acp/types/#{f}", dir) }
       sh "diff -ru lib/acp/types #{dir}" do |ok, _|
         abort 'lib/acp/types is out of date; run bin/types and commit the result' unless ok
       end

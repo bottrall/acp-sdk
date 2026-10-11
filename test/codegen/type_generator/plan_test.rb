@@ -10,14 +10,12 @@ describe TypeGenerator::Plan do
       blend.rb
       blend/plain.rb
       blend/tagged.rb
-      check.rb
       choice.rb
       choice/read.rb
       choice/write.rb
       mode.rb
       mug.rb
       note.rb
-      parse_error.rb
       session_list_request.rb
       session_list_response.rb
       session_load_request.rb
