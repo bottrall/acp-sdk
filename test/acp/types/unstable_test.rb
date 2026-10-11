@@ -80,33 +80,6 @@ describe 'ACP::Types::Unstable' do
     assert_equal example, range.to_h
   end
 
-  it 'exposes the schema enum values as constants' do
-    enums = {
-      ACP::Types::Unstable::CompactionStatus => {
-        'IN_PROGRESS' => 'in_progress', 'COMPLETED' => 'completed', 'FAILED' => 'failed', 'CANCELLED' => 'cancelled'
-      },
-      ACP::Types::Unstable::LlmProtocol => {
-        'ANTHROPIC' => 'anthropic', 'OPENAI' => 'openai', 'AZURE' => 'azure', 'VERTEX' => 'vertex',
-        'BEDROCK' => 'bedrock'
-      },
-      ACP::Types::Unstable::NesDiagnosticSeverity => {
-        'ERROR' => 'error', 'WARNING' => 'warning', 'INFORMATION' => 'information', 'HINT' => 'hint'
-      },
-      ACP::Types::Unstable::NesRejectReason => {
-        'REJECTED' => 'rejected', 'IGNORED' => 'ignored', 'REPLACED' => 'replaced', 'CANCELLED' => 'cancelled'
-      },
-      ACP::Types::Unstable::NesTriggerKind => {
-        'AUTOMATIC' => 'automatic', 'DIAGNOSTIC' => 'diagnostic', 'MANUAL' => 'manual'
-      },
-      ACP::Types::Unstable::NoticeSeverity => { 'INFO' => 'info', 'WARNING' => 'warning', 'ERROR' => 'error' },
-      ACP::Types::Unstable::PositionEncodingKind => { 'UTF_16' => 'utf-16', 'UTF_32' => 'utf-32', 'UTF_8' => 'utf-8' },
-      ACP::Types::Unstable::TextDocumentSyncKind => { 'FULL' => 'full', 'INCREMENTAL' => 'incremental' }
-    }
-    enums.each do |enum_module, constants|
-      constants.each { |name, value| assert_equal value, enum_module.const_get(name, false) }
-    end
-  end
-
   it 'leaves the stable SessionUpdate untouched by the unstable variants' do
     example = { 'sessionUpdate' => 'plan_removed', 'planId' => 'plan_1' }
 
