@@ -1,0 +1,98 @@
+# Generated from lib/acp/client_connection/streams.rb with RBS::Inline
+
+# The session-streaming engine: the per-session update queue registry, the
+# permission queue dance, and the elicitation registry. It holds no send
+# facade of its own — requests go through the sender and answers to the agent
+# ride the connection's routes — so it is unit-testable without a transport.
+class ACP::ClientConnection::Streams
+  CANCELLED: ACP::Types::RequestPermissionResponse
+
+  @outstanding_elicitations: Hash[String, bool]
+
+  @pending_permissions: Hash[String, Array[Thread::Queue]]
+
+  @streams: Hash[String, Thread::Queue]
+
+  @lock: Thread::Mutex
+
+  @logger: ACP::Transport::_Logger
+
+  @complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
+
+  @updates: ACP::ClientConnection::_UpdateHandler
+
+  @permission: ACP::ClientConnection::_PermissionHandler
+
+  @sender: ACP::ClientConnection::Streams::_Sender
+
+  # @rbs sender: ACP::ClientConnection::Streams::_Sender
+  # @rbs permission: ACP::ClientConnection::_PermissionHandler
+  # @rbs updates: ACP::ClientConnection::_UpdateHandler
+  # @rbs logger: ACP::Transport::_Logger
+  # @rbs complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
+  # @rbs return: void
+  def initialize: (sender: ACP::ClientConnection::Streams::_Sender, permission: ACP::ClientConnection::_PermissionHandler, updates: ACP::ClientConnection::_UpdateHandler, logger: ACP::Transport::_Logger, ?complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?) -> void
+
+  # The request waits on its own thread so the caller's thread can yield each
+  # update as it arrives. The reader thread queues an update before it settles
+  # a reply sent after it, so the queue closes only after the last one.
+  #
+  # @rbs session_id: String
+  # @rbs method: String
+  # @rbs params: Hash[String, untyped]
+  # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
+  # @rbs return: (Hash[String, untyped] | ACP::RequestError)
+  def stream: (String session_id, String method, Hash[String, untyped] params) { (ACP::Types::SessionUpdate::t) -> void } -> (Hash[String, untyped] | ACP::RequestError)
+
+  # Pushes under the lock so a stream cannot close its queue between the
+  # lookup and the push. A malformed notification has no reply to carry the
+  # failure.
+  #
+  # @rbs params: untyped
+  # @rbs return: void
+  def dispatch: (untyped params) -> void
+
+  # The handler runs on its own thread so a cancelled request is answered
+  # without waiting for it, and whatever it returns after that is pushed to a
+  # queue nobody reads.
+  #
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::RequestPermissionResponse | ACP::RequestError)
+  def request_permission: (untyped params) -> (ACP::Types::RequestPermissionResponse | ACP::RequestError)
+
+  # The spec requires a pending session/request_permission to be answered with
+  # the cancelled outcome once the turn is cancelled, so every queue registered
+  # for the session gets one before this returns.
+  #
+  # @rbs session_id: String
+  # @rbs return: void
+  def cancel: (String session_id) -> void
+
+  # The route is registered at start, before connect records the advertised
+  # capabilities, so a request for an unadvertised mode answers -32602.
+  #
+  # @rbs elicitation_id: String
+  # @rbs return: void
+  def register_elicitation: (String elicitation_id) -> void
+
+  # The spec requires a completion for an unknown or already-completed
+  # elicitation id to be ignored, so only an id registered by a served
+  # url-mode request reaches the handler. It runs on the transport's reader
+  # thread, so it must return quickly.
+  #
+  # @rbs params: untyped
+  # @rbs return: void
+  def complete_elicitation: (untyped params) -> void
+
+  private
+
+  # @rbs session_id: String
+  # @rbs replies: Thread::Queue
+  # @rbs return: void
+  def register_permission: (String session_id, Thread::Queue replies) -> void
+
+  # @rbs session_id: String
+  # @rbs replies: Thread::Queue
+  # @rbs return: void
+  def unregister_permission: (String session_id, Thread::Queue replies) -> void
+end

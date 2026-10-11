@@ -2,7 +2,6 @@
 
 class ACP::ClientConnection
   # @rbs @transport: ACP::AgentConnection::_Transport
-  # @rbs @permission: ACP::ClientConnection::_PermissionHandler
   # @rbs @read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
   # @rbs @write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
   # @rbs @create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?
@@ -13,8 +12,6 @@ class ACP::ClientConnection
   # @rbs @release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?
   # @rbs @elicitation: (^(ACP::Types::CreateElicitationRequest) ->
   #   (ACP::Types::CreateElicitationResponse | ACP::RequestError))?
-  # @rbs @complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
-  # @rbs @updates: ACP::ClientConnection::_UpdateHandler
   # @rbs @mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) ->
   #   (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
   # @rbs @mcp_advertised: bool?
@@ -23,19 +20,12 @@ class ACP::ClientConnection
   # @rbs @elicitation_capabilities: ACP::Types::ElicitationCapabilities?
   # @rbs @extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs @extension_notifications: Hash[String, ^(untyped) -> void]
-  # @rbs @lock: Thread::Mutex
-  # @rbs @streams: Hash[String, Thread::Queue]
-  # @rbs @pending_permissions: Hash[String, Array[Thread::Queue]]
-  # @rbs @outstanding_elicitations: Hash[String, bool]
+  # @rbs @streams: ACP::ClientConnection::Streams
   # @rbs @logger: ACP::Transport::_Logger
 
   PROTOCOL_VERSION = ACP::AgentConnection::PROTOCOL_VERSION #: Integer
 
   IGNORE = ->(_notification) {} #: ^(ACP::Types::SessionNotification) -> void
-
-  CANCELLED = ACP::Types::RequestPermissionResponse.new(
-    outcome: ACP::Types::RequestPermissionOutcome::Cancelled.new
-  ) #: ACP::Types::RequestPermissionResponse
 
   # One row of the serve table: the wire method the transport dispatches, the
   # request type parsed from its params, the ivar holding the injected handler
@@ -181,6 +171,7 @@ class ACP::ClientConnection
   #   (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
   # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
+  # @rbs streams: ACP::ClientConnection::Streams?
   # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
   def initialize(
@@ -199,10 +190,10 @@ class ACP::ClientConnection
     mcp_message: nil,
     extension_requests: {},
     extension_notifications: {},
+    streams: nil,
     logger: ACP::Transport::StderrLogger.new
   )
     @transport = transport
-    @permission = permission
     @read_text_file = read_text_file
     @write_text_file = write_text_file
     @create_terminal = create_terminal
@@ -211,8 +202,6 @@ class ACP::ClientConnection
     @kill_terminal = kill_terminal
     @release_terminal = release_terminal
     @elicitation = elicitation
-    @complete_elicitation = complete_elicitation
-    @updates = updates
     @mcp_message = mcp_message
     @mcp_advertised = nil
     @fs_capabilities = nil
@@ -222,10 +211,7 @@ class ACP::ClientConnection
     @extension_notifications = extension_notifications
     extension_requests.each_key { |name| ACP::Extensions.validate_name(name) }
     extension_notifications.each_key { |name| ACP::Extensions.validate_name(name) }
-    @lock = Mutex.new
-    @streams = {}
-    @pending_permissions = {}
-    @outstanding_elicitations = {}
+    @streams = streams || Streams.new(sender: transport, permission:, updates:, logger:, complete_elicitation:)
     @logger = logger
   end
 
@@ -233,11 +219,13 @@ class ACP::ClientConnection
   def start
     @transport.start(
       requests: {
-        'session/request_permission' => method(:request_permission),
+        'session/request_permission' => @streams.method(:request_permission),
         'elicitation/create' => method(:create_elicitation)
       }.merge(SERVE.to_h { |route| [route.wire, serve(route)] }).merge(mcp_requests).merge(@extension_requests),
-      notifications: { 'session/update' => method(:dispatch),
-                       'elicitation/complete' => method(:complete_elicitation) }.merge(@extension_notifications)
+      notifications: {
+        'session/update' => @streams.method(:dispatch),
+        'elicitation/complete' => @streams.method(:complete_elicitation)
+      }.merge(@extension_notifications)
     )
   end
 
@@ -285,14 +273,14 @@ class ACP::ClientConnection
   # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
   # @rbs return: ACP::Types::PromptResponse | ACP::RequestError
   def session_prompt(request, &)
-    parse(ACP::Types::PromptResponse, stream(request.session_id, 'session/prompt', request.to_h, &))
+    parse(ACP::Types::PromptResponse, @streams.stream(request.session_id, 'session/prompt', request.to_h, &))
   end
 
   # @rbs request: ACP::Types::LoadSessionRequest
   # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
   # @rbs return: ACP::Types::LoadSessionResponse | ACP::RequestError
   def session_load(request, &)
-    parse(ACP::Types::LoadSessionResponse, stream(request.session_id, 'session/load', request.to_h, &))
+    parse(ACP::Types::LoadSessionResponse, @streams.stream(request.session_id, 'session/load', request.to_h, &))
   end
 
   # @rbs request: ACP::Types::ListSessionsRequest
@@ -347,16 +335,14 @@ class ACP::ClientConnection
   end
 
   # The spec requires a pending session/request_permission to be answered with
-  # the cancelled outcome once the turn is cancelled, so every queue registered
-  # for the session gets one before this returns. The notification goes first
-  # so the wire order is cancel, then the cancelled replies.
+  # the cancelled outcome once the turn is cancelled. The notification goes
+  # first so the wire order is cancel, then the cancelled replies.
   #
   # @rbs notification: ACP::Types::CancelNotification
   # @rbs return: void
   def session_cancel(notification)
     @transport.notify('session/cancel', notification.to_h)
-    pending = @lock.synchronize { @pending_permissions.delete(notification.session_id) }
-    pending&.each { |replies| replies << [:value, CANCELLED] }
+    @streams.cancel(notification.session_id)
   end
 
   # @rbs request: ACP::Types::SetSessionModeRequest
@@ -517,116 +503,6 @@ class ACP::ClientConnection
     ACP::RequestError.invalid_response(result)
   end
 
-  # The request waits on its own thread so the caller's thread can yield each
-  # update as it arrives. The reader thread queues an update before it settles
-  # a reply sent after it, so the queue closes only after the last one.
-  #
-  # @rbs session_id: String
-  # @rbs method: String
-  # @rbs params: Hash[String, untyped]
-  # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
-  # @rbs return: (Hash[String, untyped] | ACP::RequestError)
-  def stream(session_id, method, params)
-    queue = Thread::Queue.new
-    # The check and the insert share one lock acquisition so a concurrent
-    # stream cannot register between them.
-    claimed = @lock.synchronize do
-      if @streams.key?(session_id)
-        false
-      else
-        @streams[session_id] = queue
-        true
-      end
-    end
-    unless claimed
-      return ACP::RequestError.new(
-        code: ACP::RequestError::INVALID_REQUEST, message: "A stream is already open for session #{session_id}"
-      )
-    end
-    requester = Thread.new do
-      @transport.request(method, params)
-    ensure
-      @lock.synchronize { @streams.delete(session_id)&.close }
-    end
-    while (update = queue.pop)
-      yield update
-    end
-    requester.value
-  end
-
-  # Pushes under the lock so a stream cannot close its queue between the
-  # lookup and the push. A malformed notification has no reply to carry the
-  # failure.
-  #
-  # @rbs params: untyped
-  # @rbs return: void
-  def dispatch(params)
-    notification = ACP::Types::SessionNotification.from_h(params)
-  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError => e
-    @logger.warn("dropped malformed session/update: #{e.class}: #{e.message}")
-  else
-    queue = @lock.synchronize { @streams[notification.session_id]&.push(notification.update) }
-    @updates.call(notification) unless queue
-  end
-
-  # The handler runs on its own thread so a cancelled request is answered
-  # without waiting for it, and whatever it returns after that is pushed to a
-  # queue nobody reads.
-  #
-  # @rbs params: untyped
-  # @rbs return: (ACP::Types::RequestPermissionResponse | ACP::RequestError)
-  def request_permission(params)
-    request = ACP::Types::RequestPermissionRequest.from_h(params)
-  rescue ACP::Types::ParseError => e
-    ACP::RequestError.invalid_params([e.message])
-  rescue KeyError, TypeError, NoMethodError
-    ACP::RequestError.invalid_params
-  else
-    replies = Thread::Queue.new
-    register_permission(request.session_id, replies)
-    # The handler runs on this connection's own thread, so the serving
-    # identity must be carried over for cancelled? to see the cancel there.
-    serving = @transport.cancellation
-    Thread.new do
-      ACP::Transport::Cancellation.current = serving
-      # A raised StandardError is not a returned ACP::RequestError, so the two
-      # need distinct shapes on the queue.
-      replies << begin
-        [:value, @permission.call(request)]
-      rescue StandardError => e
-        [:raised, e]
-      end
-    ensure
-      unregister_permission(request.session_id, replies)
-    end
-    settled = replies.pop
-    # Re-raised so the transport's invoke turns it into an error reply, as it
-    # would if the handler ran on the serve thread itself.
-    raise settled[1] if settled[0] == :raise
-
-    settled[1]
-  end
-
-  # @rbs session_id: String
-  # @rbs replies: Thread::Queue
-  # @rbs return: void
-  def register_permission(session_id, replies)
-    @lock.synchronize { (@pending_permissions[session_id] ||= []) << replies }
-  end
-
-  # @rbs session_id: String
-  # @rbs replies: Thread::Queue
-  # @rbs return: void
-  def unregister_permission(session_id, replies)
-    @lock.synchronize do
-      pending = @pending_permissions[session_id]
-      if pending
-        pending.delete(replies)
-        @pending_permissions.delete(session_id) if pending.empty?
-      end
-    end
-  end
-
   # The route is registered at start, before connect records the advertised
   # capabilities, so a request for an unadvertised mode answers -32602.
   #
@@ -643,7 +519,7 @@ class ACP::ClientConnection
     when ACP::Types::CreateElicitationRequest::Mode::Url
       return ACP::RequestError.unadvertised_mode('elicitation.url') unless @elicitation_capabilities&.url
 
-      register_elicitation(request.mode.elicitation_id)
+      @streams.register_elicitation(request.mode.elicitation_id)
     else
       return ACP::RequestError.unadvertised_mode("elicitation.#{request.mode['mode']}")
     end
@@ -651,28 +527,6 @@ class ACP::ClientConnection
     # Safe: connect refuses an advertised mode no handler serves.
     handler = @elicitation #: ^(ACP::Types::CreateElicitationRequest) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError)
     handler.call(request)
-  end
-
-  # The spec requires a completion for an unknown or already-completed
-  # elicitation id to be ignored, so only an id registered by a served
-  # url-mode request reaches the handler. It runs on the transport's reader
-  # thread, so it must return quickly.
-  #
-  # @rbs params: untyped
-  # @rbs return: void
-  def complete_elicitation(params)
-    notification = ACP::Types::CompleteElicitationNotification.from_h(params)
-  rescue KeyError, TypeError, NoMethodError => e
-    @logger.warn("dropped malformed elicitation/complete: #{e.class}: #{e.message}")
-  else
-    known = @lock.synchronize { @outstanding_elicitations.delete(notification.elicitation_id) }
-    @complete_elicitation&.call(notification) if known
-  end
-
-  # @rbs elicitation_id: String
-  # @rbs return: void
-  def register_elicitation(elicitation_id)
-    @lock.synchronize { @outstanding_elicitations[elicitation_id] = true }
   end
 
   # The elicitation capabilities initialize advertises that no injected
