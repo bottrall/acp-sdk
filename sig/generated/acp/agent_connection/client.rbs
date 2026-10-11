@@ -3,15 +3,15 @@
 class ACP::AgentConnection::Client
   @mcp_advertised: bool
 
-  @peer: ACP::AgentConnection::_Peer
+  @peer: ACP::Transport::_Peer
 
   # @dynamic capabilities, capabilities=
   attr_accessor capabilities: ACP::Types::ClientCapabilities?
 
-  # @rbs peer: ACP::AgentConnection::_Peer
+  # @rbs peer: ACP::Transport::_Peer
   # @rbs mcp_advertised: bool
   # @rbs return: void
-  def initialize: (peer: ACP::AgentConnection::_Peer, ?mcp_advertised: bool) -> void
+  def initialize: (peer: ACP::Transport::_Peer, ?mcp_advertised: bool) -> void
 
   # @rbs session_id: String
   # @rbs update: ACP::Types::SessionUpdate::t
@@ -99,14 +99,14 @@ class ACP::AgentConnection::Client
   private
 
   # @rbs rpc_method: String
-  # @rbs type: ACP::AgentConnection::_Parser
-  # @rbs request: ACP::AgentConnection::_Response
+  # @rbs type: ACP::Transport::_Parser
+  # @rbs request: ACP::Transport::_Response
   # @rbs return: untyped
-  def call: (String rpc_method, ACP::AgentConnection::_Parser type, ACP::AgentConnection::_Response request) -> untyped
+  def call: (String rpc_method, ACP::Transport::_Parser type, ACP::Transport::_Response request) -> untyped
 
   # @rbs rpc_method: String
-  # @rbs type: ACP::AgentConnection::_Parser
-  # @rbs request: ACP::AgentConnection::_Response
+  # @rbs type: ACP::Transport::_Parser
+  # @rbs request: ACP::Transport::_Response
   # @rbs return: untyped
-  def terminal_call: (String rpc_method, ACP::AgentConnection::_Parser type, ACP::AgentConnection::_Response request) -> untyped
+  def terminal_call: (String rpc_method, ACP::Transport::_Parser type, ACP::Transport::_Response request) -> untyped
 end

@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 class ACP::ClientConnection
-  # @rbs @transport: ACP::AgentConnection::_Transport
+  # @rbs @transport: ACP::Transport::_Transport
+  # @rbs @permission: ACP::ClientConnection::_PermissionHandler
   # @rbs @read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
   # @rbs @write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
   # @rbs @create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?
@@ -23,8 +24,6 @@ class ACP::ClientConnection
   # @rbs @streams: ACP::ClientConnection::Streams
   # @rbs @logger: ACP::Transport::_Logger
 
-  PROTOCOL_VERSION = ACP::AgentConnection::PROTOCOL_VERSION #: Integer
-
   IGNORE = ->(_notification) {} #: ^(ACP::Types::SessionNotification) -> void
 
   # One row of the serve table: the wire method the transport dispatches, the
@@ -35,7 +34,7 @@ class ACP::ClientConnection
   # constructor answering an unadvertised request.
   class Route
     # @rbs @wire: String
-    # @rbs @type: ACP::AgentConnection::_Parser
+    # @rbs @type: ACP::Transport::_Parser
     # @rbs @handler: Symbol
     # @rbs @family: Symbol
     # @rbs @advertised: ^(untyped) -> (bool | nil)
@@ -44,7 +43,7 @@ class ACP::ClientConnection
     # @rbs @label: String
 
     # @rbs wire: String
-    # @rbs type: ACP::AgentConnection::_Parser
+    # @rbs type: ACP::Transport::_Parser
     # @rbs handler: Symbol
     # @rbs family: Symbol
     # @rbs key: String
@@ -77,7 +76,7 @@ class ACP::ClientConnection
 
     # @dynamic wire, type, handler, family, advertised, refuse, key, label
     attr_reader :wire #: String
-    attr_reader :type #: ACP::AgentConnection::_Parser
+    attr_reader :type #: ACP::Transport::_Parser
     attr_reader :handler #: Symbol
     attr_reader :family #: Symbol
     attr_reader :advertised #: ^(untyped) -> (bool | nil)
@@ -153,7 +152,7 @@ class ACP::ClientConnection
     )
   ].freeze #: Array[ACP::ClientConnection::Route]
 
-  # @rbs transport: ACP::AgentConnection::_Transport
+  # @rbs transport: ACP::Transport::_Transport
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
   # @rbs read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
   # @rbs write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
@@ -254,8 +253,11 @@ class ACP::ClientConnection
     response = parse(ACP::Types::InitializeResponse, result)
     return response if response.is_a?(ACP::RequestError)
 
-    @mcp_advertised = agent_mcp_advertised?(result)
-    return response if response.protocol_version == PROTOCOL_VERSION
+    # Safe: parse only calls from_h on a Hash, and its RequestError answer
+    # short-circuited above.
+    reply = result #: Hash[String, untyped]
+    @mcp_advertised = ACP::Protocol.mcp_acp_advertised?(reply['agentCapabilities'] || {})
+    return response if response.protocol_version == ACP::Protocol::PROTOCOL_VERSION
 
     ACP::RequestError.unsupported_protocol_version(
       requested: request.protocol_version,
@@ -477,22 +479,7 @@ class ACP::ClientConnection
     { 'mcp/message' => serve(route) }
   end
 
-  # The stable McpCapabilities has no acp field, so the gate re-reads the raw
-  # initialize reply with the unstable types when they are opted into.
-  #
-  # @rbs result: (Hash[String, untyped] | ACP::RequestError)
-  # @rbs return: bool
-  def agent_mcp_advertised?(result)
-    return false unless ACP::Types.unstable_enabled?
-    return false unless result.is_a?(Hash)
-
-    mcp = ACP::Types::Unstable::McpCapabilities.from_h(result['agentCapabilities']['mcpCapabilities'] || {})
-    mcp.acp ? true : false
-  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError
-    false
-  end
-
-  # @rbs type: ACP::AgentConnection::_Parser
+  # @rbs type: ACP::Transport::_Parser
   # @rbs result: (Hash[String, untyped] | ACP::RequestError)
   # @rbs return: untyped
   def parse(type, result)

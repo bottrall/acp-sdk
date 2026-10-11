@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class ACP::AgentConnection
-  # @rbs @transport: ACP::AgentConnection::_Transport
+  # @rbs @transport: ACP::Transport::_Transport
   # @rbs @capabilities: ACP::Types::AgentCapabilities
   # @rbs @agent_info: ACP::Types::Implementation?
   # @rbs @auth_methods: Array[ACP::Types::AuthMethod::t]
@@ -10,7 +10,6 @@ class ACP::AgentConnection
   # @rbs @extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs @logger: ACP::Transport::_Logger
 
-  PROTOCOL_VERSION = 1 #: Integer
   # The schema has no initialize capability for modes or config options: an
   # agent offers them per session, in its session responses, so they are
   # routed whenever the agent defines them.
@@ -19,7 +18,7 @@ class ACP::AgentConnection
     'session/set_config_option' => :change_session_config_option
   }.freeze #: Hash[String, Symbol]
 
-  # @rbs transport: ACP::AgentConnection::_Transport
+  # @rbs transport: ACP::Transport::_Transport
   # @rbs capabilities: ACP::Types::AgentCapabilities
   # @rbs agent_info: ACP::Types::Implementation?
   # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]
@@ -78,7 +77,7 @@ class ACP::AgentConnection
 
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs client: ACP::AgentConnection::Client
-  # @rbs return: Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
+  # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
   def requests(agent, client)
     # Safe: start drops the optional handlers initialize does not advertise
     # or the agent does not define, and checks the agent defines the rest.
@@ -106,7 +105,7 @@ class ACP::AgentConnection
   # advertises fork or providers.
   #
   # @rbs full: ACP::AgentConnection::_FullAgent
-  # @rbs return: Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
+  # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
   def unstable_requests(full)
     return {} unless ACP::Types.unstable_enabled?
 
@@ -152,18 +151,9 @@ class ACP::AgentConnection
     agent.cancel(notification)
   end
 
-  # The unstable gates reference the unstable types, so they can only be
-  # probed when the caller opted in with `require 'acp/types/unstable'`; the
-  # stable McpCapabilities has no acp field at all.
-  #
   # @rbs return: bool
   def mcp_acp_advertised?
-    return false unless ACP::Types.unstable_enabled?
-
-    mcp = @capabilities.mcp_capabilities #: ACP::Types::McpCapabilities | ACP::Types::Unstable::McpCapabilities?
-    return false unless mcp.is_a?(ACP::Types::Unstable::McpCapabilities)
-
-    mcp.acp ? true : false
+    ACP::Protocol.mcp_acp_advertised?(@capabilities)
   end
 
   # A notification has no reply to carry a parse failure.
@@ -182,9 +172,9 @@ class ACP::AgentConnection
 
   # Generated from_h raises on a missing key or a value of the wrong shape.
   #
-  # @rbs type: ACP::AgentConnection::_Parser
-  # @rbs &handle: (untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)
-  # @rbs return: ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)
+  # @rbs type: ACP::Transport::_Parser
+  # @rbs &handle: (untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
+  # @rbs return: ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
   def route(type, &)
     lambda do |params|
       request = type.from_h(params)
@@ -210,7 +200,7 @@ class ACP::AgentConnection
   # @rbs return: ACP::Types::InitializeResponse
   def initialize_response(auth_methods)
     ACP::Types::InitializeResponse.new(
-      protocol_version: PROTOCOL_VERSION,
+      protocol_version: ACP::Protocol::PROTOCOL_VERSION,
       agent_capabilities: @capabilities,
       auth_methods:,
       agent_info: @agent_info
