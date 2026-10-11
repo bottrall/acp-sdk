@@ -1,0 +1,32 @@
+# Generated from lib/acp/agent_connection/optional_method/spec.rb with RBS::Inline
+
+class ACP::AgentConnection::OptionalMethod::Spec
+  # @dynamic rpc_method
+  attr_reader rpc_method: String
+
+  # @dynamic agent_method
+  attr_reader agent_method: Symbol
+
+  # @dynamic path
+  attr_reader path: Array[Symbol]
+
+  # @rbs rpc_method: String
+  # @rbs agent_method: Symbol
+  # @rbs path: Array[Symbol]
+  # @rbs return: void
+  def initialize: (rpc_method: String, agent_method: Symbol, path: Array[Symbol]) -> void
+
+  # Readers missing along the chain count as unadvertised, so the stable
+  # capabilities answer false for the unstable-only paths (fork, providers).
+  #
+  # @rbs initialize_response: ACP::Types::InitializeResponse
+  # @rbs return: bool
+  def advertised?: (ACP::Types::InitializeResponse initialize_response) -> bool
+
+  private
+
+  # @rbs node: untyped
+  # @rbs name: Symbol
+  # @rbs return: untyped
+  def follow: (untyped node, Symbol name) -> untyped
+end
