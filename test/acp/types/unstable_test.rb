@@ -9,6 +9,7 @@ describe 'ACP::Types::Unstable' do
   it 'stays unloaded until the caller opts in' do
     out, _err = Open3.capture3('bundle', 'exec', 'ruby', '-I', 'lib', '-e', <<~RUBY)
       require 'acp/sdk'
+      puts "gate=\#{ACP::Types.unstable_enabled?}"
       begin
         ACP::Types::Unstable
         puts 'autoloaded'
@@ -16,7 +17,11 @@ describe 'ACP::Types::Unstable' do
         puts 'guarded'
       end
     RUBY
-    assert_equal "guarded\n", out
+    assert_equal "gate=false\nguarded\n", out
+  end
+
+  it 'reports the opt-in gate as open once the unstable types are required' do
+    assert_predicate ACP::Types, :unstable_enabled?
   end
 
   it 'parses PromptResponse usage' do

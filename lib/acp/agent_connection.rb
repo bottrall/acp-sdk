@@ -108,7 +108,7 @@ class ACP::AgentConnection
   # @rbs full: ACP::AgentConnection::_FullAgent
   # @rbs return: Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
   def unstable_requests(full)
-    return {} unless defined?(ACP::Types::Unstable)
+    return {} unless ACP::Types.unstable_enabled?
 
     {
       'session/fork' => route(ACP::Types::Unstable::ForkSessionRequest) { |request| full.fork_session(request) },
@@ -125,7 +125,7 @@ class ACP::AgentConnection
   # @rbs return: Array[ACP::AgentConnection::OptionalMethod::Spec]
   def optional_methods
     specs = ACP::AgentConnection::OptionalMethod::SPECS
-    return specs unless defined?(ACP::Types::Unstable)
+    return specs unless ACP::Types.unstable_enabled?
 
     specs + ACP::AgentConnection::OptionalMethod::UNSTABLE_SPECS
   end
@@ -158,7 +158,7 @@ class ACP::AgentConnection
   #
   # @rbs return: bool
   def mcp_acp_advertised?
-    return false unless defined?(ACP::Types::Unstable)
+    return false unless ACP::Types.unstable_enabled?
 
     mcp = @capabilities.mcp_capabilities #: ACP::Types::McpCapabilities | ACP::Types::Unstable::McpCapabilities?
     return false unless mcp.is_a?(ACP::Types::Unstable::McpCapabilities)
