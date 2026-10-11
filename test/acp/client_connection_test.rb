@@ -1301,35 +1301,21 @@ describe ACP::ClientConnection do
       within { JSON.parse(@agent_input.gets) }
     end
 
-    it 'serves terminal/create' do
-      reply = reply_for('terminal/create', { 'sessionId' => 's', 'command' => 'echo' })
+    it 'serves the terminal methods' do
+      {
+        'terminal/create' => [{ 'sessionId' => 's', 'command' => 'echo' }, { 'terminalId' => 't1' }],
+        'terminal/output' => [
+          { 'sessionId' => 's', 'terminalId' => 't1' }, { 'output' => 'hello', 'truncated' => false }
+        ],
+        'terminal/wait_for_exit' => [{ 'sessionId' => 's', 'terminalId' => 't1' }, { 'exitCode' => 0 }],
+        'terminal/kill' => [{ 'sessionId' => 's', 'terminalId' => 't1' }, {}],
+        'terminal/release' => [{ 'sessionId' => 's', 'terminalId' => 't1' }, {}]
+      }.each do |method, (params, result)|
+        @wait_gate << true if method == 'terminal/wait_for_exit'
+        reply = reply_for(method, params)
 
-      assert_equal({ 'terminalId' => 't1' }, reply['result'])
-    end
-
-    it 'serves terminal/output' do
-      reply = reply_for('terminal/output', { 'sessionId' => 's', 'terminalId' => 't1' })
-
-      assert_equal({ 'output' => 'hello', 'truncated' => false }, reply['result'])
-    end
-
-    it 'serves terminal/wait_for_exit' do
-      @wait_gate << true
-      reply = reply_for('terminal/wait_for_exit', { 'sessionId' => 's', 'terminalId' => 't1' })
-
-      assert_equal({ 'exitCode' => 0 }, reply['result'])
-    end
-
-    it 'serves terminal/kill' do
-      reply = reply_for('terminal/kill', { 'sessionId' => 's', 'terminalId' => 't1' })
-
-      assert_equal({}, reply['result'])
-    end
-
-    it 'serves terminal/release' do
-      reply = reply_for('terminal/release', { 'sessionId' => 's', 'terminalId' => 't1' })
-
-      assert_equal({}, reply['result'])
+        assert_equal result, reply['result']
+      end
     end
 
     it 'returns the error a terminal handler answers with' do

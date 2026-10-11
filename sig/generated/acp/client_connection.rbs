@@ -55,6 +55,68 @@ class ACP::ClientConnection
 
   CANCELLED: ACP::Types::RequestPermissionResponse
 
+  # One row of the serve table: the wire method the transport dispatches, the
+  # request type parsed from its params, the ivar holding the injected handler
+  # that serves the route, and the capability gate both connect's pre-flight
+  # and the per-route check read. family is the ivar connect records the
+  # family's advertisement in, and refuse names the ACP::RequestError
+  # constructor answering an unadvertised request.
+  class Route
+    @label: String
+
+    @key: String
+
+    @refuse: Symbol
+
+    @advertised: ^(untyped) -> (bool | nil)
+
+    @family: Symbol
+
+    @handler: Symbol
+
+    @type: ACP::AgentConnection::_Parser
+
+    @wire: String
+
+    # @rbs wire: String
+    # @rbs type: ACP::AgentConnection::_Parser
+    # @rbs handler: Symbol
+    # @rbs family: Symbol
+    # @rbs key: String
+    # @rbs advertised: ^(untyped) -> (bool | nil)
+    # @rbs refuse: Symbol
+    # @rbs label: String?
+    # @rbs return: void
+    def initialize: (wire: String, type: ACP::AgentConnection::_Parser, handler: Symbol, family: Symbol, key: String, ?advertised: ^(untyped) -> (bool | nil), ?refuse: Symbol, ?label: String?) -> void
+
+    # @dynamic wire, type, handler, family, advertised, refuse, key, label
+    attr_reader wire: String
+
+    attr_reader type: ACP::AgentConnection::_Parser
+
+    attr_reader handler: Symbol
+
+    attr_reader family: Symbol
+
+    attr_reader advertised: ^(untyped) -> (bool | nil)
+
+    attr_reader refuse: Symbol
+
+    attr_reader key: String
+
+    attr_reader label: String
+  end
+
+  # The served routes, the single declaration of route → type → gate →
+  # handler. The routes are registered at start, before connect records the
+  # advertisement, so each one answers its refusal until then. The terminal
+  # capability is a single bool, so its five routes share one gate.
+  #
+  # The terminal handlers may block for as long as the command runs, so the
+  # transport must serve each request on its own thread for this not to hold
+  # up others.
+  SERVE: Array[ACP::ClientConnection::Route]
+
   # @rbs transport: ACP::AgentConnection::_Transport
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
   # @rbs read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
@@ -193,12 +255,31 @@ class ACP::ClientConnection
 
   private
 
-  # The route is only registered when a handler serves it, but the agent's
-  # advertisement is only known after connect, so an unadvertised request
-  # still reaches the route and is refused there.
+  # @rbs route: ACP::ClientConnection::Route
+  # @rbs return: ^(untyped) -> (untyped | ACP::RequestError)
+  def serve: (ACP::ClientConnection::Route route) -> ^(untyped) -> (untyped | ACP::RequestError)
+
+  # @rbs route: ACP::ClientConnection::Route
+  # @rbs return: ACP::RequestError
+  def refuse: (ACP::ClientConnection::Route route) -> ACP::RequestError
+
+  # The fs and terminal capabilities initialize advertises that no injected
+  # handler serves.
   #
-  # @rbs return: Hash[String, ACP::Transport::Stdio::_Handler]
-  def mcp_requests: () -> Hash[String, ACP::Transport::Stdio::_Handler]
+  # @rbs name: String
+  # @rbs family: Symbol
+  # @rbs capabilities: untyped
+  # @rbs return: void
+  def check_served: (String name, Symbol family, untyped capabilities) -> void
+
+  # The unstable types are referenced while the row is built, so the route can
+  # only be served when the caller opted in with `require 'acp/types/unstable'`.
+  # It is registered only when a handler serves it: unlike the fs and terminal
+  # gates, the mcp gate reads the agent's advertisement, so nothing forces an
+  # advertised request to have a handler.
+  #
+  # @rbs return: Hash[String, ^(untyped) -> (untyped | ACP::RequestError)]
+  def mcp_requests: () -> Hash[String, ^(untyped) -> (untyped | ACP::RequestError)]
 
   # The stable McpCapabilities has no acp field, so the gate re-reads the raw
   # initialize reply with the unstable types when they are opted into.
@@ -249,51 +330,7 @@ class ACP::ClientConnection
   # @rbs return: void
   def unregister_permission: (String session_id, Thread::Queue replies) -> void
 
-  # The routes are registered at start, before connect records the advertised
-  # capabilities, so each one answers -32601 until then.
-  #
-  # @rbs params: untyped
-  # @rbs return: (ACP::Types::ReadTextFileResponse | ACP::RequestError)
-  def read_text_file: (untyped params) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError)
-
-  # @rbs params: untyped
-  # @rbs return: (ACP::Types::WriteTextFileResponse | ACP::RequestError)
-  def write_text_file: (untyped params) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError)
-
-  # The terminal routes are registered at start, before connect records the
-  # advertised capability, so each one answers -32601 until then.
-  #
-  # @rbs params: untyped
-  # @rbs return: (ACP::Types::CreateTerminalResponse | ACP::RequestError)
-  def create_terminal: (untyped params) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError)
-
-  # @rbs params: untyped
-  # @rbs return: (ACP::Types::TerminalOutputResponse | ACP::RequestError)
-  def terminal_output: (untyped params) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError)
-
-  # The handler may block for as long as the command runs, so the transport
-  # must serve each request on its own thread for this not to hold up others.
-  #
-  # @rbs params: untyped
-  # @rbs return: (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError)
-  def wait_for_terminal_exit: (untyped params) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError)
-
-  # @rbs params: untyped
-  # @rbs return: (ACP::Types::KillTerminalResponse | ACP::RequestError)
-  def kill_terminal: (untyped params) -> (ACP::Types::KillTerminalResponse | ACP::RequestError)
-
-  # @rbs params: untyped
-  # @rbs return: (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
-  def release_terminal: (untyped params) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
-
-  # The route is registered at start, before connect records the agent's
-  # advertisement, so an unadvertised request answers -32601 until then.
-  #
-  # @rbs params: untyped
-  # @rbs return: (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
-  def mcp_message: (untyped params) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
-
-  # The routes are registered at start, before connect records the advertised
+  # The route is registered at start, before connect records the advertised
   # capabilities, so a request for an unadvertised mode answers -32602.
   #
   # @rbs params: untyped
@@ -312,19 +349,6 @@ class ACP::ClientConnection
   # @rbs elicitation_id: String
   # @rbs return: void
   def register_elicitation: (String elicitation_id) -> void
-
-  # The fs capabilities initialize advertises that no injected handler serves.
-  #
-  # @rbs capabilities: ACP::Types::FileSystemCapabilities?
-  # @rbs return: Array[String]
-  def unserved_fs_methods: (ACP::Types::FileSystemCapabilities? capabilities) -> Array[String]
-
-  # The terminal capabilities initialize advertises that no injected handler
-  # serves.
-  #
-  # @rbs capabilities: bool?
-  # @rbs return: Array[String]
-  def unserved_terminal_methods: (bool? capabilities) -> Array[String]
 
   # The elicitation capabilities initialize advertises that no injected
   # handler serves.
