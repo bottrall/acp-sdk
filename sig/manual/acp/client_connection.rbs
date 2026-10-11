@@ -11,3 +11,12 @@ class ACP::ClientConnection
     def call: (ACP::Types::SessionNotification) -> void
   end
 end
+
+class ACP::ClientConnection::Streams
+  # Sends the stream's request to the agent and holds the serving identity the
+  # permission handler's thread restores; the connection wires its transport in.
+  interface _Sender
+    def request: (String method, ?untyped params) -> (Hash[String, untyped] | ACP::RequestError)
+    def cancellation: () -> ACP::Transport::Cancellation?
+  end
+end
