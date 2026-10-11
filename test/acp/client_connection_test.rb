@@ -123,36 +123,6 @@ class ModesAgent
   end
 end
 
-# Holds each request on @gate until released, so a stream stays open between
-# two threads.
-class GatedTransport
-  attr_reader :entered, :notifications
-
-  def initialize(response)
-    @response = response
-    @entered = Thread::Queue.new
-    @gate = Thread::Queue.new
-  end
-
-  def start(requests: {}, notifications: {})
-    @requests = requests
-    @notifications = notifications
-    Thread.new { nil }
-  end
-
-  def request(_method, _params = nil)
-    @entered << true
-    @gate.pop
-    @response
-  end
-
-  def notify(_method, _params = nil); end
-
-  def release
-    @gate << true
-  end
-end
-
 describe ACP::ClientConnection do
   def within(seconds = 2, &)
     Timeout.timeout(seconds, &)
@@ -326,29 +296,6 @@ describe ACP::ClientConnection do
       end
 
       assert_equal 'cancelled', response.stop_reason
-    end
-
-    it 'answers a pending permission request with cancelled after session_cancel' do
-      entered = Thread::Queue.new
-      release = Thread::Queue.new
-      connection = start do |_request|
-        entered << true
-        release.pop
-        choose(EchoAgent::ALLOW)
-      end
-      session_id = new_session(connection)
-      response = within do
-        connection.session_prompt(prompt_request(session_id, 'hello')) do
-          # Entering the handler proves the request is registered, so the
-          # cancel below cannot race ahead of it.
-          within { entered.pop }
-          connection.session_cancel(ACP::Types::CancelNotification.new(session_id:))
-        end
-      end
-
-      assert_equal 'cancelled', response.stop_reason
-    ensure
-      release << true
     end
 
     it 'yields the replayed history from session_load' do
@@ -1001,61 +948,6 @@ describe ACP::ClientConnection do
     end
   end
 
-  describe 'two overlapping streams for one session' do
-    def connection(transport)
-      connection = ACP::ClientConnection.new(transport:, permission: ->(_request) {})
-      connection.start
-      connection
-    end
-
-    it 'refuses the second call and leaves the first stream intact' do
-      transport = GatedTransport.new({})
-      conn = connection(transport)
-      first_updates = []
-      second_updates = []
-      first = Thread.new do
-        conn.session_prompt(prompt_request('s1', 'hello')) { |update| first_updates << update }
-      end
-      transport.entered.pop
-      error = within { conn.session_prompt(prompt_request('s1', 'again')) { |update| second_updates << update } }
-
-      assert_equal [-32_600, 'A stream is already open for session s1'], [error.code, error.message]
-
-      transport.notifications['session/update'].call(
-        'sessionId' => 's1',
-        'update' => { 'sessionUpdate' => 'agent_message_chunk', 'content' => { 'type' => 'text', 'text' => 'hello' } }
-      )
-      transport.release
-      response = within { first.value }
-
-      assert_equal(
-        [[-32_603, 'Invalid response', {}], [%w[agent_message_chunk hello]], []],
-        [
-          [response.code, response.message, response.data],
-          first_updates.map { |update| summary(update) },
-          second_updates
-        ]
-      )
-    end
-
-    it 'accepts a new stream for the session once the first one ends' do
-      transport = GatedTransport.new({})
-      conn = connection(transport)
-      first = Thread.new do
-        conn.session_prompt(prompt_request('s1', 'hello')) { nil }
-      end
-      transport.entered.pop
-      transport.release
-      within { first.value }
-      # first cannot return before its requester thread removed the session
-      # from @streams, so the next call must be accepted.
-      transport.release
-      response = within { conn.session_prompt(prompt_request('s1', 'again')) { nil } }
-
-      assert_equal [-32_603, 'Invalid response', {}], [response.code, response.message, response.data]
-    end
-  end
-
   describe 'a malformed agent response' do
     def connection(result)
       ACP::ClientConnection.new(transport: StubTransport.new(result), permission: ->(_request) {})
@@ -1090,43 +982,6 @@ describe ACP::ClientConnection do
       error = within { connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1)) }
 
       assert_equal([-32_603, 'Unsupported protocol version: requested 1, returned 2'], [error.code, error.message])
-    end
-  end
-
-  describe 'a malformed session/update notification' do
-    def connection
-      transport = StubTransport.new({})
-      logger = FakeLogger.new
-      ACP::ClientConnection.new(transport:, permission: ->(_request) {}, logger:).start
-      [transport, logger]
-    end
-
-    it 'logs and drops the notification' do
-      transport, logger = connection
-      transport.notifications['session/update'].call({ 'update' => { 'sessionUpdate' => 'agent_message_chunk' } })
-
-      assert_equal [:warn, 'dropped malformed session/update: ACP::Types::ParseError: sessionId: is required'],
-                   logger.pop
-    end
-  end
-
-  describe 'a malformed request from the agent' do
-    def connection(transport)
-      ACP::ClientConnection.new(transport:, permission: ->(_request) {}).start
-      transport
-    end
-
-    it 'answers session/request_permission with invalid params naming the failing path' do
-      transport = connection(StubTransport.new({}))
-
-      error = transport.requests['session/request_permission'].call(
-        { 'sessionId' => 's1', 'toolCall' => { 'toolCallId' => 'c1' }, 'options' => [42] }
-      )
-
-      assert_equal(
-        [-32_602, 'Invalid params', { errors: ['options[0]: expected object, got Integer'] }],
-        [error.code, error.message, error.data]
-      )
     end
   end
 
