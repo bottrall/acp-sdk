@@ -15,16 +15,14 @@ class ACP::AgentConnection
 
   @capabilities: ACP::Types::AgentCapabilities
 
-  @transport: ACP::AgentConnection::_Transport
-
-  PROTOCOL_VERSION: Integer
+  @transport: ACP::Transport::_Transport
 
   # The schema has no initialize capability for modes or config options: an
   # agent offers them per session, in its session responses, so they are
   # routed whenever the agent defines them.
   PER_SESSION: Hash[String, Symbol]
 
-  # @rbs transport: ACP::AgentConnection::_Transport
+  # @rbs transport: ACP::Transport::_Transport
   # @rbs capabilities: ACP::Types::AgentCapabilities
   # @rbs agent_info: ACP::Types::Implementation?
   # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]
@@ -33,7 +31,7 @@ class ACP::AgentConnection
   # @rbs logger: ACP::Transport::_Logger
   # @rbs &factory: (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
   # @rbs return: void
-  def initialize: (transport: ACP::AgentConnection::_Transport, capabilities: ACP::Types::AgentCapabilities, ?agent_info: ACP::Types::Implementation?, ?auth_methods: Array[ACP::Types::AuthMethod::t], ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) { (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent } -> void
+  def initialize: (transport: ACP::Transport::_Transport, capabilities: ACP::Types::AgentCapabilities, ?agent_info: ACP::Types::Implementation?, ?auth_methods: Array[ACP::Types::AuthMethod::t], ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) { (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent } -> void
 
   # @rbs return: Thread
   def start: () -> Thread
@@ -42,16 +40,16 @@ class ACP::AgentConnection
 
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs client: ACP::AgentConnection::Client
-  # @rbs return: Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
-  def requests: (ACP::AgentConnection::_Agent agent, ACP::AgentConnection::Client client) -> Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
+  # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
+  def requests: (ACP::AgentConnection::_Agent agent, ACP::AgentConnection::Client client) -> Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
 
   # The unstable request types are referenced while the hash is built, so
   # without the guard start would raise NameError even for an agent that never
   # advertises fork or providers.
   #
   # @rbs full: ACP::AgentConnection::_FullAgent
-  # @rbs return: Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
-  def unstable_requests: (ACP::AgentConnection::_FullAgent full) -> Hash[String, ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)]
+  # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
+  def unstable_requests: (ACP::AgentConnection::_FullAgent full) -> Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
 
   # The unstable specs pair with the unstable request routes, which reference
   # the unstable request classes, so both are only probed after the caller
@@ -71,10 +69,6 @@ class ACP::AgentConnection
   # @rbs return: void
   def cancel: (ACP::AgentConnection::_Agent agent, untyped params) -> void
 
-  # The unstable gates reference the unstable types, so they can only be
-  # probed when the caller opted in with `require 'acp/types/unstable'`; the
-  # stable McpCapabilities has no acp field at all.
-  #
   # @rbs return: bool
   def mcp_acp_advertised?: () -> bool
 
@@ -87,10 +81,10 @@ class ACP::AgentConnection
 
   # Generated from_h raises on a missing key or a value of the wrong shape.
   #
-  # @rbs type: ACP::AgentConnection::_Parser
-  # @rbs &handle: (untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)
-  # @rbs return: ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)
-  def route: (ACP::AgentConnection::_Parser type) { (untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply) } -> ^(untyped) -> (ACP::AgentConnection::_Response | ACP::RequestError | ACP::Transport::Reply)
+  # @rbs type: ACP::Transport::_Parser
+  # @rbs &handle: (untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
+  # @rbs return: ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
+  def route: (ACP::Transport::_Parser type) { (untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply) } -> ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
 
   # @rbs client: ACP::AgentConnection::Client
   # @rbs request: ACP::Types::InitializeRequest

@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
 class ACP::AgentConnection::Client
-  # @rbs @peer: ACP::AgentConnection::_Peer
+  # @rbs @peer: ACP::Transport::_Peer
   # @rbs @mcp_advertised: bool
 
   # @dynamic capabilities, capabilities=
   attr_accessor :capabilities #: ACP::Types::ClientCapabilities?
 
-  # @rbs peer: ACP::AgentConnection::_Peer
+  # @rbs peer: ACP::Transport::_Peer
   # @rbs mcp_advertised: bool
   # @rbs return: void
   def initialize(peer:, mcp_advertised: false)
@@ -158,8 +158,8 @@ class ACP::AgentConnection::Client
   private
 
   # @rbs rpc_method: String
-  # @rbs type: ACP::AgentConnection::_Parser
-  # @rbs request: ACP::AgentConnection::_Response
+  # @rbs type: ACP::Transport::_Parser
+  # @rbs request: ACP::Transport::_Response
   # @rbs return: untyped
   def call(rpc_method, type, request)
     result = @peer.request(rpc_method, request.to_h)
@@ -171,8 +171,8 @@ class ACP::AgentConnection::Client
   end
 
   # @rbs rpc_method: String
-  # @rbs type: ACP::AgentConnection::_Parser
-  # @rbs request: ACP::AgentConnection::_Response
+  # @rbs type: ACP::Transport::_Parser
+  # @rbs request: ACP::Transport::_Response
   # @rbs return: untyped
   def terminal_call(rpc_method, type, request)
     return ACP::RequestError.unadvertised('terminal') unless capabilities&.terminal

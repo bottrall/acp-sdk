@@ -1,0 +1,9 @@
+# Generated from lib/acp/protocol.rb with RBS::Inline
+
+module ACP::Protocol
+  PROTOCOL_VERSION: Integer
+
+  # @rbs capabilities: (ACP::Types::AgentCapabilities | ACP::Types::Unstable::AgentCapabilities | Hash[String, untyped])
+  # @rbs return: bool
+  def mcp_acp_advertised?: (ACP::Types::AgentCapabilities | ACP::Types::Unstable::AgentCapabilities | Hash[String, untyped] capabilities) -> bool
+end

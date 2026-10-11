@@ -107,28 +107,4 @@ class ACP::AgentConnection
     def ext_notify: (String method, ?untyped params) -> void
     def capabilities: () -> ACP::Types::ClientCapabilities?
   end
-
-  interface _Peer
-    def request: (String method, ?untyped params) -> (Hash[String, untyped] | ACP::RequestError)
-    def notify: (String method, ?untyped params) -> void
-    def cancellation: () -> ACP::Transport::Cancellation?
-    def cancel_requests: () -> void
-  end
-
-  interface _Transport
-    include _Peer
-
-    def start: (
-      requests: Hash[String, ACP::Transport::Stdio::_Handler],
-      notifications: Hash[String, ACP::Transport::Stdio::_NotificationHandler]
-    ) -> Thread
-  end
-
-  interface _Parser
-    def from_h: (Hash[String, untyped]) -> untyped
-  end
-
-  interface _Response
-    def to_h: () -> Hash[String, untyped]
-  end
 end
