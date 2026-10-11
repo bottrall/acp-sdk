@@ -113,6 +113,14 @@ connection = ACP::ClientConnection.new(
 
 Extensions work the same way in both directions: `extension_requests` and `extension_notifications` are hashes keyed by the raw `_`-prefixed wire name, `ext_request` sends one to the agent and returns its result as-is, and `ext_notify` sends an extension notification. A handler name without the `_` prefix raises `ArgumentError`, and an extension request nothing answers gets `-32601`.
 
+## Types
+
+Every ACP request, response and notification is a generated, frozen value class under `ACP::Types` with `from_h` and `to_h`. A few of its names are deliberate enough to deserve a note:
+
+- `CancelRequestNotification` and `CancelNotification` are different methods with different payloads: the former is the params of the JSON-RPC-level `$/cancel_request`, which the transport handles itself, the latter is the params of ACP's `session/cancel`. Both spellings are the schema's, not a typo.
+- The schema names `session/new`, `session/load`, `session/list` and `session/prompt`'s params and result `NewSessionRequest`, `LoadSessionRequest`, `ListSessionsRequest` and `PromptRequest`, so the wire-shaped spellings exist as alias constants: `ACP::Types::SessionNewRequest`, `SessionLoadRequest`, `SessionListRequest`, `SessionListResponse` and `SessionPromptRequest` are the same classes as their targets. Both names are public API and here to stay — use whichever reads better.
+- The schema's pure string enums are generated as constant modules, for building requests and matching responses without string literals: `ACP::Types::ToolKind::EDIT`, `ACP::Types::StopReason::CANCELLED`, `ACP::Types::PlanEntryPriority::HIGH`, `ACP::Types::Role::USER` and the rest. They carry no validation of their own — the generated `from_h` checks incoming values against the schema regardless of how you build outgoing ones.
+
 ## Unstable types
 
 Some protocol features are not part of the spec yet, so their schema lives in a separate unstable file: draft session updates (`plan_update`, `plan_removed`, `notice`, `compaction_update`, `compaction_summary_chunk`, `subagent_update`, `session_message`, `session_message_chunk`), `PromptResponse#usage`, the NE (next edit) and provider methods, and the matching capabilities. They are generated under `ACP::Types::Unstable` and load only when you opt in:
@@ -124,6 +132,8 @@ require 'acp/types/unstable'
 Until then, referencing `ACP::Types::Unstable` is a `NameError`, and the stable `ACP::Types` namespace is byte-identical either way: types the unstable schema shares with the stable one resolve to the same generated classes, so opting in adds names without changing or duplicating any stable one.
 
 These types are **unstable**: they are not part of the ACP spec, agents and clients must not rely on the peer supporting them, and any of them may change or disappear between releases without a major version bump. When a stable schema absorbs one of them, the unstable twin goes away and the stable name stays.
+
+The connections route `session/fork`, the provider methods and `mcp/message`, but not every unstable method has routing yet: the NE methods (`nes/start`, `nes/suggest`, `nes/accept`, `nes/reject`, `nes/close`), the document notifications (`document/didOpen` and friends) and the unstable `ClientCapabilities` are generated as public API for callers wiring those methods at the transport level, and may gain connection routing later.
 
 ## Contributing
 
