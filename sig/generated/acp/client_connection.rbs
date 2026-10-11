@@ -138,6 +138,81 @@ class ACP::ClientConnection
 
   # @rbs request: ACP::Types::NewSessionRequest
   # @rbs return: ACP::Types::NewSessionResponse | ACP::RequestError
+  def new_session: (ACP::Types::NewSessionRequest request) -> (ACP::Types::NewSessionResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::PromptRequest
+  # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
+  # @rbs return: ACP::Types::PromptResponse | ACP::RequestError
+  def prompt_session: (ACP::Types::PromptRequest request) { (ACP::Types::SessionUpdate::t) -> void } -> (ACP::Types::PromptResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::LoadSessionRequest
+  # @rbs &block: (ACP::Types::SessionUpdate::t) -> void
+  # @rbs return: ACP::Types::LoadSessionResponse | ACP::RequestError
+  def load_session: (ACP::Types::LoadSessionRequest request) { (ACP::Types::SessionUpdate::t) -> void } -> (ACP::Types::LoadSessionResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::ListSessionsRequest
+  # @rbs return: ACP::Types::ListSessionsResponse | ACP::RequestError
+  def list_sessions: (ACP::Types::ListSessionsRequest request) -> (ACP::Types::ListSessionsResponse | ACP::RequestError)
+
+  # The agent does not replay history on resume, so unlike load_session there
+  # is nothing to stream and no block is taken.
+  #
+  # @rbs request: ACP::Types::ResumeSessionRequest
+  # @rbs return: ACP::Types::ResumeSessionResponse | ACP::RequestError
+  def resume_session: (ACP::Types::ResumeSessionRequest request) -> (ACP::Types::ResumeSessionResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::CloseSessionRequest
+  # @rbs return: ACP::Types::CloseSessionResponse | ACP::RequestError
+  def close_session: (ACP::Types::CloseSessionRequest request) -> (ACP::Types::CloseSessionResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::DeleteSessionRequest
+  # @rbs return: ACP::Types::DeleteSessionResponse | ACP::RequestError
+  def delete_session: (ACP::Types::DeleteSessionRequest request) -> (ACP::Types::DeleteSessionResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::Unstable::ForkSessionRequest
+  # @rbs return: (ACP::Types::Unstable::ForkSessionResponse | ACP::RequestError)
+  def fork_session: (ACP::Types::Unstable::ForkSessionRequest request) -> (ACP::Types::Unstable::ForkSessionResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::Unstable::ListProvidersRequest
+  # @rbs return: (ACP::Types::Unstable::ListProvidersResponse | ACP::RequestError)
+  def list_providers: (ACP::Types::Unstable::ListProvidersRequest request) -> (ACP::Types::Unstable::ListProvidersResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::Unstable::SetProviderRequest
+  # @rbs return: (ACP::Types::Unstable::SetProviderResponse | ACP::RequestError)
+  # The name is the wire-mandated providers/set, not an attribute writer.
+  def set_provider: (ACP::Types::Unstable::SetProviderRequest request) -> (ACP::Types::Unstable::SetProviderResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::Unstable::DisableProviderRequest
+  # @rbs return: (ACP::Types::Unstable::DisableProviderResponse | ACP::RequestError)
+  def disable_provider: (ACP::Types::Unstable::DisableProviderRequest request) -> (ACP::Types::Unstable::DisableProviderResponse | ACP::RequestError)
+
+  # The spec requires a pending session/request_permission to be answered with
+  # the cancelled outcome once the turn is cancelled. The notification goes
+  # first so the wire order is cancel, then the cancelled replies.
+  #
+  # @rbs notification: ACP::Types::CancelNotification
+  # @rbs return: void
+  def cancel_session: (ACP::Types::CancelNotification notification) -> void
+
+  # @rbs request: ACP::Types::SetSessionModeRequest
+  # @rbs return: ACP::Types::SetSessionModeResponse | ACP::RequestError
+  # The name is the wire-mandated session/set_mode, not an attribute writer.
+  def set_session_mode: (ACP::Types::SetSessionModeRequest request) -> (ACP::Types::SetSessionModeResponse | ACP::RequestError)
+
+  # The reply carries the session's complete option list, so it replaces any
+  # state held from an earlier reply rather than merging into it.
+  #
+  # @rbs request: ACP::Types::SetSessionConfigOptionRequest
+  # @rbs return: ACP::Types::SetSessionConfigOptionResponse | ACP::RequestError
+  # The name is the wire-mandated session/set_config_option, not an attribute writer.
+  def set_session_config_option: (ACP::Types::SetSessionConfigOptionRequest request) -> (ACP::Types::SetSessionConfigOptionResponse | ACP::RequestError)
+
+  # Deprecated wire-order aliases for the senders above, kept so callers of
+  # the pre-convention names do not break in place; they will be removed in a
+  # future release.
+  #
+  # @rbs request: ACP::Types::NewSessionRequest
+  # @rbs return: ACP::Types::NewSessionResponse | ACP::RequestError
   def session_new: (ACP::Types::NewSessionRequest request) -> (ACP::Types::NewSessionResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::PromptRequest
@@ -154,9 +229,6 @@ class ACP::ClientConnection
   # @rbs return: ACP::Types::ListSessionsResponse | ACP::RequestError
   def session_list: (ACP::Types::ListSessionsRequest request) -> (ACP::Types::ListSessionsResponse | ACP::RequestError)
 
-  # The agent does not replay history on resume, so unlike session_load there
-  # is nothing to stream and no block is taken.
-  #
   # @rbs request: ACP::Types::ResumeSessionRequest
   # @rbs return: ACP::Types::ResumeSessionResponse | ACP::RequestError
   def session_resume: (ACP::Types::ResumeSessionRequest request) -> (ACP::Types::ResumeSessionResponse | ACP::RequestError)
@@ -185,10 +257,6 @@ class ACP::ClientConnection
   # @rbs return: (ACP::Types::Unstable::DisableProviderResponse | ACP::RequestError)
   def providers_disable: (ACP::Types::Unstable::DisableProviderRequest request) -> (ACP::Types::Unstable::DisableProviderResponse | ACP::RequestError)
 
-  # The spec requires a pending session/request_permission to be answered with
-  # the cancelled outcome once the turn is cancelled. The notification goes
-  # first so the wire order is cancel, then the cancelled replies.
-  #
   # @rbs notification: ACP::Types::CancelNotification
   # @rbs return: void
   def session_cancel: (ACP::Types::CancelNotification notification) -> void
@@ -197,9 +265,6 @@ class ACP::ClientConnection
   # @rbs return: ACP::Types::SetSessionModeResponse | ACP::RequestError
   def session_set_mode: (ACP::Types::SetSessionModeRequest request) -> (ACP::Types::SetSessionModeResponse | ACP::RequestError)
 
-  # The reply carries the session's complete option list, so it replaces any
-  # state held from an earlier reply rather than merging into it.
-  #
   # @rbs request: ACP::Types::SetSessionConfigOptionRequest
   # @rbs return: ACP::Types::SetSessionConfigOptionResponse | ACP::RequestError
   def session_set_config_option: (ACP::Types::SetSessionConfigOptionRequest request) -> (ACP::Types::SetSessionConfigOptionResponse | ACP::RequestError)
@@ -271,6 +336,14 @@ class ACP::ClientConnection
   # @rbs result: (Hash[String, untyped] | ACP::RequestError)
   # @rbs return: untyped
   def parse: (ACP::Transport::_Parser type, Hash[String, untyped] | ACP::RequestError result) -> untyped
+
+  # uplevel 2 names the caller of the deprecated alias rather than this
+  # helper or the alias itself.
+  #
+  # @rbs old: String
+  # @rbs new: String
+  # @rbs return: void
+  def deprecate: (String old, String new) -> void
 
   # The route is registered at start, before connect records the advertised
   # capabilities, so a request for an unadvertised mode answers -32602.

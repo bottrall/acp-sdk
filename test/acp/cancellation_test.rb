@@ -67,12 +67,12 @@ describe 'request cancellation' do
   def client_session(client, terminal_handlers: {})
     capabilities = terminal_handlers.any? ? ACP::Types::ClientCapabilities.new(terminal: true) : nil
     client.connect(ACP::Types::InitializeRequest.new(protocol_version: 1, client_capabilities: capabilities))
-    client.session_new(ACP::Types::NewSessionRequest.new(cwd: Dir.pwd, mcp_servers: []))
+    client.new_session(ACP::Types::NewSessionRequest.new(cwd: Dir.pwd, mcp_servers: []))
   end
 
   def prompt_of(client, session)
     Thread.new do
-      client.session_prompt(ACP::Types::PromptRequest.new(session_id: session.session_id, prompt: [text('hi')]))
+      client.prompt_session(ACP::Types::PromptRequest.new(session_id: session.session_id, prompt: [text('hi')]))
     end
   end
 
@@ -115,7 +115,7 @@ describe 'request cancellation' do
     prompt = prompt_of(client, session)
     wait_started.pop(timeout: 2)
 
-    client.session_cancel(ACP::Types::CancelNotification.new(session_id: session.session_id))
+    client.cancel_session(ACP::Types::CancelNotification.new(session_id: session.session_id))
 
     assert_equal(
       [true, -32_800, 'cancelled'],
