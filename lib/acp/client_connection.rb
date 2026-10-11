@@ -464,7 +464,7 @@ class ACP::ClientConnection
   # @rbs return: Hash[String, ^(untyped) -> (untyped | ACP::RequestError)]
   def mcp_requests
     return {} unless @mcp_message
-    return {} unless defined?(ACP::Types::Unstable)
+    return {} unless ACP::Types.unstable_enabled?
 
     route = Route.new(
       wire: 'mcp/message',
@@ -483,7 +483,7 @@ class ACP::ClientConnection
   # @rbs result: (Hash[String, untyped] | ACP::RequestError)
   # @rbs return: bool
   def agent_mcp_advertised?(result)
-    return false unless defined?(ACP::Types::Unstable)
+    return false unless ACP::Types.unstable_enabled?
     return false unless result.is_a?(Hash)
 
     mcp = ACP::Types::Unstable::McpCapabilities.from_h(result['agentCapabilities']['mcpCapabilities'] || {})
