@@ -135,22 +135,53 @@ module TypeGenerator::Resolve
       # rejects them.
       closed = options.all? { |option| option.key?('const') }
       TypeGenerator::Type.new(rbs:, check: closed ? [:enum, options.map { |option| option.fetch('const') }] : nil)
-    when :primitive_union
-      options = variants(definition)
-      types = options.map { |option| option['type'] == 'null' ? 'nil' : resolve(defs, option).rbs }
-      non_null = options.reject { |option| option['type'] == 'null' }
-      classes = non_null.flat_map { |option| TypeGenerator::RUBY_CLASSES.fetch(option.fetch('type'), %w[Array]) }
-      # A typed-array variant's items are checked by one_of after the Array
-      # class matches, so the spec passes the inner item check, not [:array, ...].
-      items = non_null.filter_map do |option|
-        next unless option['type'] == 'array'
-
-        array_check = resolve(defs, option).check #: [:array, TypeGenerator::check]
-        array_check[1]
-      end.first
-      TypeGenerator::Type.new(rbs: types.join(' | '), nullable: types.include?('nil'), check: [:one_of, classes, items])
+    when :primitive_union then primitive_union(defs, name, variants(definition))
     else resolve(defs, definition)
     end
+  end
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs options: Array[Hash[String, untyped]]
+  # @rbs return: TypeGenerator::Type
+  def primitive_union(defs, name, options)
+    schemas = options.map { |option| dereference(defs, option) }
+    present = schemas.reject { |schema| schema['type'] == 'null' }
+    classes = present.flat_map do |schema|
+      type, *others = Array(schema['type']) - ['null']
+      (TypeGenerator::RUBY_CLASSES[type] if others.empty?) ||
+        raise("Unsupported union shape in #{name}: #{schema} is neither a primitive nor an array")
+    end
+    arrays = present.select { |schema| Array(schema['type']).include?('array') }.map { |schema| resolve(defs, schema) }
+    raise "Unsupported union shape in #{name}: several array options" if arrays.size > 1
+    raise "Unsupported union shape in #{name}: array items need conversion" if arrays.any?(&:from)
+
+    types = schemas.flat_map do |schema|
+      if schema['type'] == 'null' then ['nil']
+      else [resolve(defs, schema).rbs, *('nil' if Array(schema['type']).include?('null'))]
+      end
+    end.uniq
+    # A typed-array variant's items are checked by one_of after the Array
+    # class matches, so the spec passes the inner item check, not [:array, ...].
+    array_check = arrays.first&.check #: [:array, TypeGenerator::check]?
+    TypeGenerator::Type.new(
+      rbs: types.join(' | '),
+      nullable: types.include?('nil'),
+      check: [:one_of, classes, array_check&.last]
+    )
+  end
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs schema: Hash[String, untyped]
+  # @rbs return: Hash[String, untyped]
+  def dereference(defs, schema)
+    ref = schema['$ref']
+    return schema unless ref
+
+    definition = defs.fetch(TypeGenerator::Plan.ref_name(ref))
+    # A non-primitive def has no type for primitive_union to accept, so its
+    # ref is left for the caller to reject.
+    kind(definition) == :primitive ? dereference(defs, definition) : schema
   end
 
   # @rbs method: :map | :transform_values

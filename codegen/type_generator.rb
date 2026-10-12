@@ -62,7 +62,8 @@ module TypeGenerator
     'boolean' => %w[TrueClass FalseClass],
     'integer' => %w[Integer],
     'number' => %w[Numeric],
-    'string' => %w[String]
+    'string' => %w[String],
+    'array' => %w[Array]
   }.freeze #: Hash[String, Array[String]]
 
   CHECK = 'ACP::Types::Check'

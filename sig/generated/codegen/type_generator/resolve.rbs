@@ -38,6 +38,17 @@ module TypeGenerator::Resolve
   # @rbs return: TypeGenerator::Type
   def resolve_ref: (TypeGenerator::Schema defs, String name) -> TypeGenerator::Type
 
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs options: Array[Hash[String, untyped]]
+  # @rbs return: TypeGenerator::Type
+  def primitive_union: (TypeGenerator::Schema defs, String name, Array[Hash[String, untyped]] options) -> TypeGenerator::Type
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs schema: Hash[String, untyped]
+  # @rbs return: Hash[String, untyped]
+  def dereference: (TypeGenerator::Schema defs, Hash[String, untyped] schema) -> Hash[String, untyped]
+
   # @rbs method: :map | :transform_values
   # @rbs conversion: TypeGenerator::conversion?
   # @rbs return: TypeGenerator::conversion?

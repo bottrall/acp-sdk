@@ -375,28 +375,115 @@ describe TypeGenerator::Resolve do
                    facets(resolver.resolve_ref(defs, 'Level'))
     end
 
-    it 'resolves a primitive-union def to a one_of check over the variant classes' do
-      rbs = TypeGenerator::PRIMITIVES.values_at('string', 'integer').join(' | ')
-      classes = TypeGenerator::RUBY_CLASSES.values_at('string', 'integer').flatten
-
-      assert_equal unconverted(rbs, [:one_of, classes, nil]), facets(resolver.resolve_ref(defs, 'Amount'))
-    end
-
-    it 'makes a primitive union with a null variant nullable' do
-      boolean, string = TypeGenerator::PRIMITIVES.values_at('boolean', 'string')
-      type = resolver.resolve_ref(defs, 'MaybeTags')
-
-      assert_equal ["#{boolean} | Array[#{string}] | nil", true], [type.rbs, type.nullable?]
-    end
-
-    it "passes one_of the item check of a primitive union's array variant" do
-      classes = [*TypeGenerator::RUBY_CLASSES.fetch('boolean'), 'Array']
-
-      assert_equal [:one_of, classes, [:string]], resolver.resolve_ref(defs, 'MaybeTags').check
+    it 'resolves a primitive-union def through its options' do
+      assert_equal facets(resolver.primitive_union(defs, 'MaybeTags', maybe_tags.fetch('anyOf'))),
+                   facets(resolver.resolve_ref(defs, 'MaybeTags'))
     end
 
     it 'resolves a primitive def through its own schema' do
       assert_equal facets(resolver.resolve(defs, raw_defs.fetch('Label'))), facets(resolver.resolve_ref(defs, 'Label'))
+    end
+  end
+
+  describe '.primitive_union' do
+    let(:boolean) { TypeGenerator::PRIMITIVES.fetch('boolean') }
+    let(:string) { TypeGenerator::PRIMITIVES.fetch('string') }
+    let(:string_class) { TypeGenerator::RUBY_CLASSES.fetch('string') }
+    let(:array_class) { TypeGenerator::RUBY_CLASSES.fetch('array') }
+
+    def union(*options) = resolver.primitive_union(defs, 'Value', options)
+
+    def unsupported(*options) = assert_raises(RuntimeError) { union(*options) }.message
+
+    it 'resolves a $ref option through the primitive def it names' do
+      assert_equal unconverted(string, [:one_of, string_class, nil]), facets(union(ref('Label')))
+    end
+
+    it 'checks the classes of every non-null option' do
+      classes = TypeGenerator::RUBY_CLASSES.values_at('string', 'integer').flatten
+
+      assert_equal [:one_of, classes, nil], union(*amount.fetch('oneOf'), { 'type' => 'null' }).check
+    end
+
+    it 'checks the class of an option whose type list includes null' do
+      assert_equal [:one_of, string_class, nil], union({ 'type' => %w[string null] }).check
+    end
+
+    it 'rejects an option typed as neither a primitive nor an array' do
+      schema = { 'type' => 'object' }
+
+      assert_equal "Unsupported union shape in Value: #{schema} is neither a primitive nor an array",
+                   unsupported(schema)
+    end
+
+    it 'rejects an option listing several non-null types' do
+      schema = { 'type' => %w[string integer] }
+
+      assert_equal "Unsupported union shape in Value: #{schema} is neither a primitive nor an array",
+                   unsupported(schema)
+    end
+
+    it 'rejects a $ref option naming anything but a primitive def' do
+      assert_equal "Unsupported union shape in Value: #{ref('Step')} is neither a primitive nor an array",
+                   unsupported({ 'type' => 'string' }, ref('Step'))
+    end
+
+    it 'rejects several array options' do
+      arrays = %w[string integer].map { |type| { 'type' => 'array', 'items' => { 'type' => type } } }
+
+      assert_equal 'Unsupported union shape in Value: several array options', unsupported(*arrays)
+    end
+
+    it 'rejects an array option whose items need conversion' do
+      assert_equal 'Unsupported union shape in Value: array items need conversion',
+                   unsupported({ 'type' => 'string' }, { 'type' => 'array', 'items' => ref('Step') })
+    end
+
+    it 'joins the RBS types of the options in order, null included' do
+      type = union({ 'type' => 'null' }, *maybe_tags.fetch('anyOf'))
+
+      assert_equal ["nil | #{boolean} | Array[#{string}]", true], [type.rbs, type.nullable?]
+    end
+
+    it 'makes a union with an option whose type list includes null nullable' do
+      type = union({ 'type' => %w[string null] }, { 'type' => 'boolean' })
+
+      assert_equal ["#{string} | nil | #{boolean}", true], [type.rbs, type.nullable?]
+    end
+
+    it 'leaves a union with no null option non-nullable' do
+      refute_predicate union(*amount.fetch('oneOf')), :nullable?
+    end
+
+    it "passes one_of the item check of the union's array option" do
+      classes = [*TypeGenerator::RUBY_CLASSES.fetch('boolean'), *array_class]
+
+      assert_equal [:one_of, classes, [:string]], union(*maybe_tags.fetch('anyOf')).check
+    end
+
+    it 'passes one_of no item check for an array option whose items carry none' do
+      assert_equal unconverted("#{string} | Array[untyped]", [:one_of, [*string_class, *array_class], nil]),
+                   facets(union({ 'type' => 'string' }, { 'type' => 'array', 'items' => {} }))
+    end
+  end
+
+  describe '.dereference' do
+    it 'keeps a schema that is not a $ref' do
+      schema = { 'type' => 'string' }
+
+      assert_same schema, resolver.dereference(defs, schema)
+    end
+
+    it 'follows a $ref through primitive defs to the schema they alias' do
+      aliased = TypeGenerator::Schema.new(raw_defs.merge('Name' => ref('Label')))
+
+      assert_same raw_defs.fetch('Label'), resolver.dereference(aliased, ref('Name'))
+    end
+
+    it 'keeps a $ref to any other kind of def' do
+      schema = ref('Step')
+
+      assert_same schema, resolver.dereference(defs, schema)
     end
   end
 
