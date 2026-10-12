@@ -13,6 +13,14 @@ Ruby SDK for the Agent Client Protocol. The gem is `acp-sdk`; the namespace is `
 - Zeitwerk loads `lib/acp` as the root of `ACP`, so `lib/acp/foo_bar.rb` defines `ACP::FooBar`.
 - Tests are Minitest spec style (`describe`/`it`), and `test/acp/` mirrors `lib/acp/`.
 
+## Testing
+
+- Every module of behaviour gets a test file, even if it's only a smoke test. A unit with no behaviour — pure constants, data definitions — needs no test file.
+- Only test what can change. Static code — generated files, constants, trivial accessors — gets at most a smoke test. Generated code is pinned at its generator: test the generator, not each generated output.
+- A test file tests only the concerns of the unit it's mapped to. If testing X requires driving Y's entry point, either the behaviour belongs in X's own file with collaborators injected, or Y's file is covering for a missing X test. Integration tests live apart from the mirror, named for what they integrate — not for a unit that doesn't exist.
+- Order tests the way the code is ordered: they follow the source's structure, and within a routine they follow execution order (validation behaviour first).
+- Test all branches in reason: every early return, conditional, and error path gets a test — unless the branch is dead or a programmer-error tripwire.
+
 ## Comments
 
 The default is no comment. Keep only a _why_ the code can't show (a non-local constraint, an external quirk, a deliberate tradeoff), at the line it explains. Never restate the code, repeat types the signatures state, or record history.
