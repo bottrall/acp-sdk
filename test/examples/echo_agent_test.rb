@@ -531,6 +531,28 @@ describe EchoAgent do
 
       assert_equal [ACP::Types::CloseSessionResponse, []], [close(@session_id).class, listed]
     end
+
+    it 'stops the turn in progress as cancelled, whatever the permission outcome' do
+      start(
+        request_permission: lambda do |request|
+          close(request.session_id)
+          selected(EchoAgent::ALLOW)
+        end
+      )
+
+      assert_equal [ACP::Types::StopReason::CANCELLED, []], [prompt('hello').stop_reason, echoed]
+    end
+
+    it 'lets a turn that is already responding finish' do
+      start(
+        read_text_file: lambda do |request|
+          close(request.session_id)
+          ACP::Types::ReadTextFileResponse.new(content: 'contents')
+        end
+      )
+
+      assert_equal [ACP::Types::StopReason::END_TURN, ['contents']], [prompt('/read notes.txt').stop_reason, echoed]
+    end
   end
 
   describe '#delete_session' do
@@ -548,6 +570,17 @@ describe EchoAgent do
       start
 
       assert_equal [ACP::Types::DeleteSessionResponse, []], [delete(@session_id).class, listed]
+    end
+
+    it 'stops the turn in progress as cancelled, whatever the permission outcome' do
+      start(
+        request_permission: lambda do |request|
+          delete(request.session_id)
+          selected(EchoAgent::ALLOW)
+        end
+      )
+
+      assert_equal [ACP::Types::StopReason::CANCELLED, []], [prompt('hello').stop_reason, echoed]
     end
   end
 end
