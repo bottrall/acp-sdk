@@ -471,6 +471,14 @@ describe ACP::Transport::Stdio do
       assert_equal error_reply(1, error), receive_message
     end
 
+    it 'answers with the to_h of the response a handler returns' do
+      response = ACP::Types::NewSessionResponse.new(session_id: 'sess_1')
+      start(requests: { 'session/new' => ->(_) { response } })
+      send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'session/new' })
+
+      assert_equal({ 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'sessionId' => 'sess_1' } }, receive_message)
+    end
+
     it 'stops tracking a request once it is answered, so a later cancel for its id does nothing' do
       seen = Thread::Queue.new
       start(requests: { 'echo' => ->(params) { params.tap { seen << [Thread.current, @transport.cancellation] } } })

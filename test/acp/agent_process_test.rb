@@ -106,6 +106,29 @@ describe ACP::AgentProcess do
       assert_equal "x:a\n", captured('STDERR.puts([ENV["ACP_AGENT_PROCESS_TEST"], *ARGV].join(":"))', 'a', env:)
     end
 
+    it 'serves the permission requests of the command with the permission handler' do
+      script = <<~RUBY
+        require 'json'
+        ask = JSON.parse(STDIN.gets)
+        params = { 'sessionId' => 's', 'toolCall' => { 'toolCallId' => 'c1' }, 'options' => [] }
+        permission = { 'jsonrpc' => '2.0', 'id' => 'p1', 'method' => 'session/request_permission', 'params' => params }
+        STDOUT.puts(JSON.generate(permission))
+        STDOUT.flush
+        answer = JSON.parse(STDIN.gets)
+        STDOUT.puts(JSON.generate({ 'jsonrpc' => '2.0', 'id' => ask['id'], 'result' => answer['result'] }))
+        STDOUT.flush
+        STDIN.read
+      RUBY
+      selected = ACP::Types::RequestPermissionResponse.new(
+        outcome: ACP::Types::RequestPermissionOutcome::Selected.new(option_id: 'allow')
+      )
+      answered = spawn_ruby(script, permission: ->(_request) { selected }) do |connection|
+        within { connection.ext_request('_test/ask') }
+      end
+
+      assert_equal selected.to_h, answered
+    end
+
     it 'returns the running process when given no block' do
       process = spawn_ruby('STDIN.read')
       begin

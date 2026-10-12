@@ -116,6 +116,13 @@ describe ACP::ClientConnection do
     )
   end
 
+  def url_params
+    {
+      'sessionId' => 's', 'mode' => 'url', 'elicitationId' => 'e1',
+      'url' => 'https://example.com/connect', 'message' => 'Authorize access'
+    }
+  end
+
   def recording(name, answer = nil)
     lambda do |request|
       @log << [name, request.class]
@@ -173,6 +180,44 @@ describe ACP::ClientConnection do
 
     it 'refuses an extension notification name without the underscore prefix' do
       assert_raises(ArgumentError) { connection(extension_notifications: { 'myapp/note' => ->(_params) {} }) }
+    end
+
+    it 'builds streams that send through the transport when none are injected' do
+      @transport.replies['session/prompt'] = { 'stopReason' => 'end_turn' }
+      request = ACP::Types::PromptRequest.new(session_id: 's1', prompt: [])
+      answer = started(streams: nil).prompt_session(request) { nil }
+
+      assert_equal([[[:request, 'session/prompt', request.to_h]], 'end_turn'], [@log, answer.stop_reason])
+    end
+
+    it 'builds streams that ask the permission handler when none are injected' do
+      answer = ACP::Types::RequestPermissionResponse.new(outcome: ACP::Types::RequestPermissionOutcome::Cancelled.new)
+      started(streams: nil, permission: recording(:permission, answer))
+      reply = route('session/request_permission').call(
+        { 'sessionId' => 's', 'toolCall' => { 'toolCallId' => 'c1' }, 'options' => [] }
+      )
+
+      assert_equal([answer, [[:permission, ACP::Types::RequestPermissionRequest]]], [reply, @log])
+    end
+
+    it 'builds streams that hand session updates to the updates handler when none are injected' do
+      started(streams: nil, updates: recording(:updates))
+      update = { 'sessionUpdate' => 'agent_message_chunk', 'content' => { 'type' => 'text', 'text' => 'hi' } }
+      @transport.notification_handlers.fetch('session/update').call({ 'sessionId' => 's', 'update' => update })
+
+      assert_equal [[:updates, ACP::Types::SessionNotification]], @log
+    end
+
+    it 'builds streams that hand elicitation completions to the complete_elicitation handler when none are injected' do
+      client = started(
+        streams: nil, elicitation: ->(_request) {}, complete_elicitation: recording(:complete_elicitation)
+      )
+      client.connect(initialize_request(elicitation: modes(:url)))
+      route('elicitation/create').call(url_params)
+      @log.clear
+      @transport.notification_handlers.fetch('elicitation/complete').call({ 'elicitationId' => 'e1' })
+
+      assert_equal [[:complete_elicitation, ACP::Types::CompleteElicitationNotification]], @log
     end
   end
 
@@ -682,13 +727,6 @@ describe ACP::ClientConnection do
       {
         'sessionId' => 's', 'mode' => 'form', 'message' => 'Pick one',
         'requestedSchema' => { 'type' => 'object', 'properties' => {} }
-      }
-    end
-
-    def url_params
-      {
-        'sessionId' => 's', 'mode' => 'url', 'elicitationId' => 'e1',
-        'url' => 'https://example.com/connect', 'message' => 'Authorize access'
       }
     end
 
