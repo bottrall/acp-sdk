@@ -3,26 +3,19 @@
 require 'test_helper'
 require 'timeout'
 
-class SenderStub
-  attr_reader :requests
+class StreamsFakeSender
+  attr_reader :requests, :cancellation
 
-  def initialize(response)
-    @response = response
-    @gate = nil
-    @requests = []
-  end
-
-  def gate(queue)
-    @gate = queue
+  def initialize(cancellation: nil, &reply)
+    @cancellation = cancellation
+    @reply = reply || ->(_method, _params) { {} }
+    @requests = Thread::Queue.new
   end
 
   def request(method, params = nil)
     @requests << [method, params]
-    @gate&.pop
-    @response
+    @reply.call(method, params)
   end
-
-  def cancellation; end
 end
 
 describe ACP::ClientConnection::Streams do
@@ -34,12 +27,23 @@ describe ACP::ClientConnection::Streams do
     ACP::Types::RequestPermissionResponse.new(outcome: ACP::Types::RequestPermissionOutcome::Selected.new(option_id:))
   end
 
-  def permission_request(session_id = 's1')
+  def cancelled
+    ACP::Types::RequestPermissionResponse.new(outcome: ACP::Types::RequestPermissionOutcome::Cancelled.new)
+  end
+
+  def permission_request(session_id = 's1', tool_call_id = 'c1')
     {
       'sessionId' => session_id,
-      'toolCall' => { 'toolCallId' => 'c1', 'title' => 'Echo' },
+      'toolCall' => { 'toolCallId' => tool_call_id, 'title' => 'Echo' },
       'options' => [{ 'optionId' => 'allow', 'name' => 'Allow', 'kind' => 'allow_once' }]
     }
+  end
+
+  def parse_failure_of(params)
+    ACP::Types::RequestPermissionRequest.from_h(params)
+    nil
+  rescue ACP::Types::ParseError => e
+    e.message
   end
 
   def notification(session_id, text)
@@ -49,16 +53,17 @@ describe ACP::ClientConnection::Streams do
     }
   end
 
-  def blocking_permission(entered, release)
-    lambda do |_request|
-      entered << true
-      release.pop
-      choose('allow')
+  def held_permission(entered, gates)
+    lambda do |request|
+      tool_call_id = request.tool_call.tool_call_id
+      entered << Thread.current
+      gates.fetch(tool_call_id).pop
+      choose(tool_call_id)
     end
   end
 
   def streams(
-    sender,
+    sender = StreamsFakeSender.new,
     permission: ->(_request) { choose('allow') },
     updates: ->(_notification) {},
     complete_elicitation: nil,
@@ -68,126 +73,287 @@ describe ACP::ClientConnection::Streams do
   end
 
   describe 'stream' do
-    it 'sends the request through the sender and returns its reply' do
-      sender = SenderStub.new({ 'stopReason' => 'end_turn' })
+    it 'refuses a second stream for a session while one is open, without sending it' do
+      gate = Thread::Queue.new
+      sender = StreamsFakeSender.new do
+        gate.pop
+        {}
+      end
       engine = streams(sender)
-      reply = within { engine.stream('s1', 'session/prompt', { 'prompt' => [] }) { nil } }
+      first = Thread.new { engine.stream('s1', 'session/prompt', {}) { nil } }
+      within { sender.requests.pop }
+      error = engine.stream('s1', 'session/load', {}) { nil }
 
-      assert_equal [[['session/prompt', { 'prompt' => [] }]], { 'stopReason' => 'end_turn' }], [sender.requests, reply]
+      assert_equal [ACP::RequestError::INVALID_REQUEST, 'A stream is already open for session s1', 0],
+                   [error.code, error.message, sender.requests.size]
+    ensure
+      gate << true
+      first.join
     end
 
-    it 'refuses the second call while one is open and yields the first one its updates' do
-      sender = SenderStub.new({})
-      engine = streams(sender)
+    it 'opens a stream for another session while one is open' do
       gate = Thread::Queue.new
-      sender.gate(gate)
-      first_updates = []
-      first = Thread.new { engine.stream('s1', 'session/prompt', {}) { |update| first_updates << update } }
-      within do
-        # The requester thread has to run the request before the session is
-        # registered and dispatch can reach its queue.
-        sleep(0.001) until sender.requests.any?
-        engine.dispatch(notification('s1', 'hello'))
+      sender = StreamsFakeSender.new do |method, _params|
+        gate.pop if method == 'session/prompt'
+        {}
       end
-      error = engine.stream('s1', 'session/prompt', {}) { nil }
+      engine = streams(sender)
+      first = Thread.new { engine.stream('s1', 'session/prompt', {}) { nil } }
+      within { sender.requests.pop }
+      reply = within { engine.stream('s2', 'session/load', {}) { nil } }
 
-      assert_equal [-32_600, 'A stream is already open for session s1'], [error.code, error.message]
+      assert_equal({}, reply)
+    ensure
+      gate << true
+      first.join
+    end
 
+    it 'sends the request through the sender and returns its reply' do
+      sender = StreamsFakeSender.new { { 'stopReason' => 'end_turn' } }
+      reply = within { streams(sender).stream('s1', 'session/prompt', { 'prompt' => [] }) { nil } }
+
+      assert_equal [['session/prompt', { 'prompt' => [] }], { 'stopReason' => 'end_turn' }],
+                   [sender.requests.pop, reply]
+    end
+
+    it 'yields an update as it arrives, before the request settles' do
+      gate = Thread::Queue.new
+      sender = StreamsFakeSender.new do
+        gate.pop
+        {}
+      end
+      engine = streams(sender)
+      yielded = Thread::Queue.new
+      first = Thread.new { engine.stream('s1', 'session/prompt', {}) { |update| yielded << update } }
+      within { sender.requests.pop }
+      engine.dispatch(notification('s1', 'hello'))
+      update = within { yielded.pop }
+
+      assert_equal [true, 'hello'], [first.alive?, update.content.text]
+    ensure
+      gate << true
+      first.join
+    end
+
+    it 'yields every update of the turn in arrival order' do
+      gate = Thread::Queue.new
+      sender = StreamsFakeSender.new do
+        gate.pop
+        {}
+      end
+      engine = streams(sender)
+      yielded = []
+      first = Thread.new { engine.stream('s1', 'session/prompt', {}) { |update| yielded << update } }
+      within { sender.requests.pop }
+      %w[one two].each { |text| engine.dispatch(notification('s1', text)) }
       gate << true
       within { first.value }
 
-      assert_equal [ACP::Types::SessionUpdate::AgentMessageChunk, 'hello'],
-                   [first_updates.first.class, first_updates.first.content.text]
+      assert_equal(%w[one two], yielded.map { |update| update.content.text })
+    ensure
+      gate << true
     end
 
-    it 'accepts a new stream for the session once the first one ends' do
-      sender = SenderStub.new({})
-      engine = streams(sender)
+    it 'frees the session once the request settles' do
+      engine = streams
       within { engine.stream('s1', 'session/prompt', {}) { nil } }
-      reply = engine.stream('s1', 'session/prompt', {}) { nil }
+      reply = within { engine.stream('s1', 'session/prompt', {}) { nil } }
 
       assert_equal({}, reply)
+    end
+
+    it 'raises what the sender raises and frees the session' do
+      sender = StreamsFakeSender.new do
+        Thread.current.report_on_exception = false
+        raise IOError, 'closed'
+      end
+      engine = streams(sender)
+
+      assert_raises(IOError) { within { engine.stream('s1', 'session/prompt', {}) { nil } } }
+      # A session still held would return the already-open error instead.
+      assert_raises(IOError) { within { engine.stream('s1', 'session/prompt', {}) { nil } } }
     end
   end
 
   describe 'dispatch' do
-    it 'hands a notification with no open stream to the updates handler' do
-      notifications = []
-      engine = streams(SenderStub.new({}), updates: ->(n) { notifications << n })
-      engine.dispatch(notification('s9', 'hello'))
-
-      assert_equal([ACP::Types::SessionUpdate::AgentMessageChunk], notifications.map { |n| n.update.class })
-    end
-
     it 'logs and drops a malformed notification' do
       logger = FakeLogger.new
-      engine = streams(SenderStub.new({}), logger:)
-      engine.dispatch({ 'update' => { 'sessionUpdate' => 'agent_message_chunk' } })
+      handled = []
+      engine = streams(updates: ->(n) { handled << n }, logger:)
+      engine.dispatch({})
+      level, message = logger.pop
 
-      assert_equal [:warn, 'dropped malformed session/update: ACP::Types::ParseError: sessionId: is required'],
-                   logger.pop
+      assert_equal [:warn, true, []], [level, message.start_with?('dropped malformed session/update: '), handled]
+    end
+
+    it 'pushes an update for a session with an open stream to that stream, not to the updates handler' do
+      gate = Thread::Queue.new
+      sender = StreamsFakeSender.new do
+        gate.pop
+        {}
+      end
+      handled = []
+      engine = streams(sender, updates: ->(n) { handled << n })
+      yielded = []
+      first = Thread.new { engine.stream('s1', 'session/prompt', {}) { |update| yielded << update } }
+      within { sender.requests.pop }
+      engine.dispatch(notification('s1', 'hello'))
+      gate << true
+      within { first.value }
+
+      assert_equal [%w[hello], []], [yielded.map { |update| update.content.text }, handled]
+    ensure
+      gate << true
+    end
+
+    it 'hands a notification for a session with no open stream to the updates handler' do
+      gate = Thread::Queue.new
+      sender = StreamsFakeSender.new do
+        gate.pop
+        {}
+      end
+      handled = []
+      engine = streams(sender, updates: ->(n) { handled << n })
+      yielded = []
+      first = Thread.new { engine.stream('s1', 'session/prompt', {}) { |update| yielded << update } }
+      within { sender.requests.pop }
+      engine.dispatch(notification('s9', 'hello'))
+      gate << true
+      within { first.value }
+
+      assert_equal [[], [%w[s9 hello]]], [yielded, handled.map { |n| [n.session_id, n.update.content.text] }]
+    ensure
+      gate << true
     end
   end
 
   describe 'request_permission' do
-    it 'answers with the handler response' do
-      engine = streams(SenderStub.new({}))
-
-      assert_equal 'allow', engine.request_permission(permission_request).outcome.option_id
-    end
-
-    it 'answers invalid params when the params do not parse' do
-      engine = streams(SenderStub.new({}))
+    it 'answers invalid params carrying the parse failure when a field does not parse' do
+      handled = []
+      engine = streams(permission: ->(request) { handled << request })
       error = engine.request_permission({})
 
-      assert_equal(-32_602, error.code)
+      assert_equal [ACP::RequestError.invalid_params([parse_failure_of({})]).to_h, []], [error.to_h, handled]
+    end
+
+    it 'answers bare invalid params when the params are not an object' do
+      error = streams.request_permission([])
+
+      assert_equal ACP::RequestError.invalid_params.to_h, error.to_h
+    end
+
+    it "carries the sender's serving cancellation onto the handler's own thread" do
+      serving = ACP::Transport::Cancellation.new
+      seen = []
+      engine = streams(
+        StreamsFakeSender.new(cancellation: serving),
+        permission: lambda do |_request|
+          seen << [Thread.current, ACP::Transport::Cancellation.current]
+          choose('allow')
+        end
+      )
+      within { engine.request_permission(permission_request) }
+      thread, carried = seen.first
+
+      refute_same Thread.current, thread
+      assert_same serving, carried
+    end
+
+    it 'calls the handler with the parsed request and answers with what it returns' do
+      answer = choose('allow')
+      handled = []
+      engine = streams(
+        permission: lambda do |request|
+          handled << request
+          answer
+        end
+      )
+      reply = within { engine.request_permission(permission_request('s1', 'c7')) }
+
+      assert_same answer, reply
+      assert_equal([%w[s1 c7]], handled.map { |request| [request.session_id, request.tool_call.tool_call_id] })
     end
   end
 
   describe 'cancel' do
-    it 'answers a pending permission request with the cancelled outcome' do
+    it 'answers a pending permission request with the cancelled outcome and lets its handler finish' do
       entered = Thread::Queue.new
-      release = Thread::Queue.new
-      engine = streams(SenderStub.new({}), permission: blocking_permission(entered, release))
-      settled = Thread::Queue.new
-      Thread.new { settled << engine.request_permission(permission_request) }
-      within { entered.pop }
-      # Entering the handler proves the request is registered, so the cancel
-      # cannot race ahead of it.
+      gates = { 'c1' => Thread::Queue.new }
+      engine = streams(permission: held_permission(entered, gates))
+      asking = Thread.new { engine.request_permission(permission_request) }
+      handler = within { entered.pop }
       engine.cancel('s1')
-      reply = within { settled.pop }
+      reply = within { asking.value }
+      gates['c1'] << true
 
-      assert_equal(
-        ACP::Types::RequestPermissionResponse.new(outcome: ACP::Types::RequestPermissionOutcome::Cancelled.new).to_h,
-        reply.to_h
-      )
+      assert_equal cancelled.to_h, reply.to_h
+      assert_same handler, handler.join(2)
     ensure
-      release << true
+      gates['c1'] << true
     end
 
-    it 'leaves the queues of other sessions alone' do
+    it 'answers every pending permission request of the session' do
       entered = Thread::Queue.new
-      release = Thread::Queue.new
-      engine = streams(SenderStub.new({}), permission: blocking_permission(entered, release))
-      settled = Thread::Queue.new
-      Thread.new { settled << engine.request_permission(permission_request('s1')) }
+      gates = { 'c1' => Thread::Queue.new, 'c2' => Thread::Queue.new }
+      engine = streams(permission: held_permission(entered, gates))
+      asking = gates.keys.map { |id| Thread.new { engine.request_permission(permission_request('s1', id)) } }
+      within { asking.each { entered.pop } }
+      engine.cancel('s1')
+      replies = within { asking.map { |thread| thread.value.to_h } }
+
+      assert_equal [cancelled.to_h, cancelled.to_h], replies
+    ensure
+      gates.each_value { |gate| gate << true }
+    end
+
+    it 'still answers a pending request after another of the session was answered by its handler' do
+      entered = Thread::Queue.new
+      gates = { 'c1' => Thread::Queue.new, 'c2' => Thread::Queue.new }
+      engine = streams(permission: held_permission(entered, gates))
+      first = Thread.new { engine.request_permission(permission_request('s1', 'c1')) }
+      first_handler = within { entered.pop }
+      second = Thread.new { engine.request_permission(permission_request('s1', 'c2')) }
+      within { entered.pop }
+      gates['c1'] << true
+      # Joining the handler thread waits for it to unregister its request.
+      first_reply = within { first_handler.join && first.value }
+      engine.cancel('s1')
+
+      assert_equal ['c1', cancelled.to_h], [first_reply.outcome.option_id, within { second.value }.to_h]
+    ensure
+      gates.each_value { |gate| gate << true }
+    end
+
+    it 'leaves the pending requests of other sessions to their handlers' do
+      entered = Thread::Queue.new
+      gates = { 'c1' => Thread::Queue.new }
+      engine = streams(permission: held_permission(entered, gates))
+      asking = Thread.new { engine.request_permission(permission_request('s1')) }
       within { entered.pop }
       engine.cancel('s2')
+      gates['c1'] << true
 
-      assert_empty settled
-
-      release << true
-
-      assert_equal 'allow', within { settled.pop }.outcome.option_id
+      assert_equal choose('c1').to_h, within { asking.value }.to_h
     ensure
-      release << true
+      gates['c1'] << true
     end
   end
 
-  describe 'the elicitation registry' do
-    it 'delivers a registered id to the handler and ignores the repeat' do
+  describe 'register_elicitation and complete_elicitation' do
+    it 'logs and drops a malformed completion' do
+      logger = FakeLogger.new
       completions = []
-      engine = streams(SenderStub.new({}), complete_elicitation: ->(n) { completions << n })
+      engine = streams(complete_elicitation: ->(n) { completions << n }, logger:)
+      engine.complete_elicitation(nil)
+      level, message = logger.pop
+
+      assert_equal [:warn, true, []],
+                   [level, message.start_with?('dropped malformed elicitation/complete: '), completions]
+    end
+
+    it 'delivers the completion of a registered id to the handler once' do
+      completions = []
+      engine = streams(complete_elicitation: ->(n) { completions << n })
       engine.register_elicitation('e1')
       engine.complete_elicitation('elicitationId' => 'e1')
       engine.complete_elicitation('elicitationId' => 'e1')
@@ -195,12 +361,22 @@ describe ACP::ClientConnection::Streams do
       assert_equal %w[e1], completions.map(&:elicitation_id)
     end
 
-    it 'ignores an unregistered id' do
+    it 'ignores the completion of an unregistered id' do
       completions = []
-      engine = streams(SenderStub.new({}), complete_elicitation: ->(n) { completions << n })
-      engine.complete_elicitation('elicitationId' => 'e1')
+      engine = streams(complete_elicitation: ->(n) { completions << n })
+      engine.register_elicitation('e1')
+      engine.complete_elicitation('elicitationId' => 'e2')
 
       assert_equal [], completions
+    end
+
+    it 'drops the completion of a registered id when no handler was given' do
+      logger = FakeLogger.new
+      engine = streams(logger:)
+      engine.register_elicitation('e1')
+      engine.complete_elicitation('elicitationId' => 'e1')
+
+      assert_empty logger.drain
     end
   end
 end

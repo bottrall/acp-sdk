@@ -2,1448 +2,685 @@
 
 require 'test_helper'
 require 'open3'
-require 'rbconfig'
-require 'timeout'
-require_relative '../../examples/echo_agent'
 
 require 'acp/types/unstable'
 
-class StubTransport
-  attr_reader :requests, :notifications
+class ClientConnectionTransport
+  attr_reader :replies, :handlers, :notification_handlers, :reader
+  attr_accessor :cancellation
 
-  def initialize(response)
-    @response = response
+  def initialize(log)
+    @log = log
+    @replies = { 'initialize' => { 'protocolVersion' => 1 } }
+    @reader = Thread.new { nil }
   end
 
-  def start(requests: {}, notifications: {})
-    @requests = requests
-    @notifications = notifications
-    Thread.new { nil }
+  def start(requests:, notifications:)
+    @handlers = requests
+    @notification_handlers = notifications
+    @reader
   end
 
-  def request(_method, _params = nil)
-    @response
+  def request(method, params = nil)
+    @log << [:request, method, params]
+    @replies[method]
   end
 
-  def notify(_method, _params = nil); end
-end
-
-class AuthAgent
-  def initialize
-    @authenticated = false
-  end
-
-  def authenticate(request)
-    return ACP::RequestError.auth_required unless request.method_id == 'token'
-
-    @authenticated = true
-    ACP::Types::AuthenticateResponse.new
-  end
-
-  def logout(_request)
-    return ACP::RequestError.auth_required unless @authenticated
-
-    ACP::Types::LogoutResponse.new
+  def notify(method, params = nil)
+    @log << [:notify, method, params]
+    nil
   end
 end
 
-class ForkAgent
-  def initialize(client)
-    @client = client
+class ClientConnectionStreams
+  attr_writer :reply, :updates
+
+  def initialize(log)
+    @log = log
+    @reply = nil
+    @updates = []
   end
 
-  def new_session(_request)
-    ACP::Types::NewSessionResponse.new(session_id: 'sess_new')
+  def stream(session_id, method, params, &)
+    @log << [:stream, session_id, method, params]
+    @updates.each(&)
+    @reply
   end
 
-  def prompt(_request)
-    ACP::Types::PromptResponse.new(stop_reason: 'end_turn')
+  def request_permission(params)
+    @log << [:request_permission, params]
+    :permission_answer
   end
 
-  def cancel(_notification); end
-
-  def fork_session(_request)
-    ACP::Types::Unstable::ForkSessionResponse.new(session_id: 'sess_forked')
-  end
-end
-
-class ProvidersAgent
-  def initialize(client)
-    @client = client
+  def dispatch(params)
+    @log << [:dispatch, params]
   end
 
-  def new_session(_request)
-    ACP::Types::NewSessionResponse.new(session_id: 'sess_new')
+  def complete_elicitation(params)
+    @log << [:complete_elicitation, params]
   end
 
-  def prompt(_request)
-    ACP::Types::PromptResponse.new(stop_reason: 'end_turn')
+  def cancel(session_id)
+    @log << [:cancel, session_id]
   end
 
-  def cancel(_notification); end
-
-  def list_providers(_request)
-    ACP::Types::Unstable::ListProvidersResponse.new(
-      providers: [ACP::Types::Unstable::ProviderInfo.new(
-        provider_id: 'anthropic', supported: ['anthropic'], required: false
-      )]
-    )
-  end
-
-  # define_method, not def: the name is the wire-mandated set_provider, which
-  # Naming/AccessorMethodName would flag on a def with one required argument.
-  define_method(:set_provider) do |_request|
-    ACP::Types::Unstable::SetProviderResponse.new
-  end
-
-  def disable_provider(_request)
-    ACP::Types::Unstable::DisableProviderResponse.new
+  def register_elicitation(elicitation_id)
+    @log << [:register_elicitation, elicitation_id]
   end
 end
 
-class ModesAgent
-  def change_session_mode(request)
-    return ACP::RequestError.new(code: -32_000, message: 'No such mode') unless request.mode_id == 'code'
-
-    ACP::Types::SetSessionModeResponse.new
+class ClientConnectionCancellation
+  def initialize(answer)
+    @answer = answer
   end
 
-  def change_session_config_option(request)
-    return ACP::RequestError.new(code: -32_000, message: 'No such option') unless request.config_id == 'thinking'
-
-    ACP::Types::SetSessionConfigOptionResponse.new(config_options: [option(request.value.value)])
-  end
-
-  private
-
-  def option(current_value)
-    ACP::Types::SessionConfigOption.new(
-      id: 'thinking', name: 'Thinking', kind: ACP::Types::SessionConfigOption::Kind::Boolean.new(current_value:)
-    )
+  def cancelled?
+    @answer
   end
 end
 
 describe ACP::ClientConnection do
-  def within(seconds = 2, &)
-    Timeout.timeout(seconds, &)
+  before do
+    @log = []
+    @transport = ClientConnectionTransport.new(@log)
+    @streams = ClientConnectionStreams.new(@log)
   end
 
-  def choose(option_id)
-    ACP::Types::RequestPermissionResponse.new(outcome: ACP::Types::RequestPermissionOutcome::Selected.new(option_id:))
+  def connection(**)
+    ACP::ClientConnection.new(transport: @transport, permission: ->(_request) {}, streams: @streams, **)
   end
 
-  def text(value)
-    ACP::Types::ContentBlock::Text.new(text: value)
+  def started(**)
+    connection(**).tap(&:start)
   end
 
-  def new_session_request(cwd = '/work')
-    ACP::Types::NewSessionRequest.new(cwd:, mcp_servers: [])
+  def route(wire)
+    @transport.handlers.fetch(wire)
   end
 
-  def prompt_request(session_id, *texts)
-    ACP::Types::PromptRequest.new(session_id:, prompt: texts.map { |value| text(value) })
+  def initialize_request(**capabilities)
+    ACP::Types::InitializeRequest.new(
+      protocol_version: 1,
+      client_capabilities: (ACP::Types::ClientCapabilities.new(**capabilities) unless capabilities.empty?)
+    )
   end
 
-  def summary(update)
-    case update
-    when ACP::Types::SessionUpdate::ToolCall then ['tool_call', update.title]
-    else [update.to_h['sessionUpdate'], update.to_h.dig('content', 'text')]
+  def fs(**)
+    ACP::Types::FileSystemCapabilities.new(**)
+  end
+
+  def modes(*names)
+    ACP::Types::ElicitationCapabilities.new(
+      form: (ACP::Types::ElicitationFormCapabilities.new if names.include?(:form)),
+      url: (ACP::Types::ElicitationUrlCapabilities.new if names.include?(:url))
+    )
+  end
+
+  def recording(name, answer = nil)
+    lambda do |request|
+      @log << [name, request.class]
+      answer
     end
   end
 
-  describe 'driving the echo agent over pipes' do
-    before do
-      agent_input, @client_output = IO.pipe
-      @client_input, @agent_output = IO.pipe
-      @pipes = [agent_input, @client_output, @client_input, @agent_output]
-      @agent_reader = ACP::AgentConnection.new(
-        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
-        capabilities: EchoAgent::CAPABILITIES,
-        agent_info: ACP::Types::Implementation.new(name: 'echo-agent', version: '1.0.0')
-      ) { |client| EchoAgent.new(client:) }.start
-      @updates = Thread::Queue.new
-    end
+  def serve_handlers(answer = nil)
+    %i[
+      read_text_file
+      write_text_file
+      create_terminal
+      terminal_output
+      wait_for_terminal_exit
+      kill_terminal
+      release_terminal
+    ].to_h { |name| [name, recording(name, answer)] }
+  end
 
-    after do
-      @client_output.close
-      @agent_reader.join(2)
-      @agent_output.close
-      @client_reader&.join(2)
-      @pipes.reject(&:closed?).each(&:close)
-    end
+  def parse_error(type, params)
+    type.from_h(params)
+  rescue ACP::Types::ParseError => e
+    e
+  end
 
-    def start(&permission)
-      # Canned terminal handlers: connect demands one per advertised terminal
-      # method, and these tests only use the agent's `run` command listing.
-      connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission:,
-        create_terminal: ->(_request) { ACP::Types::CreateTerminalResponse.new(terminal_id: 't1') },
-        terminal_output: ->(_request) { ACP::Types::TerminalOutputResponse.new(output: '', truncated: false) },
-        wait_for_terminal_exit: ->(_request) { ACP::Types::WaitForTerminalExitResponse.new(exit_code: 0) },
-        kill_terminal: ->(_request) { ACP::Types::KillTerminalResponse.new },
-        release_terminal: ->(_request) { ACP::Types::ReleaseTerminalResponse.new },
-        updates: ->(notification) { @updates << notification }
+  def self.it_sends(method, wire, request, reply, response)
+    it "sends #{wire} with the request and parses the reply as #{response.name}" do
+      @transport.replies[wire] = reply
+      answer = connection.public_send(method, request)
+
+      assert_equal([[[:request, wire, request.to_h]], response], [@log, answer.class])
+    end
+  end
+
+  describe ACP::ClientConnection::Route do
+    def build(**)
+      ACP::ClientConnection::Route.new(
+        wire: 'x/y', type: ACP::Types::ReadTextFileRequest, handler: :@x, family: :@y, key: 'x.y', **
       )
-      @client_reader = connection.start
-      connection
     end
 
-    def allowing
-      start { choose(EchoAgent::ALLOW) }
+    it 'labels a route with its key when no label is given' do
+      assert_equal 'x.y', build.label
     end
 
-    def new_session(connection, cwd = '/work')
-      session_id = within { connection.new_session(new_session_request(cwd)) }.session_id
-      within { @updates.pop }
-      session_id
+    it 'keeps a label that differs from the key' do
+      assert_equal %w[x.y x.create], [build(label: 'x.create').key, build(label: 'x.create').label]
+    end
+  end
+
+  describe 'initialize' do
+    it 'refuses an extension request name without the underscore prefix' do
+      assert_raises(ArgumentError) { connection(extension_requests: { 'myapp/ping' => ->(_params) {} }) }
     end
 
-    it 'sends initialize through connect' do
-      connection = allowing
-      response = within { connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1)) }
+    it 'refuses an extension notification name without the underscore prefix' do
+      assert_raises(ArgumentError) { connection(extension_notifications: { 'myapp/note' => ->(_params) {} }) }
+    end
+  end
+
+  describe 'start' do
+    it "returns the transport's reader thread" do
+      assert_same @transport.reader, connection.start
+    end
+
+    it 'routes session/request_permission to the streams' do
+      started
+      answer = route('session/request_permission').call(:params)
+
+      assert_equal([[%i[request_permission params]], :permission_answer], [@log, answer])
+    end
+
+    it 'routes the extension requests to their handlers' do
+      handler = ->(_params) {}
+      started(extension_requests: { '_myapp/ping' => handler })
+
+      assert_same handler, route('_myapp/ping')
+    end
+
+    it 'routes session/update and elicitation/complete to the streams' do
+      started
+      @transport.notification_handlers.fetch('session/update').call(:update)
+      @transport.notification_handlers.fetch('elicitation/complete').call(:completion)
+
+      assert_equal [%i[dispatch update], %i[complete_elicitation completion]], @log
+    end
+
+    it 'routes the extension notifications to their handlers' do
+      handler = ->(_params) {}
+      started(extension_notifications: { '_myapp/note' => handler })
+
+      assert_same handler, @transport.notification_handlers.fetch('_myapp/note')
+    end
+  end
+
+  describe 'connect' do
+    def refusal(connection, request)
+      [assert_raises(ArgumentError) { connection.connect(request) }.message, @log]
+    end
+
+    it 'refuses to advertise an fs method no handler serves, before sending anything' do
+      client = connection(read_text_file: ->(_request) {})
+      request = initialize_request(fs: fs(read_text_file: true, write_text_file: true))
 
       assert_equal(
-        [1, true, 'echo-agent'],
-        [response.protocol_version, response.agent_capabilities.load_session, response.agent_info.name]
+        ['initialize advertises fs methods no handler serves: fs.writeTextFile', []],
+        refusal(client, request)
       )
     end
 
-    it 'hands updates outside a prompt, such as the available commands, to the updates handler' do
-      connection = allowing
-      within do
-        connection.connect(
-          ACP::Types::InitializeRequest.new(
-            protocol_version: 1, client_capabilities: ACP::Types::ClientCapabilities.new(terminal: true)
-          )
-        )
-      end
-      session_id = within { connection.new_session(new_session_request) }.session_id
-      notification = within { @updates.pop }
+    it 'names only the fs methods the request advertises' do
+      request = initialize_request(fs: fs(read_text_file: true), terminal: true)
 
       assert_equal(
-        [session_id, ['run']],
-        [notification.session_id, notification.update.available_commands.map(&:name)]
+        ['initialize advertises fs methods no handler serves: fs.readTextFile', []],
+        refusal(connection, request)
       )
     end
 
-    it 'yields each update of a prompt turn as it arrives and returns the stop reason' do
-      seen = Thread::Queue.new
-      requests = []
-      connection = start do |request|
-        requests << request
-        within { seen.pop }
-        choose(EchoAgent::ALLOW)
-      end
-      session_id = new_session(connection)
-      updates = []
-      # The permission handler waits for the tool call to be yielded, so this
-      # would time out if updates were only yielded once the turn ended.
-      response = within do
-        connection.prompt_session(prompt_request(session_id, 'hello', 'world')) do |update|
-          updates << update
-          seen << true
-        end
-      end
+    it 'refuses to advertise the terminal when a terminal method has no handler' do
+      client = connection(create_terminal: ->(_request) {})
+      expected = 'initialize advertises terminal methods no handler serves: ' \
+                 'terminal.output, terminal.wait_for_exit, terminal.kill, terminal.release'
+
+      assert_equal [expected, []], refusal(client, initialize_request(terminal: true))
+    end
+
+    it 'refuses to advertise the form elicitation mode with no elicitation handler' do
+      assert_equal(
+        ['initialize advertises elicitation modes no handler serves: elicitation.form', []],
+        refusal(connection, initialize_request(elicitation: modes(:form)))
+      )
+    end
+
+    it 'refuses to advertise the url elicitation mode with no elicitation handler' do
+      assert_equal(
+        ['initialize advertises elicitation modes no handler serves: elicitation.url', []],
+        refusal(connection, initialize_request(elicitation: modes(:url)))
+      )
+    end
+
+    it 'advertises every capability its handlers serve' do
+      client = connection(**serve_handlers, elicitation: ->(_request) {})
+      request = initialize_request(
+        fs: fs(read_text_file: true, write_text_file: true), terminal: true, elicitation: modes(:form, :url)
+      )
+
+      assert_instance_of ACP::Types::InitializeResponse, client.connect(request)
+    end
+
+    it "returns the agent's error" do
+      error = ACP::RequestError.auth_required
+      @transport.replies['initialize'] = error
+
+      assert_same error, connection.connect(initialize_request)
+    end
+
+    it 'answers a reply that does not parse with invalid response' do
+      @transport.replies['initialize'] = {}
+
+      assert_equal ACP::RequestError.invalid_response({}).to_h, connection.connect(initialize_request).to_h
+    end
+
+    it 'sends initialize with the request and parses the reply as InitializeResponse' do
+      request = initialize_request
+      answer = connection.connect(request)
+
+      assert_equal([[[:request, 'initialize', request.to_h]], ACP::Types::InitializeResponse], [@log, answer.class])
+    end
+
+    it 'answers a reply naming another protocol version with the unsupported version error' do
+      @transport.replies['initialize'] = { 'protocolVersion' => 2 }
 
       assert_equal(
-        [
-          'end_turn',
-          [['tool_call', 'Echo the prompt'], %w[agent_message_chunk hello], %w[agent_message_chunk world]],
-          [[session_id, updates.first.tool_call_id]]
-        ],
-        [
-          response.stop_reason,
-          updates.map { |update| summary(update) },
-          requests.map { |request| [request.session_id, request.tool_call.tool_call_id] }
-        ]
+        ACP::RequestError.unsupported_protocol_version(requested: 1, returned: 2).to_h,
+        connection.connect(initialize_request).to_h
       )
-    end
-
-    it 'skips the echo when the permission handler rejects' do
-      connection = start { choose('reject') }
-      session_id = new_session(connection)
-      updates = []
-      response = within { connection.prompt_session(prompt_request(session_id, 'hi')) { |update| updates << update } }
-
-      assert_equal(
-        ['end_turn', [['tool_call', 'Echo the prompt']]],
-        [response.stop_reason, updates.map { |update| summary(update) }]
-      )
-    end
-
-    it 'returns the error a permission handler answers with as the prompt error' do
-      error = ACP::RequestError.new(code: -32_000, message: 'No user')
-      connection = start { error }
-      session_id = new_session(connection)
-      response = within { connection.prompt_session(prompt_request(session_id, 'hello')) { nil } }
-
-      assert_equal(error.to_h, response.to_h)
-    end
-
-    it 'cancels a turn with cancel_session' do
-      cancelled = Thread::Queue.new
-      connection = start do
-        within { cancelled.pop }
-        choose(EchoAgent::ALLOW)
-      end
-      session_id = new_session(connection)
-      response = within do
-        connection.prompt_session(prompt_request(session_id, 'hello')) do
-          connection.cancel_session(ACP::Types::CancelNotification.new(session_id:))
-          cancelled << true
-        end
-      end
-
-      assert_equal 'cancelled', response.stop_reason
-    end
-
-    it 'yields the replayed history from load_session' do
-      connection = allowing
-      session_id = new_session(connection)
-      within { connection.prompt_session(prompt_request(session_id, 'hello')) { nil } }
-      updates = []
-      request = ACP::Types::LoadSessionRequest.new(session_id:, cwd: '/work', mcp_servers: [])
-      response = within { connection.load_session(request) { |update| updates << update } }
-
-      assert_equal(
-        [{}, [%w[user_message_chunk hello], %w[agent_message_chunk hello]]],
-        [response.to_h, updates.map { |update| summary(update) }]
-      )
-    end
-
-    it 'lists sessions, filtered by cwd when given' do
-      connection = allowing
-      first = new_session(connection, '/a')
-      new_session(connection, '/b')
-      response = within { connection.list_sessions(ACP::Types::ListSessionsRequest.new(cwd: '/a')) }
-
-      assert_equal([[first, '/a']], response.sessions.map { |info| [info.session_id, info.cwd] })
-    end
-
-    it 'resumes a session without replaying its history' do
-      connection = allowing
-      session_id = new_session(connection)
-      within { connection.prompt_session(prompt_request(session_id, 'hello')) { nil } }
-      response = within { connection.resume_session(ACP::Types::ResumeSessionRequest.new(session_id:, cwd: '/work')) }
-
-      assert_equal([{}, true], [response.to_h, @updates.empty?])
-    end
-
-    it 'answers resume of an unknown session with the agent\'s error' do
-      connection = allowing
-      response = within do
-        connection.resume_session(ACP::Types::ResumeSessionRequest.new(session_id: 'sess_missing', cwd: '/work'))
-      end
-
-      assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
-    end
-
-    it 'closes a session' do
-      connection = allowing
-      session_id = new_session(connection)
-      response = within { connection.close_session(ACP::Types::CloseSessionRequest.new(session_id:)) }
-
-      assert_equal({}, response.to_h)
-    end
-
-    it 'answers close of an unknown session with the agent\'s error' do
-      connection = allowing
-      response = within { connection.close_session(ACP::Types::CloseSessionRequest.new(session_id: 'sess_missing')) }
-
-      assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
-    end
-
-    it 'deletes a session' do
-      connection = allowing
-      session_id = new_session(connection)
-      response = within { connection.delete_session(ACP::Types::DeleteSessionRequest.new(session_id:)) }
-
-      assert_equal({}, response.to_h)
-    end
-
-    it 'answers delete of an unknown session with the agent\'s error' do
-      connection = allowing
-      response = within { connection.delete_session(ACP::Types::DeleteSessionRequest.new(session_id: 'sess_missing')) }
-
-      assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
-    end
-
-    it 'returns the agent\'s error response' do
-      connection = allowing
-      response = within { connection.prompt_session(prompt_request('sess_missing', 'hello')) { nil } }
-
-      assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
-    end
-
-    it 'answers fork with the agent\'s method-not-found error' do
-      connection = allowing
-      response = within do
-        connection.fork_session(
-          ACP::Types::Unstable::ForkSessionRequest.new(session_id: 'sess_missing', cwd: '/work')
-        )
-      end
-
-      assert_equal(-32_601, response.code)
     end
   end
 
-  describe 'forking a session' do
-    before do
-      agent_input, @client_output = IO.pipe
-      @client_input, @agent_output = IO.pipe
-      @pipes = [agent_input, @client_output, @client_input, @agent_output]
-      @agent_reader = ACP::AgentConnection.new(
-        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
-        capabilities: ACP::Types::AgentCapabilities.new(
-          session_capabilities: ACP::Types::Unstable::SessionCapabilities.new(
-            fork: ACP::Types::Unstable::SessionForkCapabilities.new
-          )
-        )
-      ) { |client| ForkAgent.new(client) }.start
-      @connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission: ->(_request) {}
+  it_sends(
+    :new_session,
+    'session/new',
+    ACP::Types::NewSessionRequest.new(cwd: '/work', mcp_servers: []),
+    { 'sessionId' => 's1' },
+    ACP::Types::NewSessionResponse
+  )
+
+  describe 'prompt_session' do
+    it 'streams session/prompt for the session, yields its updates and parses the reply as PromptResponse' do
+      @streams.updates = %i[first second]
+      @streams.reply = { 'stopReason' => 'end_turn' }
+      request = ACP::Types::PromptRequest.new(session_id: 's1', prompt: [])
+      yielded = []
+      answer = connection.prompt_session(request) { |update| yielded << update }
+
+      assert_equal(
+        [[[:stream, 's1', 'session/prompt', request.to_h]], %i[first second], ACP::Types::PromptResponse],
+        [@log, yielded, answer.class]
       )
-      @client_reader = @connection.start
-    end
-
-    after do
-      @client_output.close
-      @agent_reader.join(2)
-      @agent_output.close
-      @client_reader.join(2)
-      @pipes.reject(&:closed?).each(&:close)
-    end
-
-    it 'forks a session' do
-      response = within do
-        @connection.fork_session(ACP::Types::Unstable::ForkSessionRequest.new(session_id: 'sess_1', cwd: '/work'))
-      end
-
-      assert_equal({ 'sessionId' => 'sess_forked' }, response.to_h)
     end
   end
 
-  describe 'configuring providers' do
-    before do
-      agent_input, @client_output = IO.pipe
-      @client_input, @agent_output = IO.pipe
-      @pipes = [agent_input, @client_output, @client_input, @agent_output]
-      @agent_reader = ACP::AgentConnection.new(
-        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
-        capabilities: ACP::Types::Unstable::AgentCapabilities.new(
-          providers: ACP::Types::Unstable::ProvidersCapabilities.new
-        )
-      ) { |client| ProvidersAgent.new(client) }.start
-      @connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission: ->(_request) {}
-      )
-      @client_reader = @connection.start
-    end
-
-    after do
-      @client_output.close
-      @agent_reader.join(2)
-      @agent_output.close
-      @client_reader.join(2)
-      @pipes.reject(&:closed?).each(&:close)
-    end
-
-    it 'lists providers' do
-      response = within { @connection.list_providers(ACP::Types::Unstable::ListProvidersRequest.new) }
+  describe 'load_session' do
+    it 'streams session/load for the session, yields its updates and parses the reply as LoadSessionResponse' do
+      @streams.updates = %i[first second]
+      @streams.reply = {}
+      request = ACP::Types::LoadSessionRequest.new(session_id: 's1', cwd: '/work', mcp_servers: [])
+      yielded = []
+      answer = connection.load_session(request) { |update| yielded << update }
 
       assert_equal(
-        { 'providers' => [{ 'providerId' => 'anthropic', 'supported' => ['anthropic'], 'required' => false }] },
-        response.to_h
+        [[[:stream, 's1', 'session/load', request.to_h]], %i[first second], ACP::Types::LoadSessionResponse],
+        [@log, yielded, answer.class]
       )
-    end
-
-    it 'sets a provider' do
-      request = ACP::Types::Unstable::SetProviderRequest.new(
-        provider_id: 'anthropic', api_type: 'anthropic', base_url: 'https://api.example.com'
-      )
-      response = within { @connection.set_provider(request) }
-
-      assert_equal({}, response.to_h)
-    end
-
-    it 'disables a provider' do
-      response = within do
-        @connection.disable_provider(ACP::Types::Unstable::DisableProviderRequest.new(provider_id: 'anthropic'))
-      end
-
-      assert_equal({}, response.to_h)
     end
   end
 
-  describe 'serving the agent\'s file requests' do
-    before do
-      agent_input, @client_output = IO.pipe
-      @client_input, @agent_output = IO.pipe
-      @pipes = [agent_input, @client_output, @client_input, @agent_output]
-      @agent_reader = ACP::AgentConnection.new(
-        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
-        capabilities: EchoAgent::CAPABILITIES,
-        agent_info: ACP::Types::Implementation.new(name: 'echo-agent', version: '1.0.0')
-      ) { |client| EchoAgent.new(client:) }.start
-      @updates = Thread::Queue.new
-      @read_requests = Thread::Queue.new
-      @write_requests = Thread::Queue.new
-    end
+  it_sends(
+    :list_sessions,
+    'session/list',
+    ACP::Types::ListSessionsRequest.new(cwd: '/work'),
+    { 'sessions' => [] },
+    ACP::Types::ListSessionsResponse
+  )
 
-    after do
-      @client_output.close
-      @agent_reader.join(2)
-      @agent_output.close
-      @client_reader&.join(2)
-      @pipes.reject(&:closed?).each(&:close)
-    end
+  it_sends(
+    :resume_session,
+    'session/resume',
+    ACP::Types::ResumeSessionRequest.new(session_id: 's1', cwd: '/work'),
+    {},
+    ACP::Types::ResumeSessionResponse
+  )
 
-    def start
-      @read_replies = Thread::Queue.new
-      @read_replies << ACP::Types::ReadTextFileResponse.new(content: 'hello')
-      @write_replies = Thread::Queue.new
-      @write_replies << ACP::Types::WriteTextFileResponse.new
-      connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission: ->(_request) { choose(EchoAgent::ALLOW) },
-        read_text_file: method(:serve_read),
-        write_text_file: method(:serve_write),
-        updates: ->(notification) { @updates << notification }
-      )
-      @client_reader = connection.start
-      connection
-    end
+  it_sends(
+    :close_session,
+    'session/close',
+    ACP::Types::CloseSessionRequest.new(session_id: 's1'),
+    {},
+    ACP::Types::CloseSessionResponse
+  )
 
-    def serve_read(request)
-      @read_requests << request
-      @read_replies.pop
-    end
+  it_sends(
+    :delete_session,
+    'session/delete',
+    ACP::Types::DeleteSessionRequest.new(session_id: 's1'),
+    {},
+    ACP::Types::DeleteSessionResponse
+  )
 
-    def serve_write(request)
-      @write_requests << request
-      @write_replies.pop
-    end
+  it_sends(
+    :fork_session,
+    'session/fork',
+    ACP::Types::Unstable::ForkSessionRequest.new(session_id: 's1', cwd: '/work'),
+    { 'sessionId' => 's2' },
+    ACP::Types::Unstable::ForkSessionResponse
+  )
 
-    def connect(connection)
-      within do
-        connection.connect(
-          ACP::Types::InitializeRequest.new(
-            protocol_version: 1,
-            client_capabilities: ACP::Types::ClientCapabilities.new(
-              fs: ACP::Types::FileSystemCapabilities.new(read_text_file: true, write_text_file: true)
-            )
-          )
-        )
-      end
-    end
+  it_sends(
+    :list_providers,
+    'providers/list',
+    ACP::Types::Unstable::ListProvidersRequest.new,
+    { 'providers' => [] },
+    ACP::Types::Unstable::ListProvidersResponse
+  )
 
-    def new_session(connection)
-      session_id = within { connection.new_session(new_session_request) }.session_id
-      within { @updates.pop }
-      session_id
-    end
+  it_sends(
+    :set_provider,
+    'providers/set',
+    ACP::Types::Unstable::SetProviderRequest.new(
+      provider_id: 'anthropic', api_type: 'anthropic', base_url: 'https://api.example.com'
+    ),
+    {},
+    ACP::Types::Unstable::SetProviderResponse
+  )
 
-    it 'serves fs/read_text_file when connect advertises it' do
-      connection = start
-      connect(connection)
-      session_id = new_session(connection)
-      updates = []
-      response = within do
-        connection.prompt_session(prompt_request(session_id, '/read /a.txt')) { |update| updates << update }
-      end
+  it_sends(
+    :disable_provider,
+    'providers/disable',
+    ACP::Types::Unstable::DisableProviderRequest.new(provider_id: 'anthropic'),
+    {},
+    ACP::Types::Unstable::DisableProviderResponse
+  )
 
-      assert_equal(
-        ['/a.txt', [['tool_call', 'Echo the prompt'], ['agent_message_chunk', 'hello']], 'end_turn'],
-        [@read_requests.pop.path, updates.map { |update| summary(update) }, response.stop_reason]
-      )
-    end
+  describe 'cancel_session' do
+    it 'notifies session/cancel, then cancels the pending permission requests of the session' do
+      notification = ACP::Types::CancelNotification.new(session_id: 's1')
+      connection.cancel_session(notification)
 
-    it 'serves fs/write_text_file when connect advertises it' do
-      connection = start
-      connect(connection)
-      session_id = new_session(connection)
-      response = within { connection.prompt_session(prompt_request(session_id, '/write /a.txt hello')) { nil } }
-      written = within { @write_requests.pop }
-
-      assert_equal(['/a.txt', 'hello', 'end_turn'], [written.path, written.content, response.stop_reason])
-    end
-
-    it 'returns the error a file handler answers with as the prompt error' do
-      connection = start
-      @read_replies.clear
-      @read_replies << ACP::RequestError.resource_not_found
-      connect(connection)
-      session_id = new_session(connection)
-      response = within { connection.prompt_session(prompt_request(session_id, '/read /missing')) { nil } }
-
-      assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, response.to_h)
+      assert_equal [[:notify, 'session/cancel', notification.to_h], [:cancel, 's1']], @log
     end
   end
 
-  describe 'answering file requests the capabilities do not advertise' do
-    before do
-      @client_input, @agent_output = IO.pipe
-      @agent_input, @client_output = IO.pipe
-      @connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission: ->(_request) {},
-        read_text_file: ->(_request) { ACP::Types::ReadTextFileResponse.new(content: 'hello') },
-        write_text_file: ->(_request) { ACP::Types::WriteTextFileResponse.new }
-      )
-      @reader = @connection.start
-    end
+  it_sends(
+    :set_session_mode,
+    'session/set_mode',
+    ACP::Types::SetSessionModeRequest.new(session_id: 's1', mode_id: 'code'),
+    {},
+    ACP::Types::SetSessionModeResponse
+  )
 
-    after do
-      @agent_output.close
-      @reader.join(2)
-      [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
-    end
+  it_sends(
+    :set_session_config_option,
+    'session/set_config_option',
+    ACP::Types::SetSessionConfigOptionRequest.new(
+      session_id: 's1',
+      config_id: 'thinking',
+      value: ACP::Types::SetSessionConfigOptionRequest::Value::Boolean.new(value: true)
+    ),
+    { 'configOptions' => [] },
+    ACP::Types::SetSessionConfigOptionResponse
+  )
 
-    def reply_for(method, params)
-      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => 1, 'method' => method, 'params' => params)}\n")
-      within { JSON.parse(@agent_input.gets) }
-    end
+  it_sends(
+    :authenticate,
+    'authenticate',
+    ACP::Types::AuthenticateRequest.new(method_id: 'token'),
+    {},
+    ACP::Types::AuthenticateResponse
+  )
 
-    it 'answers -32601 before connect records any capability' do
-      reply = reply_for('fs/read_text_file', { 'sessionId' => 's', 'path' => '/a.txt' })
+  it_sends(:logout, 'logout', ACP::Types::LogoutRequest.new, {}, ACP::Types::LogoutResponse)
 
+  describe 'ext_request' do
+    it 'refuses a name without the underscore prefix, before sending anything' do
       assert_equal(
-        [-32_601, 'Client does not advertise fs.readTextFile'],
-        [reply.dig('error', 'code'), reply.dig('error', 'message')]
+        [ArgumentError, []],
+        [assert_raises(ArgumentError) { connection.ext_request('myapp/double') }.class, @log]
       )
     end
 
-    it 'answers -32601 for a method the advertised capabilities omit' do
-      connect = Thread.new do
-        @connection.connect(
-          ACP::Types::InitializeRequest.new(
-            protocol_version: 1,
-            client_capabilities: ACP::Types::ClientCapabilities.new(
-              fs: ACP::Types::FileSystemCapabilities.new(read_text_file: true)
-            )
-          )
-        )
-      end
-      request = within { JSON.parse(@agent_input.gets) }
-      result = JSON.generate('jsonrpc' => '2.0', 'id' => request['id'], 'result' => { 'protocolVersion' => 1 })
-      @agent_output.write("#{result}\n")
-      within { connect.value }
-      reply = reply_for('fs/write_text_file', { 'sessionId' => 's', 'path' => '/a.txt', 'content' => 'hi' })
+    it 'sends the method with its params and returns the reply unparsed' do
+      reply = { 'doubled' => 42 }
+      @transport.replies['_myapp/double'] = reply
+      answer = connection.ext_request('_myapp/double', { 'n' => 21 })
 
-      assert_equal(
-        [-32_601, 'Client does not advertise fs.writeTextFile'],
-        [reply.dig('error', 'code'), reply.dig('error', 'message')]
-      )
-    end
-
-    it 'refuses a connect that advertises a capability with no handler' do
-      from_client, client_output = IO.pipe
-      connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: from_client, output: client_output),
-        permission: ->(_request) {},
-        read_text_file: ->(_request) { ACP::Types::ReadTextFileResponse.new(content: 'hello') }
-      )
-      error =
-        within do
-          assert_raises(ArgumentError) do
-            connection.connect(
-              ACP::Types::InitializeRequest.new(
-                protocol_version: 1,
-                client_capabilities: ACP::Types::ClientCapabilities.new(
-                  fs: ACP::Types::FileSystemCapabilities.new(write_text_file: true)
-                )
-              )
-            )
-          end
-        end
-
-      assert_equal 'initialize advertises fs methods no handler serves: fs.writeTextFile', error.message
-      assert_nil from_client.wait_readable(0.1), 'connect sent initialize anyway'
-    ensure
-      from_client&.close
-      client_output&.close
+      assert_equal([[[:request, '_myapp/double', { 'n' => 21 }]], true], [@log, answer.equal?(reply)])
     end
   end
 
-  describe 'answering mcp/message requests' do
-    before do
-      @client_input, @agent_output = IO.pipe
-      @agent_input, @client_output = IO.pipe
-      @mcp_replies = Thread::Queue.new
-      @mcp_requests = Thread::Queue.new
-      @connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission: ->(_request) {},
-        mcp_message: lambda { |request|
-          @mcp_requests << request
-          @mcp_replies.pop
-        }
+  describe 'cancelled?' do
+    it 'is false when the transport is serving no request' do
+      refute_predicate connection, :cancelled?
+    end
+
+    it 'is false while the request being served is not cancelled, whatever falsy answer it gives' do
+      answers = [false, nil].map do |answer|
+        @transport.cancellation = ClientConnectionCancellation.new(answer)
+        connection.cancelled?
+      end
+
+      assert_equal [false, false], answers
+    end
+
+    it 'is true once the request being served is cancelled' do
+      @transport.cancellation = ClientConnectionCancellation.new(true)
+
+      assert_predicate connection, :cancelled?
+    end
+  end
+
+  describe 'ext_notify' do
+    it 'refuses a name without the underscore prefix, before sending anything' do
+      assert_equal(
+        [ArgumentError, []],
+        [assert_raises(ArgumentError) { connection.ext_notify('myapp/tick') }.class, @log]
       )
-      @reader = @connection.start
-      @next_id = 0
     end
 
-    after do
-      @agent_output.close
-      @reader.join(2)
-      [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
+    it 'notifies the method with its params' do
+      connection.ext_notify('_myapp/tick', { 'n' => 1 })
+
+      assert_equal [[:notify, '_myapp/tick', { 'n' => 1 }]], @log
+    end
+  end
+
+  describe 'mcp_message_notification' do
+    it 'notifies mcp/message with the notification' do
+      notification = ACP::Types::Unstable::MessageMcpNotification.new(
+        server_id: 'srv_1', request_id: 'mcp_1', method: 'notifications/progress', params: { 'progress' => 1 }
+      )
+      connection.mcp_message_notification(notification)
+
+      assert_equal [[:notify, 'mcp/message', notification.to_h]], @log
+    end
+  end
+
+  describe 'serving a route' do
+    terminal_params = { 'sessionId' => 's', 'terminalId' => 't1' }
+    routes = [
+      [
+        'fs/read_text_file',
+        :read_text_file,
+        'fs.readTextFile',
+        { 'sessionId' => 's', 'path' => '/a.txt' },
+        ACP::Types::ReadTextFileRequest
+      ],
+      [
+        'fs/write_text_file',
+        :write_text_file,
+        'fs.writeTextFile',
+        { 'sessionId' => 's', 'path' => '/a.txt', 'content' => 'hi' },
+        ACP::Types::WriteTextFileRequest
+      ],
+      [
+        'terminal/create',
+        :create_terminal,
+        'terminal',
+        { 'sessionId' => 's', 'command' => 'echo' },
+        ACP::Types::CreateTerminalRequest
+      ],
+      ['terminal/output', :terminal_output, 'terminal', terminal_params, ACP::Types::TerminalOutputRequest],
+      [
+        'terminal/wait_for_exit',
+        :wait_for_terminal_exit,
+        'terminal',
+        terminal_params,
+        ACP::Types::WaitForTerminalExitRequest
+      ],
+      ['terminal/kill', :kill_terminal, 'terminal', terminal_params, ACP::Types::KillTerminalRequest],
+      ['terminal/release', :release_terminal, 'terminal', terminal_params, ACP::Types::ReleaseTerminalRequest]
+    ]
+
+    def advertising(**capabilities)
+      started(**serve_handlers(:answer)).tap do |client|
+        client.connect(initialize_request(**capabilities))
+        @log.clear
+      end
     end
 
+    def advertising_everything
+      advertising(fs: fs(read_text_file: true, write_text_file: true), terminal: true)
+    end
+
+    routes.each do |wire, _handler, key, params, _type|
+      it "refuses #{wire} as unadvertised #{key} before connect records the capabilities" do
+        started(**serve_handlers)
+        reply = route(wire).call(params)
+
+        assert_equal([ACP::RequestError.unadvertised(key).to_h, []], [reply.to_h, @log])
+      end
+    end
+
+    it 'refuses fs/read_text_file when connect advertised only fs/write_text_file' do
+      advertising(fs: fs(write_text_file: true))
+      reply = route('fs/read_text_file').call({ 'sessionId' => 's', 'path' => '/a.txt' })
+
+      assert_equal([ACP::RequestError.unadvertised('fs.readTextFile').to_h, []], [reply.to_h, @log])
+    end
+
+    it 'refuses fs/write_text_file when connect advertised only fs/read_text_file' do
+      advertising(fs: fs(read_text_file: true))
+      reply = route('fs/write_text_file').call({ 'sessionId' => 's', 'path' => '/a.txt', 'content' => 'hi' })
+
+      assert_equal([ACP::RequestError.unadvertised('fs.writeTextFile').to_h, []], [reply.to_h, @log])
+    end
+
+    it 'answers params that fail to parse with invalid params carrying the parse error, without calling the handler' do
+      advertising_everything
+      reply = route('fs/read_text_file').call({})
+      error = parse_error(ACP::Types::ReadTextFileRequest, {})
+
+      assert_equal([ACP::RequestError.invalid_params([error.message]).to_h, []], [reply.to_h, @log])
+    end
+
+    it 'answers params of the wrong shape with bare invalid params, without calling the handler' do
+      advertising_everything
+      replies = [nil, []].map { |params| route('fs/read_text_file').call(params).to_h }
+
+      assert_equal([[ACP::RequestError.invalid_params.to_h] * 2, []], [replies, @log])
+    end
+
+    routes.each do |wire, handler, _key, params, type|
+      it "parses #{wire} as #{type.name} for the #{handler} handler and returns its answer" do
+        advertising_everything
+        reply = route(wire).call(params)
+
+        assert_equal([:answer, [[handler, type]]], [reply, @log])
+      end
+    end
+  end
+
+  describe 'the mcp/message route' do
     def mcp_params
       { 'serverId' => 'srv_1', 'requestId' => 'mcp_1', 'method' => 'tools/call', 'params' => { 'name' => 'echo' } }
     end
 
-    def reply_for(method, params)
-      id = @next_id += 1
-      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => id, 'method' => method, 'params' => params)}\n")
-      within { JSON.parse(@agent_input.gets) }
+    it 'is not registered without an mcp_message handler' do
+      started
+
+      refute_includes @transport.handlers.keys, 'mcp/message'
     end
 
-    def connect(agent_capabilities = {})
-      thread = Thread.new do
-        @connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1))
-      rescue StandardError => e
-        e
-      end
-      request = within { JSON.parse(@agent_input.gets) }
-      result = { 'protocolVersion' => 1, 'agentCapabilities' => agent_capabilities }
-      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => request['id'], 'result' => result)}\n")
-      outcome = within { thread.value }
-      raise outcome if outcome.is_a?(StandardError)
-    end
-
-    it 'answers -32601 before connect records the agent advertisement' do
-      reply = reply_for('mcp/message', mcp_params)
-
-      assert_equal(
-        [-32_601, 'Agent does not advertise mcpCapabilities.acp'],
-        [reply.dig('error', 'code'), reply.dig('error', 'message')]
-      )
-    end
-
-    it 'answers -32601 when the agent does not advertise mcpCapabilities.acp' do
-      connect
-      reply = reply_for('mcp/message', mcp_params)
-
-      assert_equal(
-        [-32_601, 'Agent does not advertise mcpCapabilities.acp'],
-        [reply.dig('error', 'code'), reply.dig('error', 'message')]
-      )
-    end
-
-    it 'serves mcp/message when the agent advertises mcpCapabilities.acp' do
-      @mcp_replies << ACP::Types::Unstable::MessageMcpResponse::Result.new(result: { 'content' => ['hi'] })
-      connect('mcpCapabilities' => { 'acp' => true })
-      reply = reply_for('mcp/message', mcp_params)
-      request = within { @mcp_requests.pop }
-
-      assert_equal(
-        [{ 'result' => { 'content' => ['hi'] } }, %w[srv_1 mcp_1 tools/call]],
-        [reply['result'],
-         [request.server_id, request.request_id, request.method]]
-      )
-    end
-
-    it 'serves an explicit null result as a present result' do
-      @mcp_replies << ACP::Types::Unstable::MessageMcpResponse::Result.new(result: nil)
-      connect('mcpCapabilities' => { 'acp' => true })
-      reply = reply_for('mcp/message', mcp_params)
-
-      assert_equal({ 'result' => nil }, reply['result'])
-    end
-
-    it 'serves an inner MCP error carrier' do
-      @mcp_replies << ACP::Types::Unstable::MessageMcpResponse::Error.new(
-        error: ACP::Types::Unstable::McpError.new(code: -32_602, message: 'Unknown tool')
-      )
-      connect('mcpCapabilities' => { 'acp' => true })
-      reply = reply_for('mcp/message', mcp_params)
-
-      assert_equal({ 'code' => -32_602, 'message' => 'Unknown tool' }, reply.dig('result', 'error'))
-    end
-
-    it 'sends mcp_message_notification to the agent' do
-      within do
-        @connection.mcp_message_notification(
-          ACP::Types::Unstable::MessageMcpNotification.new(
-            server_id: 'srv_1', request_id: 'mcp_1', method: 'notifications/progress', params: { 'progress' => 1 }
-          )
-        )
-      end
-      notification = within { JSON.parse(@agent_input.gets) }
-
-      assert_equal(
-        ['mcp/message',
-         { 'serverId' => 'srv_1', 'requestId' => 'mcp_1', 'method' => 'notifications/progress',
-           'params' => { 'progress' => 1 } }],
-        [notification['method'], notification['params']]
-      )
-    end
-
-    it 'answers mcp/message with method not found when the unstable types are not opted into' do
+    it 'is not registered when the unstable types are not loaded' do
       out, _err = Open3.capture3('bundle', 'exec', 'ruby', '-I', 'lib', '-e', <<~RUBY)
         require 'acp/sdk'
-        require 'json'
-        require 'timeout'
 
-        client_input, agent_output = IO.pipe
-        agent_input, client_output = IO.pipe
-        connection = ACP::ClientConnection.new(
-          transport: ACP::Transport::Stdio.new(
-            input: client_input, output: client_output, logger: ACP::Transport::StderrLogger.new
-          ),
-          permission: ->(_request) {},
-          mcp_message: ->(_request) { {} }
-        )
-        connection.start
+        transport = Class.new do
+          attr_reader :requests
 
-        def read_message(reader)
-          Timeout.timeout(2) { JSON.parse(reader.gets) }
-        end
-
-        agent_output.puts(JSON.generate(
-          'jsonrpc' => '2.0', 'id' => 1, 'method' => 'mcp/message',
-          'params' => { 'serverId' => 'srv_1', 'requestId' => 'mcp_1', 'method' => 'tools/call' }
-        ))
-        reply = read_message(agent_input)
-
-        puts JSON.generate(error: reply.dig('error', 'code'))
+          def start(requests:, notifications:)
+            @requests = requests
+          end
+        end.new
+        ACP::ClientConnection.new(transport:, permission: ->(_request) {}, mcp_message: ->(_request) {}).start
+        print transport.requests.key?('mcp/message')
       RUBY
-      result = JSON.parse(out)
 
-      assert_equal({ 'error' => -32_601 }, result)
-    end
-  end
-
-  describe 'driving an agent with auth over pipes' do
-    before do
-      agent_input, @client_output = IO.pipe
-      @client_input, @agent_output = IO.pipe
-      @pipes = [agent_input, @client_output, @client_input, @agent_output]
-      agent = ACP::AgentConnection.new(
-        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
-        capabilities: ACP::Types::AgentCapabilities.new(
-          auth: ACP::Types::AgentAuthCapabilities.new(logout: ACP::Types::LogoutCapabilities.new)
-        ),
-        agent_info: ACP::Types::Implementation.new(name: 'auth-agent', version: '1.0.0'),
-        auth_methods: [ACP::Types::AuthMethodAgent.new(id: 'token', name: 'Token')]
-      ) { AuthAgent.new }
-      @agent_reader = agent.start
-      @connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission: ->(_request) {}
-      )
-      @client_reader = @connection.start
+      assert_equal 'false', out
     end
 
-    after do
-      @client_output.close
-      @agent_reader.join(2)
-      @agent_output.close
-      @client_reader.join(2)
-      @pipes.reject(&:closed?).each(&:close)
+    it 'refuses as unadvertised by the agent before connect records its advertisement' do
+      started(mcp_message: recording(:mcp_message))
+      reply = route('mcp/message').call(mcp_params)
+
+      assert_equal([ACP::RequestError.unadvertised_agent('mcpCapabilities.acp').to_h, []], [reply.to_h, @log])
     end
 
-    def authenticate(method_id = 'token')
-      within { @connection.authenticate(ACP::Types::AuthenticateRequest.new(method_id:)) }
+    it 'refuses when the initialize reply carries no agent capabilities' do
+      started(mcp_message: recording(:mcp_message)).connect(initialize_request)
+      @log.clear
+      reply = route('mcp/message').call(mcp_params)
+
+      assert_equal([ACP::RequestError.unadvertised_agent('mcpCapabilities.acp').to_h, []], [reply.to_h, @log])
     end
 
-    def logout
-      within { @connection.logout(ACP::Types::LogoutRequest.new) }
-    end
-
-    it 'authenticates' do
-      assert_equal({}, authenticate.to_h)
-    end
-
-    it 'returns the agent\'s error when it rejects the auth method' do
-      response = authenticate('bad')
-
-      assert_equal({ 'code' => -32_000, 'message' => 'Authentication required' }, response.to_h)
-    end
-
-    it 'logs out after authenticating' do
-      authenticate
-
-      assert_equal({}, logout.to_h)
-    end
-
-    it 'returns the agent\'s error when logout comes before authenticate' do
-      response = logout
-
-      assert_equal({ 'code' => -32_000, 'message' => 'Authentication required' }, response.to_h)
-    end
-  end
-
-  describe 'driving an agent with modes and config options over pipes' do
-    before do
-      agent_input, @client_output = IO.pipe
-      @client_input, @agent_output = IO.pipe
-      @pipes = [agent_input, @client_output, @client_input, @agent_output]
-      agent = ACP::AgentConnection.new(
-        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
-        capabilities: ACP::Types::AgentCapabilities.new,
-        agent_info: ACP::Types::Implementation.new(name: 'modes-agent', version: '1.0.0')
-      ) { ModesAgent.new }
-      @agent_reader = agent.start
-      @connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission: ->(_request) {}
-      )
-      @client_reader = @connection.start
-    end
-
-    after do
-      @client_output.close
-      @agent_reader.join(2)
-      @agent_output.close
-      @client_reader.join(2)
-      @pipes.reject(&:closed?).each(&:close)
-    end
-
-    def set_mode(mode_id = 'code')
-      within do
-        @connection.set_session_mode(ACP::Types::SetSessionModeRequest.new(session_id: 's1', mode_id:))
-      end
-    end
-
-    def set_config_option(config_id, value)
-      request = ACP::Types::SetSessionConfigOptionRequest.new(session_id: 's1', config_id:, value:)
-      within { @connection.set_session_config_option(request) }
-    end
-
-    it 'sets the mode' do
-      assert_equal({}, set_mode.to_h)
-    end
-
-    it 'returns the agent\'s error when it rejects the mode' do
-      response = set_mode('ask')
-
-      assert_equal({ 'code' => -32_000, 'message' => 'No such mode' }, response.to_h)
-    end
-
-    it 'sets a boolean config option and returns the complete option list' do
-      response = set_config_option(
-        'thinking',
-        ACP::Types::SetSessionConfigOptionRequest::Value::Boolean.new(value: true)
-      )
-
-      assert_equal(
-        [['thinking', 'Thinking', true]],
-        response.config_options.map { |option| [option.id, option.name, option.kind.current_value] }
-      )
-    end
-
-    it 'returns the agent\'s error when it rejects the config option' do
-      response = set_config_option('modes', ACP::Types::SetSessionConfigOptionRequest::Value::ValueId.new(value: 'off'))
-
-      assert_equal({ 'code' => -32_000, 'message' => 'No such option' }, response.to_h)
-    end
-  end
-
-  describe 'a malformed agent response' do
-    def connection(result)
-      ACP::ClientConnection.new(transport: StubTransport.new(result), permission: ->(_request) {})
-    end
-
-    it 'answers a reply missing a required key with invalid response' do
-      error = within { connection({}).new_session(new_session_request) }
-
-      assert_equal [-32_603, 'Invalid response', {}], [error.code, error.message, error.data]
-    end
-
-    it 'answers a reply with a wrongly shaped value with invalid response' do
-      response = { 'sessionId' => 's', 'modes' => [] }
-      error = within { connection(response).new_session(new_session_request) }
-
-      assert_same response, error.data
-      assert_equal [-32_603, 'Invalid response'], [error.code, error.message]
-    end
-
-    it 'answers a null result with invalid response' do
-      error = within { connection(nil).new_session(new_session_request) }
-
-      assert_equal [-32_603, 'Invalid response', nil], [error.code, error.message, error.data]
-    end
-  end
-
-  describe 'an unsupported protocol version' do
-    it 'answers an initialize reply naming a version the SDK does not speak with an error naming both' do
-      connection = ACP::ClientConnection.new(
-        transport: StubTransport.new({ 'protocolVersion' => 2 }), permission: ->(_request) {}
-      )
-      error = within { connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1)) }
-
-      assert_equal([-32_603, 'Unsupported protocol version: requested 1, returned 2'], [error.code, error.message])
-    end
-  end
-
-  it 'drives the echo agent in a spawned subprocess' do
-    stdin, stdout, wait = Open3.popen2(RbConfig.ruby, File.expand_path('../../examples/echo_agent.rb', __dir__))
-    begin
-      connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: stdout, output: stdin),
-        permission: ->(_request) { choose(EchoAgent::ALLOW) }
-      )
-      reader = connection.start
-      texts = within(10) do
-        connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1))
-        session_id = connection.new_session(new_session_request).session_id
-        chunks = []
-        connection.prompt_session(prompt_request(session_id, 'hello')) do |update|
-          chunks << update.content.text if update.is_a?(ACP::Types::SessionUpdate::AgentMessageChunk)
-        end
-        chunks
-      end
-
-      assert_equal ['hello'], texts
-    ensure
-      stdin.close
-      Process.kill('KILL', wait.pid) unless wait.join(5)
-      wait.join
-      reader&.join(2)
-      stdout.close
-    end
-  end
-
-  describe 'extension methods' do
-    before do
-      agent_input, @client_output = IO.pipe
-      @client_input, @agent_output = IO.pipe
-      @pipes = [agent_input, @client_output, @client_input, @agent_output]
-      @agent_notifications = Thread::Queue.new
-      @client_notifications = Thread::Queue.new
-      @agent_reader = ACP::AgentConnection.new(
-        transport: ACP::Transport::Stdio.new(input: agent_input, output: @agent_output),
-        capabilities: ACP::Types::AgentCapabilities.new,
-        extension_requests: { '_myapp/double' => ->(params) { { 'doubled' => params.fetch('n') * 2 } } },
-        extension_notifications: { '_myapp/tick' => ->(params) { @agent_notifications << params } }
-      ) { |client| @agent_client = client }.start
-    end
-
-    after do
-      @client_output.close
-      @agent_reader.join(2)
-      @agent_output.close
-      @client_reader&.join(2)
-      @pipes.reject(&:closed?).each(&:close)
-    end
-
-    def start
-      connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission: ->(_request) { raise 'no permission requests are expected' },
-        extension_requests: { '_myapp/ping' => ->(params) { { 'echo' => params.fetch('n') } } },
-        extension_notifications: { '_myapp/note' => ->(params) { @client_notifications << params } }
-      )
-      @client_reader = connection.start
-      connection
-    end
-
-    it 'sends an extension request to the agent and returns its result' do
-      connection = start
-
-      assert_equal({ 'doubled' => 42 }, within { connection.ext_request('_myapp/double', { 'n' => 21 }) })
-    end
-
-    it 'sends an extension notification to the agent' do
-      connection = start
-      within { connection.ext_notify('_myapp/tick', { 'n' => 1 }) }
-
-      assert_equal({ 'n' => 1 }, within { @agent_notifications.pop })
-    end
-
-    it "answers the agent's extension request through the registered handler" do
-      start
-      reply = Thread.new { @agent_client.ext_request('_myapp/ping', { 'n' => 'hello' }) }
-
-      assert_equal({ 'echo' => 'hello' }, within { reply.value })
-    end
-
-    it 'routes an extension notification from the agent to the registered handler' do
-      start
-      within { @agent_client.ext_notify('_myapp/note', { 'n' => 1 }) }
-
-      assert_equal({ 'n' => 1 }, within { @client_notifications.pop })
-    end
-
-    it 'answers an unregistered extension request with method not found' do
-      connection = start
-      error = within { connection.ext_request('_myapp/unknown') }
-      from_agent = Thread.new { @agent_client.ext_request('_myapp/unknown') }
-
-      assert_equal([-32_601, -32_601], [error.code, within { from_agent.value }.code])
-    end
-
-    it 'refuses extension handler names without the underscore prefix' do
-      assert_raises(ArgumentError) do
-        ACP::ClientConnection.new(
-          transport: StubTransport.new(nil),
-          permission: ->(_request) {},
-          extension_requests: { 'myapp/ping' => ->(_params) {} }
-        )
-      end
-      assert_raises(ArgumentError) do
-        ACP::ClientConnection.new(
-          transport: StubTransport.new(nil),
-          permission: ->(_request) {},
-          extension_notifications: { 'myapp/note' => ->(_params) {} }
-        )
-      end
-      connection = start
-      assert_raises(ArgumentError) { connection.ext_request('myapp/ping') }
-      assert_raises(ArgumentError) { connection.ext_notify('myapp/note') }
-    end
-  end
-
-  describe "serving the agent's terminal requests" do
-    before do
-      @client_input, @agent_output = IO.pipe
-      @agent_input, @client_output = IO.pipe
-      @wait_gate = Thread::Queue.new
-      @connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission: ->(_request) {},
-        create_terminal: lambda { |request|
-          if request.command == 'boom'
-            ACP::RequestError.resource_not_found
-          else
-            ACP::Types::CreateTerminalResponse.new(terminal_id: 't1')
-          end
-        },
-        terminal_output: ->(_request) { ACP::Types::TerminalOutputResponse.new(output: 'hello', truncated: false) },
-        wait_for_terminal_exit: lambda { |_request|
-          @wait_gate.pop
-          ACP::Types::WaitForTerminalExitResponse.new(exit_code: 0)
-        },
-        kill_terminal: ->(_request) { ACP::Types::KillTerminalResponse.new },
-        release_terminal: ->(_request) { ACP::Types::ReleaseTerminalResponse.new }
-      )
-      @reader = @connection.start
-      connect
-    end
-
-    after do
-      @agent_output.close
-      @reader.join(2)
-      [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
-    end
-
-    def connect(capabilities = ACP::Types::ClientCapabilities.new(terminal: true))
-      thread = Thread.new do
-        @connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1, client_capabilities: capabilities))
-      end
-      request = within { JSON.parse(@agent_input.gets) }
-      result = JSON.generate('jsonrpc' => '2.0', 'id' => request['id'], 'result' => { 'protocolVersion' => 1 })
-      @agent_output.write("#{result}\n")
-      within { thread.value }
-    end
-
-    def send_request(id, method, params)
-      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => id, 'method' => method, 'params' => params)}\n")
-    end
-
-    def reply_for(method, params)
-      send_request(1, method, params)
-      within { JSON.parse(@agent_input.gets) }
-    end
-
-    it 'serves the terminal methods' do
-      {
-        'terminal/create' => [{ 'sessionId' => 's', 'command' => 'echo' }, { 'terminalId' => 't1' }],
-        'terminal/output' => [
-          { 'sessionId' => 's', 'terminalId' => 't1' }, { 'output' => 'hello', 'truncated' => false }
-        ],
-        'terminal/wait_for_exit' => [{ 'sessionId' => 's', 'terminalId' => 't1' }, { 'exitCode' => 0 }],
-        'terminal/kill' => [{ 'sessionId' => 's', 'terminalId' => 't1' }, {}],
-        'terminal/release' => [{ 'sessionId' => 's', 'terminalId' => 't1' }, {}]
-      }.each do |method, (params, result)|
-        @wait_gate << true if method == 'terminal/wait_for_exit'
-        reply = reply_for(method, params)
-
-        assert_equal result, reply['result']
-      end
-    end
-
-    it 'returns the error a terminal handler answers with' do
-      reply = reply_for('terminal/create', { 'sessionId' => 's', 'command' => 'boom' })
-
-      assert_equal({ 'code' => -32_002, 'message' => 'Resource not found' }, reply['error'])
-    end
-
-    it 'answers other terminal methods while terminal/wait_for_exit blocks' do
-      send_request(1, 'terminal/wait_for_exit', { 'sessionId' => 's', 'terminalId' => 't1' })
-      send_request(2, 'terminal/kill', { 'sessionId' => 's', 'terminalId' => 't1' })
-      reply = within { JSON.parse(@agent_input.gets) }
-
-      assert_equal(2, reply['id'])
-      # The released handler's reply must drain before the after hook closes
-      # the pipe.
-      @wait_gate << true
-      within { JSON.parse(@agent_input.gets) }
-    ensure
-      @wait_gate << true
-    end
-  end
-
-  describe 'answering terminal requests the capabilities do not advertise' do
-    before do
-      @client_input, @agent_output = IO.pipe
-      @agent_input, @client_output = IO.pipe
-      @connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission: ->(_request) {},
-        create_terminal: ->(_request) { ACP::Types::CreateTerminalResponse.new(terminal_id: 't1') },
-        terminal_output: ->(_request) { ACP::Types::TerminalOutputResponse.new(output: 'hello', truncated: false) },
-        wait_for_terminal_exit: ->(_request) { ACP::Types::WaitForTerminalExitResponse.new },
-        kill_terminal: ->(_request) { ACP::Types::KillTerminalResponse.new },
-        release_terminal: ->(_request) { ACP::Types::ReleaseTerminalResponse.new }
-      )
-      @reader = @connection.start
-    end
-
-    after do
-      @agent_output.close
-      @reader.join(2)
-      [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
-    end
-
-    def reply_for(method, params)
-      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => 1, 'method' => method, 'params' => params)}\n")
-      within { JSON.parse(@agent_input.gets) }
-    end
-
-    def assert_unadvertised(method)
-      reply = reply_for(method, { 'sessionId' => 's', 'terminalId' => 't1' })
-
-      assert_equal(
-        [-32_601, 'Client does not advertise terminal'],
-        [reply.dig('error', 'code'), reply.dig('error', 'message')]
-      )
-    end
-
-    it 'answers -32601 before connect records any capability' do
-      %w[
-        terminal/create
-        terminal/output
-        terminal/wait_for_exit
-        terminal/kill
-        terminal/release
-      ].each { |method| assert_unadvertised(method) }
-    end
-
-    it 'answers -32601 for a capability the advertised capabilities omit' do
-      thread = Thread.new do
-        @connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1))
-      end
-      request = within { JSON.parse(@agent_input.gets) }
-      result = JSON.generate('jsonrpc' => '2.0', 'id' => request['id'], 'result' => { 'protocolVersion' => 1 })
-      @agent_output.write("#{result}\n")
-      within { thread.value }
-
-      assert_unadvertised('terminal/create')
-    end
-
-    it 'refuses a connect that advertises a capability with no handler' do
-      from_client, client_output = IO.pipe
-      connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: from_client, output: client_output),
-        permission: ->(_request) {},
-        create_terminal: ->(_request) { ACP::Types::CreateTerminalResponse.new(terminal_id: 't1') }
-      )
-      error =
-        within do
-          assert_raises(ArgumentError) do
-            connection.connect(
-              ACP::Types::InitializeRequest.new(
-                protocol_version: 1,
-                client_capabilities: ACP::Types::ClientCapabilities.new(terminal: true)
-              )
-            )
-          end
-        end
-
-      expected = 'initialize advertises terminal methods no handler serves: ' \
-                 'terminal.output, terminal.wait_for_exit, terminal.kill, terminal.release'
-
-      assert_equal(expected, error.message)
-      assert_nil from_client.wait_readable(0.1), 'connect sent initialize anyway'
-    ensure
-      from_client&.close
-      client_output&.close
-    end
-  end
-
-  describe "serving the agent's elicitation requests" do
-    before do
-      @client_input, @agent_output = IO.pipe
-      @agent_input, @client_output = IO.pipe
-      @completions = Thread::Queue.new
-      @connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission: ->(_request) {},
-        elicitation: method(:serve_elicitation),
-        complete_elicitation: ->(notification) { @completions << notification }
-      )
-      @reader = @connection.start
-      connect
-    end
-
-    after do
-      @agent_output.close
-      @reader.join(2)
-      [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
-    end
-
-    def serve_elicitation(request)
-      action =
-        case request.message
-        when 'decline me'
-          ACP::Types::CreateElicitationResponse::Action::Decline.new
-        when 'cancel me'
-          ACP::Types::CreateElicitationResponse::Action::Cancel.new
-        else
-          ACP::Types::CreateElicitationResponse::Action::Accept.new(content: { 'answer' => '42' })
-        end
-
-      ACP::Types::CreateElicitationResponse.new(action:)
-    end
-
-    def connect(
-      capabilities = ACP::Types::ClientCapabilities.new(
-        elicitation: ACP::Types::ElicitationCapabilities.new(
-          form: ACP::Types::ElicitationFormCapabilities.new,
-          url: ACP::Types::ElicitationUrlCapabilities.new
-        )
-      )
-    )
-      thread = Thread.new do
-        @connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1, client_capabilities: capabilities))
-      end
-      request = within { JSON.parse(@agent_input.gets) }
-      result = JSON.generate('jsonrpc' => '2.0', 'id' => request['id'], 'result' => { 'protocolVersion' => 1 })
-      @agent_output.write("#{result}\n")
-      within { thread.value }
-    end
-
-    def reply_for(method, params)
-      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => 1, 'method' => method, 'params' => params)}\n")
-      within { JSON.parse(@agent_input.gets) }
-    end
-
-    def notify(method, params)
-      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'method' => method, 'params' => params)}\n")
-    end
-
-    def form_params(message = 'Pick one')
-      {
-        'sessionId' => 's', 'mode' => 'form', 'message' => message,
-        'requestedSchema' => { 'type' => 'object', 'properties' => {} }
+    it 'parses the request for the mcp_message handler once the initialize reply advertises mcpCapabilities.acp' do
+      @transport.replies['initialize'] = {
+        'protocolVersion' => 1, 'agentCapabilities' => { 'mcpCapabilities' => { 'acp' => true } }
       }
-    end
+      started(mcp_message: recording(:mcp_message, :answer)).connect(initialize_request)
+      @log.clear
+      reply = route('mcp/message').call(mcp_params)
 
-    def url_params(id)
-      {
-        'sessionId' => 's', 'mode' => 'url', 'elicitationId' => id,
-        'url' => 'https://example.com/connect', 'message' => 'Authorize access'
-      }
-    end
-
-    it 'serves a form-mode accept' do
-      reply = reply_for('elicitation/create', form_params)
-
-      assert_equal({ 'action' => 'accept', 'content' => { 'answer' => '42' } }, reply['result'])
-    end
-
-    it 'serves a form-mode decline' do
-      reply = reply_for('elicitation/create', form_params('decline me'))
-
-      assert_equal({ 'action' => 'decline' }, reply['result'])
-    end
-
-    it 'serves a form-mode cancel' do
-      reply = reply_for('elicitation/create', form_params('cancel me'))
-
-      assert_equal({ 'action' => 'cancel' }, reply['result'])
-    end
-
-    it 'serves a url-mode request' do
-      reply = reply_for('elicitation/create', url_params('e1'))
-
-      assert_equal({ 'action' => 'accept', 'content' => { 'answer' => '42' } }, reply['result'])
-    end
-
-    it 'hands the completion of a url request to the completion handler' do
-      reply_for('elicitation/create', url_params('e1'))
-      notify('elicitation/complete', { 'elicitationId' => 'e1' })
-
-      notification = within { @completions.pop }
-
-      assert_equal 'e1', notification.elicitation_id
-    end
-
-    it 'ignores a completion for an unknown elicitation id' do
-      reply_for('elicitation/create', url_params('e1'))
-      notify('elicitation/complete', { 'elicitationId' => 'unknown' })
-      notify('elicitation/complete', { 'elicitationId' => 'e1' })
-
-      notification = within { @completions.pop }
-
-      assert_equal 'e1', notification.elicitation_id
-    end
-
-    it 'ignores a completion for an already-completed elicitation id' do
-      reply_for('elicitation/create', url_params('e1'))
-      reply_for('elicitation/create', url_params('e2'))
-      notify('elicitation/complete', { 'elicitationId' => 'e1' })
-      notify('elicitation/complete', { 'elicitationId' => 'e1' })
-      notify('elicitation/complete', { 'elicitationId' => 'e2' })
-
-      assert_equal(%w[e1 e2], [within { @completions.pop }, within { @completions.pop }].map(&:elicitation_id))
+      assert_equal([:answer, [[:mcp_message, ACP::Types::Unstable::MessageMcpRequest]]], [reply, @log])
     end
   end
 
-  describe 'answering elicitation requests the capabilities do not advertise' do
-    before do
-      @client_input, @agent_output = IO.pipe
-      @agent_input, @client_output = IO.pipe
-      @connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: @client_input, output: @client_output),
-        permission: ->(_request) {},
-        elicitation: lambda { |_request|
-          ACP::Types::CreateElicitationResponse.new(action: ACP::Types::CreateElicitationResponse::Action::Accept.new)
-        }
-      )
-      @reader = @connection.start
+  describe 'parsing a reply' do
+    def new_session
+      connection.new_session(ACP::Types::NewSessionRequest.new(cwd: '/work', mcp_servers: []))
     end
 
-    after do
-      @agent_output.close
-      @reader.join(2)
-      [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
+    it "returns the agent's error" do
+      error = ACP::RequestError.resource_not_found
+      @transport.replies['session/new'] = error
+
+      assert_same error, new_session
     end
 
-    def reply_for(method, params)
-      @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => 1, 'method' => method, 'params' => params)}\n")
-      within { JSON.parse(@agent_input.gets) }
-    end
-
-    def connect(capabilities)
-      thread = Thread.new do
-        @connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1, client_capabilities: capabilities))
+    it 'answers a reply that does not parse with invalid response carrying the reply' do
+      replies = [{}, [], nil]
+      answers = replies.map do |reply|
+        @transport.replies['session/new'] = reply
+        new_session.to_h
       end
-      request = within { JSON.parse(@agent_input.gets) }
-      result = JSON.generate('jsonrpc' => '2.0', 'id' => request['id'], 'result' => { 'protocolVersion' => 1 })
-      @agent_output.write("#{result}\n")
-      within { thread.value }
-    end
 
+      assert_equal(replies.map { |reply| ACP::RequestError.invalid_response(reply).to_h }, answers)
+    end
+  end
+
+  describe 'the elicitation/create route' do
     def form_params
       {
-        'sessionId' => 's', 'mode' => 'form', 'message' => 'hi',
+        'sessionId' => 's', 'mode' => 'form', 'message' => 'Pick one',
         'requestedSchema' => { 'type' => 'object', 'properties' => {} }
       }
     end
@@ -1451,77 +688,74 @@ describe ACP::ClientConnection do
     def url_params
       {
         'sessionId' => 's', 'mode' => 'url', 'elicitationId' => 'e1',
-        'url' => 'https://example.com/connect', 'message' => 'hi'
+        'url' => 'https://example.com/connect', 'message' => 'Authorize access'
       }
     end
 
-    def assert_unadvertised(params)
-      reply = reply_for('elicitation/create', params)
+    def advertising(*names)
+      started(elicitation: recording(:elicitation, :answer)).tap do |client|
+        client.connect(initialize_request(elicitation: modes(*names)))
+        @log.clear
+      end
+    end
+
+    it 'answers params of the wrong shape with invalid params, without calling the handler' do
+      advertising(:form, :url)
+      replies = [nil, []].map { |params| route('elicitation/create').call(params).to_h }
+
+      assert_equal([[ACP::RequestError.invalid_params.to_h] * 2, []], [replies, @log])
+    end
+
+    it 'refuses a form request before connect records the capabilities' do
+      started(elicitation: recording(:elicitation))
+      reply = route('elicitation/create').call(form_params)
+
+      assert_equal([ACP::RequestError.unadvertised_mode('elicitation.form').to_h, []], [reply.to_h, @log])
+    end
+
+    it 'refuses a form request when connect advertised only the url mode' do
+      advertising(:url)
+      reply = route('elicitation/create').call(form_params)
+
+      assert_equal([ACP::RequestError.unadvertised_mode('elicitation.form').to_h, []], [reply.to_h, @log])
+    end
+
+    it 'refuses a url request before connect records the capabilities, without registering it' do
+      started(elicitation: recording(:elicitation))
+      reply = route('elicitation/create').call(url_params)
+
+      assert_equal([ACP::RequestError.unadvertised_mode('elicitation.url').to_h, []], [reply.to_h, @log])
+    end
+
+    it 'refuses a url request when connect advertised only the form mode, without registering it' do
+      advertising(:form)
+      reply = route('elicitation/create').call(url_params)
+
+      assert_equal([ACP::RequestError.unadvertised_mode('elicitation.url').to_h, []], [reply.to_h, @log])
+    end
+
+    it 'refuses a mode it does not know, naming the mode' do
+      advertising(:form, :url)
+      reply = route('elicitation/create').call({ 'sessionId' => 's', 'mode' => 'other', 'message' => 'hi' })
+
+      assert_equal([ACP::RequestError.unadvertised_mode('elicitation.other').to_h, []], [reply.to_h, @log])
+    end
+
+    it 'hands an advertised form request to the elicitation handler and returns its answer' do
+      advertising(:form)
+      reply = route('elicitation/create').call(form_params)
+
+      assert_equal([:answer, [[:elicitation, ACP::Types::CreateElicitationRequest]]], [reply, @log])
+    end
+
+    it 'registers an advertised url request for completion before handing it to the elicitation handler' do
+      advertising(:url)
+      reply = route('elicitation/create').call(url_params)
 
       assert_equal(
-        [-32_602, "Client does not advertise elicitation.#{params['mode']}"],
-        [reply.dig('error', 'code'), reply.dig('error', 'message')]
+        [:answer, [[:register_elicitation, 'e1'], [:elicitation, ACP::Types::CreateElicitationRequest]]],
+        [reply, @log]
       )
-    end
-
-    it 'answers -32602 before connect records any capability' do
-      assert_unadvertised(form_params)
-    end
-
-    it 'answers -32602 for a mode the advertised capabilities omit' do
-      connect(
-        ACP::Types::ClientCapabilities.new(
-          elicitation: ACP::Types::ElicitationCapabilities.new(form: ACP::Types::ElicitationFormCapabilities.new)
-        )
-      )
-
-      assert_unadvertised(url_params)
-    end
-
-    it 'answers -32602 for a mode the client does not know' do
-      connect(
-        ACP::Types::ClientCapabilities.new(
-          elicitation: ACP::Types::ElicitationCapabilities.new(
-            form: ACP::Types::ElicitationFormCapabilities.new,
-            url: ACP::Types::ElicitationUrlCapabilities.new
-          )
-        )
-      )
-
-      assert_unadvertised({ 'sessionId' => 's', 'mode' => 'other', 'message' => 'hi' })
-    end
-
-    it 'refuses a connect that advertises a mode with no handler' do
-      from_client, client_output = IO.pipe
-      connection = ACP::ClientConnection.new(
-        transport: ACP::Transport::Stdio.new(input: from_client, output: client_output),
-        permission: ->(_request) {}
-      )
-      error =
-        within do
-          assert_raises(ArgumentError) do
-            connection.connect(
-              ACP::Types::InitializeRequest.new(
-                protocol_version: 1,
-                client_capabilities: ACP::Types::ClientCapabilities.new(
-                  elicitation: ACP::Types::ElicitationCapabilities.new(
-                    form: ACP::Types::ElicitationFormCapabilities.new,
-                    url: ACP::Types::ElicitationUrlCapabilities.new
-                  )
-                )
-              )
-            )
-          end
-        end
-
-      assert_equal(
-        'initialize advertises elicitation modes no handler serves: elicitation.form, elicitation.url',
-        error.message
-      )
-      assert_nil from_client.wait_readable(0.1), 'connect sent initialize anyway'
-    ensure
-      from_client&.close
-      client_output&.close
     end
   end
 end
