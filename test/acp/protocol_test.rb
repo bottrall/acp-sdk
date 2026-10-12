@@ -45,6 +45,10 @@ describe ACP::Protocol do
       assert ACP::Protocol.mcp_acp_advertised?('mcpCapabilities' => { 'acp' => true })
     end
 
+    it 'ignores a malformed unrelated capability beside the raw mcpCapabilities' do
+      assert ACP::Protocol.mcp_acp_advertised?('mcpCapabilities' => { 'acp' => true }, 'positionEncoding' => 'utf-7')
+    end
+
     it 'is false when the raw capabilities hash carries no mcpCapabilities' do
       refute ACP::Protocol.mcp_acp_advertised?({})
     end
@@ -56,6 +60,10 @@ describe ACP::Protocol do
 
     it 'is false when the raw mcpCapabilities is not an object' do
       refute ACP::Protocol.mcp_acp_advertised?('mcpCapabilities' => 'nope')
+    end
+
+    it 'is false when the raw mcpCapabilities is malformed' do
+      refute ACP::Protocol.mcp_acp_advertised?('mcpCapabilities' => { 'acp' => 'yes' })
     end
 
     it 'is false when the raw capabilities are not a hash' do
