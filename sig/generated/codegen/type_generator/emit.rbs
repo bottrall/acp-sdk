@@ -112,6 +112,12 @@ module TypeGenerator::Emit
   # @rbs return: Array[String]
   def to_h_method: (Array[TypeGenerator::Field] fields, [ String, String ]? tag) -> Array[String]
 
+  # The sentinel is told apart by class because Steep narrows the union on `is_a?` but not on `== :unset`.
+  #
+  # @rbs field: TypeGenerator::Field
+  # @rbs return: String
+  def to_expression: (TypeGenerator::Field field) -> String
+
   # @rbs prefix: String
   # @rbs args: Array[String]
   # @rbs column: Integer
