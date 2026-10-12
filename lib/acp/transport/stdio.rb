@@ -128,8 +128,12 @@ class ACP::Transport::Stdio
     elsif error.is_a?(Hash) && error['code'].is_a?(Integer) && error['message'].is_a?(String)
       code, text, data = error.values_at('code', 'message', 'data')
       settle(message['id'], ACP::RequestError.new(code:, message: text, data:))
-    else
+    elsif message.key?('method')
       reply(detectable_id(message), ACP::RequestError.invalid_request)
+    elsif !settle(message['id'], ACP::RequestError.invalid_response(message))
+      # JSON-RPC responses only answer requests, so a malformed one is never
+      # replied to: the error could settle an unrelated request on the peer.
+      @logger.warn('dropped malformed response: no pending request for its id')
     end
   end
 
@@ -262,9 +266,9 @@ class ACP::Transport::Stdio
 
   # @rbs id: untyped
   # @rbs result: (Hash[String, untyped] | ACP::RequestError)
-  # @rbs return: void
+  # @rbs return: Thread::Queue?
   def settle(id, result)
-    @lock.synchronize { @pending.delete(id) }&.push(result)
+    @lock.synchronize { @pending.delete(id) }&.tap { |queue| queue.push(result) }
   end
 
   # @rbs return: void

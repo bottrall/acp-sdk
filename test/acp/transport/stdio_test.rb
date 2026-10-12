@@ -289,36 +289,55 @@ describe ACP::Transport::Stdio do
       )
     end
 
-    {
-      'is not an object' => 'boom',
-      'has a non-integer code' => { 'code' => '-32002', 'message' => 'Resource not found' },
-      'has a non-string message' => { 'code' => -32_002, 'message' => nil }
-    }.each do |fault, error|
-      it "answers an error response whose error #{fault} with invalid request" do
-        start
-        send_message({ 'jsonrpc' => '2.0', 'id' => 3, 'error' => error })
-
-        assert_equal error_reply(3, ACP::RequestError.invalid_request), receive_message
-      end
-    end
-
-    it 'answers a message that is neither a request, a notification nor a response with invalid request' do
+    it 'answers a message whose method is not a string with invalid request' do
       start
       send_message({ 'jsonrpc' => '2.0', 'id' => 7, 'method' => 5 })
 
       assert_equal error_reply(7, ACP::RequestError.invalid_request), receive_message
     end
 
+    {
+      'an error that is not an object' => { 'error' => 'boom' },
+      'an error with a string code' => { 'error' => { 'code' => '-32002', 'message' => 'Resource not found' } },
+      'an error with a float code' => { 'error' => { 'code' => -32_002.0, 'message' => 'Resource not found' } },
+      'an error with no message' => { 'error' => { 'code' => -32_002 } },
+      'a null error' => { 'error' => nil },
+      'neither a result nor an error' => {}
+    }.each do |fault, members|
+      it "settles an outbound request answered with #{fault} as an invalid response, replying nothing" do
+        start
+        pending = Thread.new { @transport.request('fs/read_text_file') }
+        response = { 'jsonrpc' => '2.0', 'id' => receive_message.fetch('id') }.merge(members)
+        send_message(response)
+        result = value_of(pending)
+        @transport.notify('session/update')
+
+        assert_equal ACP::RequestError.invalid_response(response).to_h, result.to_h
+        assert_equal({ 'jsonrpc' => '2.0', 'method' => 'session/update' }, receive_message)
+      end
+    end
+
+    it 'warns and drops a malformed response for an id that is not pending, then keeps reading' do
+      start(requests: echo)
+      send_message({ 'jsonrpc' => '2.0', 'id' => 99, 'error' => 'boom' })
+      send_message(echo_request(1))
+
+      assert_equal(
+        [echo_reply(1), [:warn, 'dropped malformed response: no pending request for its id']],
+        [receive_message, @logger.pop]
+      )
+    end
+
     it 'echoes a string id on an invalid request reply' do
       start
-      send_message({ 'jsonrpc' => '2.0', 'id' => 'req-7' })
+      send_message({ 'jsonrpc' => '2.0', 'id' => 'req-7', 'method' => 5 })
 
       assert_equal 'req-7', receive_message.fetch('id')
     end
 
     {
-      'no id' => { 'jsonrpc' => '2.0' },
-      'an id that is not a string or number' => { 'jsonrpc' => '2.0', 'id' => [7] }
+      'no id' => { 'jsonrpc' => '2.0', 'method' => 5 },
+      'an id that is not a string or number' => { 'jsonrpc' => '2.0', 'id' => [7], 'method' => 5 }
     }.each do |fault, message|
       it "answers an invalid request with #{fault} with a null id" do
         start
