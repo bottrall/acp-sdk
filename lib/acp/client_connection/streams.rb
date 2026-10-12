@@ -121,7 +121,7 @@ class ACP::ClientConnection::Streams
     settled = replies.pop
     # Re-raised so the transport's invoke turns it into an error reply, as it
     # would if the handler ran on the serve thread itself.
-    raise settled[1] if settled[0] == :raise
+    raise settled[1] if settled[0] == :raised
 
     settled[1]
   end
