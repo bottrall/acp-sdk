@@ -16,15 +16,18 @@ module ACP::Protocol
       case capabilities
       when ACP::Types::AgentCapabilities, ACP::Types::Unstable::AgentCapabilities
         capabilities.mcp_capabilities #: ACP::Types::McpCapabilities | ACP::Types::Unstable::McpCapabilities?
-      else
-        # The client's stable parse of the initialize reply drops acp, so the
-        # raw capabilities hash is re-parsed with the unstable types.
-        ACP::Types::Unstable::AgentCapabilities.from_h(capabilities).mcp_capabilities
+      when Hash
+        # The client's stable parse of the initialize reply drops acp, so
+        # mcpCapabilities is re-parsed from the raw hash with the unstable
+        # type. Only that sub-object: the other unstable fields arrive
+        # unvalidated and must not decide whether MCP is advertised.
+        raw = capabilities['mcpCapabilities']
+        ACP::Types::Unstable::McpCapabilities.from_h(raw) if raw.is_a?(Hash)
       end
     return false unless mcp.is_a?(ACP::Types::Unstable::McpCapabilities)
 
     mcp.acp ? true : false
-  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError
+  rescue ACP::Types::ParseError
     false
   end
 end
