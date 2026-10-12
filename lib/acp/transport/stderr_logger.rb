@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-# The default sink for dropped messages and swallowed errors: the spec
-# sanctions agents logging to stderr.
+# The spec sanctions agents logging to stderr.
 class ACP::Transport::StderrLogger
   # @rbs message: String
   # @rbs return: void

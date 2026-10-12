@@ -1,8 +1,6 @@
 # Generated from lib/acp/agent_connection/optional_method.rb with RBS::Inline
 
 module ACP::AgentConnection::OptionalMethod
-  # The stable optional methods and their advertisement data: how the request
-  # is routed and where on the InitializeResponse the capability lives.
   SPECS: Array[Spec]
 
   UNSTABLE_SPECS: Array[Spec]

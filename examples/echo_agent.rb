@@ -4,7 +4,6 @@ require 'securerandom'
 require 'shellwords'
 require_relative '../lib/acp/sdk'
 
-# Serve it on stdio with `ruby examples/echo_agent.rb`.
 class EchoAgent
   CAPABILITIES = ACP::Types::AgentCapabilities.new(
     load_session: true,
@@ -174,9 +173,6 @@ class EchoAgent
     outcome.is_a?(ACP::Types::RequestPermissionOutcome::Selected) && outcome.option_id == ALLOW
   end
 
-  # `/read <path>` echoes the file, `/write <path> <text>` writes it and
-  # `/run <command> [args]` echoes its output, all through the client; any
-  # other prompt is echoed as is.
   def respond(session_id, blocks)
     command, rest = blocks.first&.text.to_s.split(' ', 2)
     return echo(session_id, blocks) unless rest

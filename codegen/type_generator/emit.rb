@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# Renders Type and Field POROs as Ruby source text: the class file layout and
-# the initialize/from_h/to_h bodies with their wrapped guard calls.
 module TypeGenerator::Emit
   extend self
 
@@ -110,10 +108,9 @@ module TypeGenerator::Emit
     guard(field.type.check, source, "'#{field.json}'", field.nilable?, field.clearable?)
   end
 
-  # Builds the guard call for a resolved type as a piece: [callee, args,
-  # block, cast]. Top-level guards take the field path as a string; guards
-  # nested in a container take the block's `path` parameter, so the Check
-  # module can report absolute paths.
+  # Top-level guards take the field path as a string; guards nested in a
+  # container take the block's `path` parameter, so the Check module can report
+  # absolute paths.
   def guard(spec, source, path, nilable, clearable)
     check = TypeGenerator::CHECK
     opts = guard_options(nilable, clearable)
@@ -170,9 +167,6 @@ module TypeGenerator::Emit
 
   def piece_block(piece) = piece.is_a?(Array) ? piece[2] : nil
 
-  # Renders a piece or plain expression as one or more lines. `column` is the
-  # final column the first line starts at, `suffix` (e.g. an argument comma)
-  # closes the last line; nested lines indent by two.
   def render(piece, column, prefix = '', suffix = '')
     line = "#{prefix}#{inline(piece)}#{suffix}"
     return [line] if column + line.length <= TypeGenerator::MAX_LINE_LENGTH || piece.is_a?(String)

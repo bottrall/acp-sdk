@@ -3,9 +3,6 @@
 require 'test_helper'
 require 'timeout'
 
-# An agent connection and a client connection wired to each other over pipes,
-# so the wire carries the real session/cancel, $/cancel_request and -32800
-# messages of the spec's cancellation cascade.
 DUMMY_HANDLER = ->(_request) { raise 'not reached' } #: ^(::untyped) -> ::untyped
 
 describe 'request cancellation' do
@@ -27,8 +24,6 @@ describe 'request cancellation' do
     Timeout.timeout(2) { sleep 0.001 until connection.cancelled? }
   end
 
-  # The ask blocks the prompt handler on one outstanding client request: a
-  # terminal wait in the first test, a permission in the second.
   def agent_class(_ask)
     Class.new do
       def initialize(client, events, ask)
@@ -162,7 +157,6 @@ describe 'request cancellation' do
     prompt = prompt_of(client, session)
     permission_started.pop(timeout: 2)
 
-    # The agent gives up on its outstanding permission request, as cancel would.
     handles.pop(timeout: 2).cancel_requests
 
     assert_equal(

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# Decides which defs exist and which files they become: the defs reachable
-# from the x-method roots, each def's file path and name, and the alias pass.
 module TypeGenerator::Plan
   extend self
 
@@ -18,11 +16,8 @@ module TypeGenerator::Plan
     stable.merge(unstable_files(defs, unstable_schema))
   end
 
-  # The unstable pass generates the defs the stable schema does not already
-  # cover: defs unique to the unstable schema and shared defs whose unstable
-  # form differs (extra fields or union variants). Identical defs resolve to
-  # the stable classes, so the stable namespace is byte-identical whether or
-  # not a caller opts in.
+  # Identical defs resolve to the stable classes, so the stable namespace is
+  # byte-identical whether or not a caller opts in.
   def unstable_files(defs, unstable_schema)
     unstable_defs = unstable_schema.fetch('$defs')
     twins = unstable_defs.reject { |name, definition| defs[name] == definition }.keys
@@ -32,10 +27,8 @@ module TypeGenerator::Plan
     generated.merge(opt_in_file(generated.keys, aliases))
   end
 
-  # lib/acp/types/unstable.rb is the opt-in: the only entry into
-  # lib/acp/types/unstable, which Zeitwerk ignores so nothing loads until a
-  # caller requires this file. Aliases are required after the classes they
-  # alias: nothing autoloads here, so constant assignment evaluates its target.
+  # Aliases are required after the classes they alias: nothing autoloads here,
+  # so constant assignment evaluates its target.
   def opt_in_file(paths, aliases)
     classes, alias_files = paths.partition { |path| !aliases.include?(path) }
     requires = [*classes, *alias_files].map { |path| "require_relative '#{path.delete_suffix('.rb')}'" }
@@ -57,12 +50,11 @@ module TypeGenerator::Plan
     RUBY
   end
 
-  # One pass's file set: a class file per def a normal edge reaches, an alias
-  # file per def a single variant class subsumes — replacing only that def's
-  # own class file, since its nested union modules are still referenced — and
-  # nothing for a def several variant classes subsume (no single alias target)
-  # or that the stable pass already emitted. Returns the files plus the paths
-  # of the alias files among them.
+  # A subsumed def gets an alias, not a class: a standalone to_h would drop the
+  # discriminator tag the variant stamps. The alias file replaces only the
+  # def's own class file, since its nested union modules are still referenced;
+  # a def several variant classes subsume has no single alias target, so it
+  # gets no file.
   def generate(schema, roots)
     seen = reachable(schema, roots.map { |name| [name, :normal] }, {})
     subsumed = seen.filter_map { |name, status| [name, status.first] if status.is_a?(Array) && status.size == 1 }.to_h
@@ -79,10 +71,6 @@ module TypeGenerator::Plan
     [files, aliases]
   end
 
-  # Walks the defs out from the roots, classifying each by how it is reached:
-  # :normal keeps its own class, while a subsuming variant option's allOf ref
-  # hands the def to the variant classes claiming it — collected as an array
-  # of their constants. A def a normal edge also reaches is never subsumed.
   # Traversal continues through subsumed defs: their fields inline into the
   # variant classes, so refs inside them still generate classes.
   def reachable(defs, pending, seen)
@@ -96,9 +84,6 @@ module TypeGenerator::Plan
     reachable(defs, rest + edges(defs, name), seen.merge(name => edge))
   end
 
-  # A def's outgoing edges as [name, edge] pairs: :normal for every ref in
-  # the def, and a claimed constant for each def its own variant classes
-  # subsume.
   def edges(defs, name)
     definition = defs.fetch(name)
     plain_refs(definition).map { |ref| [ref, :normal] } +

@@ -1,6 +1,4 @@
 class ACP::Transport::Stdio
-  # The success arm of a request handler's return: the transport serializes it
-  # with to_h into the reply's result.
   interface _ToH
     def to_h: () -> Hash[String, untyped]
   end

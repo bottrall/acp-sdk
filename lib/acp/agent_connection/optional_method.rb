@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 module ACP::AgentConnection::OptionalMethod
-  # The stable optional methods and their advertisement data: how the request
-  # is routed and where on the InitializeResponse the capability lives.
   SPECS = [
     Spec.new(rpc_method: 'authenticate', agent_method: :authenticate, path: %i[auth_methods any?]),
     Spec.new(rpc_method: 'session/load', agent_method: :load_session, path: %i[agent_capabilities load_session]),

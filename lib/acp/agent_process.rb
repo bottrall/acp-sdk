@@ -2,8 +2,6 @@
 
 require 'open3'
 
-# A child agent process and the ACP::ClientConnection wired to its stdio.
-# Spawn one with ACP::AgentProcess.spawn.
 class ACP::AgentProcess
   # @rbs @connection: ACP::ClientConnection
   # @rbs @reader: Thread
@@ -21,16 +19,9 @@ class ACP::AgentProcess
   # @dynamic connection
   attr_reader :connection #: ACP::ClientConnection
 
-  # Child stderr captured when spawn was given stderr: :capture, else nil.
-  #
   # @dynamic stderr
   attr_reader :stderr #: String?
 
-  # Starts a command with args, env and cwd, wires its stdio to a new
-  # ACP::ClientConnection and starts it. With a block, yields the connection
-  # and this process, then terminates the child when the block exits; without
-  # one, returns the process and terminate is the caller's job.
-  #
   # @rbs command: String
   # @rbs *args: String
   # @rbs env: Hash[String, String]?
@@ -72,10 +63,6 @@ class ACP::AgentProcess
     end
   end
 
-  # Closes stdin, waits for the child to exit — sending TERM and then KILL if
-  # it will not — and joins the transport reader before closing the pipe it
-  # reads.
-  #
   # @rbs return: void
   def terminate
     @stdin.close unless @stdin.closed?

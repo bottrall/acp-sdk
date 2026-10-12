@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-# The schema's JSON-RPC Error object, named after the official SDKs'
-# RequestError: built by handlers and local refusals, and decoded from a
-# peer's error replies by the transport.
+# Named after the official SDKs' RequestError rather than the schema's Error.
 class ACP::RequestError
   PARSE_ERROR = -32_700 #: Integer
   INVALID_REQUEST = -32_600 #: Integer
@@ -60,9 +58,8 @@ class ACP::RequestError
     new(code: INVALID_PARAMS, message: 'Invalid params', data: errors && { errors: errors })
   end
 
-  # The method-not-found code for a method the client's capabilities do not
-  # advertise, with a message that names the capability so it can be told
-  # apart from an unknown method.
+  # The message names the capability so the refusal can be told apart from an
+  # unknown method, though both use the -32601 code.
   #
   # @rbs capability: String
   # @rbs return: ACP::RequestError
@@ -70,11 +67,9 @@ class ACP::RequestError
     new(code: METHOD_NOT_FOUND, message: "Client does not advertise #{capability}")
   end
 
-  # The invalid-params code for a request whose mode the client's
-  # capabilities do not advertise, with a message that names the mode so it
-  # can be told apart from malformed params. The spec gives elicitation a
-  # mode in its params, so an unadvertised one is invalid params rather than
-  # method not found.
+  # The message names the mode so the refusal can be told apart from malformed
+  # params. The spec gives elicitation a mode in its params, so an unadvertised
+  # one is invalid params rather than method not found.
   #
   # @rbs mode: String
   # @rbs return: ACP::RequestError
@@ -82,10 +77,6 @@ class ACP::RequestError
     new(code: INVALID_PARAMS, message: "Client does not advertise #{mode}")
   end
 
-  # unadvertised names a capability of the client's, this one a capability of
-  # the agent's: the same method-not-found code, with a message naming which
-  # side's advertisement is missing.
-  #
   # @rbs capability: String
   # @rbs return: ACP::RequestError
   def self.unadvertised_agent(capability)
@@ -106,8 +97,7 @@ class ACP::RequestError
     new(code: INTERNAL_ERROR, message: 'Invalid response', data: response)
   end
 
-  # A local refusal of an initialize reply that names a version the SDK does
-  # not speak; the message names both versions so logs can tell it from a
+  # The message names both versions so logs can tell this local refusal from a
   # peer's error.
   #
   # @rbs requested: Integer

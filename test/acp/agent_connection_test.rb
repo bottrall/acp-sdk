@@ -60,9 +60,6 @@ class FullAgent < SimpleDelegator
   end
 end
 
-# Sends one mcp/message request per prompt turn and records the reply it gets,
-# so the test can inspect the parsed outcome; the prompt text is otherwise
-# unused.
 class McpAgent < SimpleDelegator
   attr_reader :reply, :notifications
 
@@ -489,7 +486,7 @@ describe ACP::AgentConnection do
   end
 
   it 'answers session/resume, session/close and session/delete with method not found unless advertised' do
-    # Not the echo agent's capabilities: it advertises all three now.
+    # Not the echo agent's capabilities: it advertises all three.
     start(capabilities: ACP::Types::AgentCapabilities.new(load_session: true))
     replies = [
       call('session/resume', { 'sessionId' => 's', 'cwd' => '/work' }),

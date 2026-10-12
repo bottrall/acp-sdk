@@ -49,8 +49,6 @@ describe TypeGenerator::Emit do
   end
 
   it 'points a subsumed def at its variant class so to_h keeps the discriminator' do
-    # The alias makes the flat name's to_h stamp the variant's discriminator
-    # tag — a standalone class would drop it.
     Object.module_eval(FixtureSchemas::FILES.fetch('vessel.rb'))
     Object.module_eval(FixtureSchemas::FILES.fetch('vessel/cup.rb'))
     Object.module_eval(FixtureSchemas::FILES.fetch('mug.rb'))

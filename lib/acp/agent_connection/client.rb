@@ -12,9 +12,6 @@ class ACP::AgentConnection::Client
   # @rbs return: void
   def initialize(peer:, mcp_advertised: false)
     @peer = peer
-    # The agent's own initialize advertisement of mcpCapabilities.acp, which
-    # licenses this side's mcp/message sends; the client's advertisement is
-    # the separate capabilities accessor.
     @mcp_advertised = mcp_advertised
     @capabilities = nil
   end
@@ -33,9 +30,6 @@ class ACP::AgentConnection::Client
     update(session_id, ACP::Types::SessionUpdate::AvailableCommandsUpdate.new(available_commands: commands))
   end
 
-  # Blocks the calling thread until the client answers or the connection
-  # closes.
-  #
   # @rbs request: ACP::Types::RequestPermissionRequest
   # @rbs return: ACP::Types::RequestPermissionResponse | ACP::RequestError
   def request_permission(request)
@@ -123,10 +117,6 @@ class ACP::AgentConnection::Client
     @peer.notify('elicitation/complete', notification.to_h)
   end
 
-  # Sends one inner MCP operation to the client's declared ACP MCP server. The
-  # reply's result may be null, and a reply matching neither carrier branch
-  # comes back as the raw hash.
-  #
   # @rbs request: ACP::Types::Unstable::MessageMcpRequest
   # @rbs return: (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
   def mcp_message(request)
@@ -135,9 +125,7 @@ class ACP::AgentConnection::Client
     call('mcp/message', ACP::Types::Unstable::MessageMcpResponse, request)
   end
 
-  # Sends an extension request, keyed by its raw `_`-prefixed wire name, and
-  # returns the client's reply as-is: extension methods have no schema to
-  # parse the result into.
+  # Extension methods have no schema to parse the result into.
   #
   # @rbs method: String
   # @rbs params: untyped

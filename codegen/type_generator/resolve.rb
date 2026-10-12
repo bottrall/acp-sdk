@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# Turns schema JSON into Type and Field POROs: classifies each def's kind and
-# resolves property schemas to the conversions and guards from_h renders.
 module TypeGenerator::Resolve
   extend self
 
@@ -175,9 +173,6 @@ module TypeGenerator::Resolve
     [class_file, *TypeGenerator::Unions.union_files(defs, union_const(defs, name), definition)]
   end
 
-  # The union constant a def's variants nest under — itself for a bare union,
-  # flattened into the object for a schemars-flattened one; nil when the def
-  # has no variants.
   def union_const(defs, name)
     definition = defs.fetch(name)
     case kind(definition)

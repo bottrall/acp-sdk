@@ -602,7 +602,6 @@ describe ACP::ClientConnection do
       [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
     end
 
-    # Plays the agent: a raw request into the client's input, its raw reply back.
     def reply_for(method, params)
       @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => 1, 'method' => method, 'params' => params)}\n")
       within { JSON.parse(@agent_input.gets) }
@@ -697,15 +696,12 @@ describe ACP::ClientConnection do
       { 'serverId' => 'srv_1', 'requestId' => 'mcp_1', 'method' => 'tools/call', 'params' => { 'name' => 'echo' } }
     end
 
-    # Plays the agent: a raw request into the client's input, its raw reply back.
     def reply_for(method, params)
       id = @next_id += 1
       @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => id, 'method' => method, 'params' => params)}\n")
       within { JSON.parse(@agent_input.gets) }
     end
 
-    # Drives connect with a canned initialize reply carrying the given agent
-    # capabilities.
     def connect(agent_capabilities = {})
       thread = Thread.new do
         @connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1))
@@ -1146,7 +1142,6 @@ describe ACP::ClientConnection do
       within { thread.value }
     end
 
-    # Plays the agent: a raw request into the client's input, its raw reply back.
     def send_request(id, method, params)
       @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => id, 'method' => method, 'params' => params)}\n")
     end
@@ -1185,8 +1180,8 @@ describe ACP::ClientConnection do
       reply = within { JSON.parse(@agent_input.gets) }
 
       assert_equal(2, reply['id'])
-      # Releases the blocked handler, then drains its reply before the after
-      # hook closes the pipe.
+      # The released handler's reply must drain before the after hook closes
+      # the pipe.
       @wait_gate << true
       within { JSON.parse(@agent_input.gets) }
     ensure
@@ -1216,7 +1211,6 @@ describe ACP::ClientConnection do
       [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
     end
 
-    # Plays the agent: a raw request into the client's input, its raw reply back.
     def reply_for(method, params)
       @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => 1, 'method' => method, 'params' => params)}\n")
       within { JSON.parse(@agent_input.gets) }
@@ -1335,7 +1329,6 @@ describe ACP::ClientConnection do
       within { thread.value }
     end
 
-    # Plays the agent: a raw request into the client's input, its raw reply back.
     def reply_for(method, params)
       @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => 1, 'method' => method, 'params' => params)}\n")
       within { JSON.parse(@agent_input.gets) }
@@ -1433,7 +1426,6 @@ describe ACP::ClientConnection do
       [@client_input, @client_output, @agent_input].reject(&:closed?).each(&:close)
     end
 
-    # Plays the agent: a raw request into the client's input, its raw reply back.
     def reply_for(method, params)
       @agent_output.write("#{JSON.generate('jsonrpc' => '2.0', 'id' => 1, 'method' => method, 'params' => params)}\n")
       within { JSON.parse(@agent_input.gets) }

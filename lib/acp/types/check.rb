@@ -3,10 +3,6 @@
 # Hand-authored support for the generated types: the generator neither emits
 # nor deletes this file (see TypeGenerator::SUPPORT_FILES).
 
-# The guards the generated from_h methods call. Each takes the fetched value
-# and the path to it, and raises ParseError naming that path when the value
-# does not match the schema type. Nested from_h failures come back with the
-# field path prepended, so the reported path is absolute.
 module ACP::Types::Check
   # @rbs hash: Hash[String, untyped]
   # @rbs key: String

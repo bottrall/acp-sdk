@@ -1,10 +1,9 @@
 # Generated from lib/acp/transport/stdio.rb with RBS::Inline
 
-# JSON-RPC 2.0 over newline-delimited JSON on an IO pair. A reader thread
-# dispatches inbound messages while outbound requests are pending, and each
-# inbound request is served on its own thread, so a handler can make an
-# outbound request mid-turn and still see notifications (e.g. session/cancel)
-# that arrive meanwhile.
+# A reader thread dispatches inbound messages while outbound requests are
+# pending, and each inbound request is served on its own thread, so a handler
+# can make an outbound request mid-turn and still see notifications (e.g.
+# session/cancel) that arrive meanwhile.
 class ACP::Transport::Stdio
   @logger: ACP::Transport::_Logger
 
@@ -32,9 +31,6 @@ class ACP::Transport::Stdio
   # @rbs return: void
   def initialize: (input: _Reader, output: _Writer, ?logger: ACP::Transport::_Logger) -> void
 
-  # Returns the reader thread, which ends at EOF on input after releasing any
-  # pending outbound requests.
-  #
   # @rbs requests: Hash[String, _Handler]
   # @rbs notifications: Hash[String, _NotificationHandler]
   # @rbs return: Thread
@@ -63,11 +59,6 @@ class ACP::Transport::Stdio
   # @rbs return: void
   def cancel_requests: () -> void
 
-  # The cancellation of the request the calling thread is serving, or nil off
-  # a serve thread. A handler observes the peer's $/cancel_request through it
-  # and can end early with ACP::RequestError.request_cancelled; whatever it
-  # returns, the transport sends exactly one response.
-  #
   # @rbs return: ACP::Transport::Cancellation?
   def cancellation: () -> ACP::Transport::Cancellation?
 
@@ -142,9 +133,6 @@ class ACP::Transport::Stdio
   # @rbs return: (_ToH | ACP::RequestError | ACP::Transport::Reply)
   def invoke: (_Handler handler, untyped params) -> (_ToH | ACP::RequestError | ACP::Transport::Reply)
 
-  # The success arm is whatever the handler returned, which the transport only
-  # knows serializes with to_h; RequestError picks the error arm of the reply.
-  #
   # @rbs id: untyped
   # @rbs outcome: (_ToH | ACP::RequestError)
   # @rbs return: void
