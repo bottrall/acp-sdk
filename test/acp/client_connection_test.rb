@@ -699,6 +699,14 @@ describe ACP::ClientConnection do
       end
     end
 
+    it 'answers params that fail to parse with invalid params carrying the parse error, without calling the handler' do
+      advertising(:form, :url)
+      reply = route('elicitation/create').call({})
+      error = parse_error(ACP::Types::CreateElicitationRequest, {})
+
+      assert_equal([ACP::RequestError.invalid_params([error.message]).to_h, []], [reply.to_h, @log])
+    end
+
     it 'answers params of the wrong shape with invalid params, without calling the handler' do
       advertising(:form, :url)
       replies = [nil, []].map { |params| route('elicitation/create').call(params).to_h }

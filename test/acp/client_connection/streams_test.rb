@@ -344,11 +344,13 @@ describe ACP::ClientConnection::Streams do
       logger = FakeLogger.new
       completions = []
       engine = streams(complete_elicitation: ->(n) { completions << n }, logger:)
-      engine.complete_elicitation(nil)
-      level, message = logger.pop
+      logged = [{}, nil].map do |params|
+        engine.complete_elicitation(params)
+        level, message = logger.pop
+        [level, message.start_with?('dropped malformed elicitation/complete: ')]
+      end
 
-      assert_equal [:warn, true, []],
-                   [level, message.start_with?('dropped malformed elicitation/complete: '), completions]
+      assert_equal [[[:warn, true]] * 2, []], [logged, completions]
     end
 
     it 'delivers the completion of a registered id to the handler once' do
