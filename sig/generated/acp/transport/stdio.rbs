@@ -144,8 +144,8 @@ class ACP::Transport::Stdio
 
   # @rbs id: untyped
   # @rbs result: (Hash[String, untyped] | ACP::RequestError)
-  # @rbs return: void
-  def settle: (untyped id, Hash[String, untyped] | ACP::RequestError result) -> void
+  # @rbs return: Thread::Queue?
+  def settle: (untyped id, Hash[String, untyped] | ACP::RequestError result) -> Thread::Queue?
 
   # @rbs return: void
   def close: () -> void
