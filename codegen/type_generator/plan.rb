@@ -3,9 +3,6 @@
 module TypeGenerator::Plan
   extend self
 
-  # @rbs!
-  #   type reach = :normal | Array[String]
-
   # @rbs schema: Hash[String, untyped]
   # @rbs unstable_schema: Hash[String, untyped]?
   # @rbs return: Hash[String, String]
