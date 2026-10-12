@@ -30,377 +30,527 @@ describe ACP::Transport::Stdio do
     Timeout.timeout(2) { JSON.parse(@peer_reader.gets) }
   end
 
-  def outcome(thread)
-    result = thread.join(2)&.value
-    result.is_a?(ACP::RequestError) ? [:error, result.to_h] : [:ok, result]
+  def value_of(thread)
+    thread.join(2)&.value
   end
 
-  it 'correlates responses to outbound requests by id' do
-    start
-    first = Thread.new { @transport.request('fs/read_text_file', { 'path' => 'a.txt' }) }
-    first_id = receive_message.fetch('id')
-    second = Thread.new { @transport.request('fs/read_text_file', { 'path' => 'b.txt' }) }
-    second_id = receive_message.fetch('id')
-    send_message({ 'jsonrpc' => '2.0', 'id' => second_id, 'result' => { 'content' => 'B' } })
-    send_message({ 'jsonrpc' => '2.0', 'id' => first_id, 'result' => { 'content' => 'A' } })
-
-    assert_equal [[:ok, { 'content' => 'A' }], [:ok, { 'content' => 'B' }]], [outcome(first), outcome(second)]
+  def error_reply(id, error)
+    { 'jsonrpc' => '2.0', 'id' => id, 'error' => JSON.parse(JSON.generate(error.to_h)) }
   end
 
-  it 'returns an error response to an outbound request as an error result' do
-    start
-    pending = Thread.new { @transport.request('fs/read_text_file', { 'path' => 'missing.txt' }) }
-    id = receive_message.fetch('id')
-    error = { 'code' => -32_002, 'message' => 'Resource not found', 'data' => { 'path' => 'missing.txt' } }
-    send_message({ 'jsonrpc' => '2.0', 'id' => id, 'error' => error })
-
-    assert_equal [:error, error], outcome(pending)
+  def echo
+    { 'echo' => ->(params) { params } }
   end
 
-  it 'serves an inbound request with its handler' do
-    start(requests: { 'echo' => ->(params) { params } })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 7, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
-
-    assert_equal({ 'jsonrpc' => '2.0', 'id' => 7, 'result' => { 'text' => 'hi' } }, receive_message)
+  def echo_request(id)
+    { 'jsonrpc' => '2.0', 'id' => id, 'method' => 'echo', 'params' => { 'text' => 'hi' } }
   end
 
-  it 'runs a reply\'s after callback once the reply is written' do
-    after = -> { @transport.notify('session/update', { 'after' => true }) }
-    start(requests: { 'echo' => ->(params) { ACP::Transport::Reply.new(params, after:) } })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
-
-    assert_equal(
-      [
-        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'text' => 'hi' } },
-        { 'jsonrpc' => '2.0', 'method' => 'session/update', 'params' => { 'after' => true } }
-      ],
-      [receive_message, receive_message]
-    )
+  def echo_reply(id)
+    { 'jsonrpc' => '2.0', 'id' => id, 'result' => { 'text' => 'hi' } }
   end
 
-  it 'keeps serving after a reply\'s after callback raises' do
-    requests = {
-      'boom' => ->(_) { ACP::Transport::Reply.new({ 'echo' => 'sent' }, after: -> { raise 'kaboom' }) },
-      'echo' => ->(params) { params }
-    }
-    start(requests:)
-    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'boom' })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => { 'text' => 'still here' } })
+  describe '#initialize' do
+    it 'logs to stderr when no logger is given' do
+      transport = ACP::Transport::Stdio.new(input: @input, output: @output)
+      @peer_reader.close
 
-    assert_equal(
-      [
-        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'echo' => 'sent' } },
-        { 'jsonrpc' => '2.0', 'id' => 2, 'result' => { 'text' => 'still here' } }
-      ],
-      [receive_message, receive_message].sort_by { |message| message['id'] }
-    )
-  end
-
-  it 'logs an error when a reply\'s after callback raises' do
-    after = -> { raise 'kaboom' }
-    start(requests: { 'boom' => ->(_) { ACP::Transport::Reply.new({ 'echo' => 'sent' }, after:) } })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'boom' })
-
-    assert_equal(
-      [
-        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'echo' => 'sent' } },
-        [:error, 'reply after callback raised RuntimeError: kaboom']
-      ],
-      [receive_message, @logger.pop]
-    )
-  end
-
-  it 'answers an inbound request for an unknown method with method not found' do
-    start
-    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'nope' })
-
-    assert_equal(
-      {
-        'jsonrpc' => '2.0',
-        'id' => 1,
-        'error' => { 'code' => -32_601, 'message' => 'Method not found', 'data' => { 'method' => 'nope' } }
-      },
-      receive_message
-    )
-  end
-
-  it 'answers an inbound request whose handler raises with an internal error and no detail' do
-    start(requests: { 'boom' => ->(_) { raise 'secret db password leaked' } })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'boom' })
-
-    assert_equal(
-      { 'jsonrpc' => '2.0', 'id' => 1, 'error' => { 'code' => -32_603, 'message' => 'Internal error' } },
-      receive_message
-    )
-    assert_equal [:error, 'request handler raised RuntimeError: secret db password leaked'], @logger.pop
-  end
-
-  it 'delivers an inbound notification to its handler' do
-    seen = Thread::Queue.new
-    start(notifications: { 'session/cancel' => ->(params) { seen << params } })
-    send_message({ 'jsonrpc' => '2.0', 'method' => 'session/cancel', 'params' => { 'sessionId' => 'sess_1' } })
-
-    assert_equal({ 'sessionId' => 'sess_1' }, seen.pop(timeout: 2))
-  end
-
-  it 'logs an error when a notification handler raises and keeps reading' do
-    seen = Thread::Queue.new
-    start(notifications: { 'boom' => ->(_) { raise 'kaboom' }, 'session/cancel' => seen.method(:push) })
-    send_message({ 'jsonrpc' => '2.0', 'method' => 'boom' })
-    send_message({ 'jsonrpc' => '2.0', 'method' => 'session/cancel', 'params' => { 'sessionId' => 'sess_1' } })
-
-    assert_equal(
-      [{ 'sessionId' => 'sess_1' }, [:error, 'notification handler raised RuntimeError: kaboom']],
-      [seen.pop(timeout: 2), @logger.pop]
-    )
-  end
-
-  it 'sends an outbound notification without an id' do
-    start
-    @transport.notify('session/update', { 'sessionId' => 'sess_1' })
-    expected = { 'jsonrpc' => '2.0', 'method' => 'session/update', 'params' => { 'sessionId' => 'sess_1' } }
-
-    assert_equal expected, receive_message
-  end
-
-  it 'answers a cancelled inbound request with the handler\'s -32800' do
-    handler = lambda do |_params|
-      Timeout.timeout(2) { sleep(0.001) until @transport.cancellation&.cancelled? }
-      ACP::RequestError.request_cancelled
+      assert_output(nil, /write to closed peer/) { transport.notify('session/update') }
     end
-    start(requests: { 'echo' => handler })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 7, 'method' => 'echo' })
-    send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => 7 } })
-
-    assert_equal(
-      {
-        'jsonrpc' => '2.0',
-        'id' => 7,
-        'error' => { 'code' => -32_800, 'message' => 'Request cancelled' }
-      },
-      receive_message
-    )
   end
 
-  it 'answers a request cancelled while its handler runs with the handler\'s result alone' do
-    release = Thread::Queue.new
-    start(requests: { 'echo' => ->(_) { release.pop.then { { 'echo' => 'done' } } } })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 7, 'method' => 'echo' })
-    send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => 7 } })
-    release << true
+  describe '#start' do
+    it 'skips blank lines' do
+      start(requests: echo)
+      @peer_writer.puts('')
+      @peer_writer.puts("  \t ")
+      send_message(echo_request(1))
 
-    assert_equal({ 'jsonrpc' => '2.0', 'id' => 7, 'result' => { 'echo' => 'done' } }, receive_message)
-  end
-
-  it 'ignores a cancel for an unknown id and keeps serving' do
-    start(requests: { 'echo' => ->(params) { params } })
-    send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => 99 } })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
-
-    assert_equal({ 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'text' => 'hi' } }, receive_message)
-  end
-
-  it 'ignores a cancel for an already-answered id and keeps serving' do
-    start(requests: { 'echo' => ->(params) { params } })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
-    receive_message
-    send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => 1 } })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => { 'text' => 'again' } })
-
-    assert_equal({ 'jsonrpc' => '2.0', 'id' => 2, 'result' => { 'text' => 'again' } }, receive_message)
-  end
-
-  it 'drops a malformed $/cancel_request and keeps serving' do
-    start(requests: { 'echo' => ->(params) { params } })
-    send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request' })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
-
-    assert_equal(
-      [
-        { 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'text' => 'hi' } },
-        [:warn, 'dropped malformed $/cancel_request: missing requestId']
-      ],
-      [receive_message, @logger.pop]
-    )
-  end
-
-  it 'cancels a pending outbound request and releases it with the peer\'s -32800' do
-    start
-    pending = Thread.new { @transport.request('session/request_permission') }
-    id = receive_message.fetch('id')
-    @transport.cancel(id)
-
-    assert_equal(
-      { 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => id } },
-      receive_message
-    )
-    send_message({ 'jsonrpc' => '2.0', 'id' => id, 'error' => { 'code' => -32_800, 'message' => 'Request cancelled' } })
-
-    assert_equal [:error, { 'code' => -32_800, 'message' => 'Request cancelled' }], outcome(pending)
-  end
-
-  it 'does not send a cancel notification for an unknown id' do
-    start
-    @transport.cancel(99)
-    pending = Thread.new { @transport.request('fs/read_text_file') }
-    id = receive_message.fetch('id')
-    send_message({ 'jsonrpc' => '2.0', 'id' => id, 'result' => { 'content' => 'A' } })
-
-    assert_equal [:ok, { 'content' => 'A' }], outcome(pending)
-  end
-
-  it 'cancels every pending outbound request at once' do
-    start
-    first = Thread.new { @transport.request('fs/read_text_file') }
-    first_id = receive_message.fetch('id')
-    second = Thread.new { @transport.request('session/request_permission') }
-    second_id = receive_message.fetch('id')
-    @transport.cancel_requests
-
-    assert_equal(
-      [
-        { 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => first_id } },
-        { 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => second_id } }
-      ],
-      [receive_message, receive_message].sort_by { |message| message['params'].fetch('requestId') }
-    )
-    send_message(
-      { 'jsonrpc' => '2.0', 'id' => first_id,
-        'error' => { 'code' => -32_800, 'message' => 'Request cancelled' } }
-    )
-    send_message(
-      { 'jsonrpc' => '2.0', 'id' => second_id,
-        'error' => { 'code' => -32_800, 'message' => 'Request cancelled' } }
-    )
-
-    assert_equal(
-      [
-        [:error, { 'code' => -32_800, 'message' => 'Request cancelled' }],
-        [:error, { 'code' => -32_800, 'message' => 'Request cancelled' }]
-      ],
-      [outcome(first), outcome(second)]
-    )
-  end
-
-  it 'does not cancel an outbound request that settled before cancel_requests' do
-    start
-    settled = Thread.new { @transport.request('fs/read_text_file') }
-    settled_id = receive_message.fetch('id')
-    send_message({ 'jsonrpc' => '2.0', 'id' => settled_id, 'result' => { 'content' => 'A' } })
-
-    assert_equal [:ok, { 'content' => 'A' }], outcome(settled)
-    @transport.cancel_requests
-    pending = Thread.new { @transport.request('session/request_permission') }
-    # The next message must be the new request itself, not a stale cancel for
-    # the settled id.
-    id = receive_message.fetch('id')
-    send_message({ 'jsonrpc' => '2.0', 'id' => id, 'result' => { 'outcome' => 'selected' } })
-
-    assert_equal [:ok, { 'outcome' => 'selected' }], outcome(pending)
-  end
-
-  it 'dispatches inbound messages while a handler waits on its own outbound request' do
-    session = { 'sessionId' => 'sess_1' }
-    cancels = Thread::Queue.new
-    prompt = lambda do |params|
-      permission = @transport.request('session/request_permission', params)
-      { 'permission' => permission, 'cancelled' => cancels.pop(timeout: 2) }
+      assert_equal echo_reply(1), receive_message
     end
-    start(requests: { 'session/prompt' => prompt }, notifications: { 'session/cancel' => cancels.method(:push) })
 
-    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'session/prompt', 'params' => session })
-    permission_id = receive_message.fetch('id')
-    send_message({ 'jsonrpc' => '2.0', 'method' => 'session/cancel', 'params' => session })
-    send_message({ 'jsonrpc' => '2.0', 'id' => permission_id, 'result' => { 'outcome' => 'cancelled' } })
+    it 'ends the reader thread at EOF' do
+      start
+      @peer_writer.close
 
-    assert_equal(
-      {
-        'jsonrpc' => '2.0',
-        'id' => 1,
-        'result' => { 'permission' => { 'outcome' => 'cancelled' }, 'cancelled' => { 'sessionId' => 'sess_1' } }
-      },
+      assert_same @reader, @reader.join(2)
+    end
+
+    it 'closes the transport when the reader thread dies reading' do
+      reader = @transport.start
+      reader.report_on_exception = false
+      @input.close
+
+      assert_raises(IOError) { reader.join(2) }
+      assert_same ACP::Transport::Stdio::CONNECTION_CLOSED, @transport.request('session/request_permission')
+    end
+  end
+
+  describe '#request' do
+    it 'refuses a request on a closed transport without writing it' do
+      start
+      @peer_writer.close
+      @reader.join(2)
+      refused = @transport.request('session/request_permission')
+      @output.close
+
+      assert_equal [ACP::Transport::Stdio::CONNECTION_CLOSED, nil], [refused, @peer_reader.gets]
+    end
+
+    it 'writes the request with a fresh id, its method and its params' do
+      start
+      2.times { Thread.new { @transport.request('fs/read_text_file', { 'path' => 'a.txt' }) } }
+      request = { 'jsonrpc' => '2.0', 'method' => 'fs/read_text_file', 'params' => { 'path' => 'a.txt' } }
+
+      assert_equal(
+        [request.merge('id' => 1), request.merge('id' => 2)],
+        [receive_message, receive_message].sort_by { |message| message['id'] }
+      )
+    end
+
+    it 'omits params when there are none' do
+      start
+      Thread.new { @transport.request('session/request_permission') }
+
+      assert_equal({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'session/request_permission' }, receive_message)
+    end
+
+    it 'returns the result answered for its own id' do
+      start
+      first = Thread.new { @transport.request('fs/read_text_file', { 'path' => 'a.txt' }) }
+      first_id = receive_message.fetch('id')
+      second = Thread.new { @transport.request('fs/read_text_file', { 'path' => 'b.txt' }) }
+      second_id = receive_message.fetch('id')
+      send_message({ 'jsonrpc' => '2.0', 'id' => second_id, 'result' => { 'content' => 'B' } })
+      send_message({ 'jsonrpc' => '2.0', 'id' => first_id, 'result' => { 'content' => 'A' } })
+
+      assert_equal [{ 'content' => 'A' }, { 'content' => 'B' }], [value_of(first), value_of(second)]
+    end
+
+    it 'returns connection closed when the input ends before the answer' do
+      start
+      pending = Thread.new { @transport.request('session/request_permission') }
       receive_message
-    )
+      @peer_writer.close
+
+      assert_same ACP::Transport::Stdio::CONNECTION_CLOSED, value_of(pending)
+    end
   end
 
-  it 'answers a malformed line with a parse error and keeps reading' do
-    start(requests: { 'echo' => ->(params) { params } })
-    @peer_writer.puts('{"jsonrpc": "2.0", "id": 1, "method"')
-    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => { 'text' => 'still here' } })
+  describe '#notify' do
+    it 'writes the notification with its method and params and no id' do
+      @transport.notify('session/update', { 'sessionId' => 'sess_1' })
+      expected = { 'jsonrpc' => '2.0', 'method' => 'session/update', 'params' => { 'sessionId' => 'sess_1' } }
 
-    assert_equal(
-      [
-        { 'jsonrpc' => '2.0', 'id' => nil, 'error' => { 'code' => -32_700, 'message' => 'Parse error' } },
-        { 'jsonrpc' => '2.0', 'id' => 2, 'result' => { 'text' => 'still here' } }
-      ],
-      [receive_message, receive_message]
-    )
+      assert_equal expected, receive_message
+    end
+
+    it 'omits params when there are none' do
+      @transport.notify('session/update')
+
+      assert_equal({ 'jsonrpc' => '2.0', 'method' => 'session/update' }, receive_message)
+    end
   end
 
-  it 'answers a line of invalid UTF-8 with a parse error and keeps reading' do
-    start(requests: { 'echo' => ->(params) { params } })
-    @peer_writer.puts("{\"jsonrpc\": \"2.0\", \"method\": \"\xFF\"}")
-    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => { 'text' => 'still here' } })
+  describe '#cancel' do
+    it 'sends $/cancel_request for a pending outbound request and leaves it waiting for the answer' do
+      start
+      pending = Thread.new { @transport.request('session/request_permission') }
+      id = receive_message.fetch('id')
+      @transport.cancel(id)
 
-    assert_equal(
-      [
-        { 'jsonrpc' => '2.0', 'id' => nil, 'error' => { 'code' => -32_700, 'message' => 'Parse error' } },
-        { 'jsonrpc' => '2.0', 'id' => 2, 'result' => { 'text' => 'still here' } }
-      ],
-      [receive_message, receive_message]
-    )
+      assert_equal(
+        { 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => id } },
+        receive_message
+      )
+      assert_predicate pending, :alive?
+      send_message({ 'jsonrpc' => '2.0', 'id' => id, 'result' => { 'outcome' => 'cancelled' } })
+
+      assert_equal({ 'outcome' => 'cancelled' }, value_of(pending))
+    end
+
+    it 'sends nothing for an id that is not pending' do
+      start
+      @transport.cancel(99)
+      @transport.notify('session/update')
+
+      assert_equal({ 'jsonrpc' => '2.0', 'method' => 'session/update' }, receive_message)
+    end
   end
 
-  it 'answers a message that is not a JSON-RPC object with an invalid request error' do
-    start
-    @peer_writer.puts('[1, 2]')
+  describe '#cancel_requests' do
+    it 'sends $/cancel_request for every pending outbound request' do
+      start
+      ids = %w[fs/read_text_file session/request_permission].map do |method|
+        Thread.new { @transport.request(method) }
+        receive_message.fetch('id')
+      end
+      @transport.cancel_requests
 
-    assert_equal(
-      { 'jsonrpc' => '2.0', 'id' => nil, 'error' => { 'code' => -32_600, 'message' => 'Invalid request' } },
+      assert_equal(
+        ids.map { |id| { 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => id } } },
+        [receive_message, receive_message].sort_by { |message| message['params'].fetch('requestId') }
+      )
+    end
+
+    it 'sends nothing for a request that already settled' do
+      start
+      settled = Thread.new { @transport.request('fs/read_text_file') }
+      send_message({ 'jsonrpc' => '2.0', 'id' => receive_message.fetch('id'), 'result' => {} })
+      value_of(settled)
+      @transport.cancel_requests
+      @transport.notify('session/update')
+
+      assert_equal({ 'jsonrpc' => '2.0', 'method' => 'session/update' }, receive_message)
+    end
+  end
+
+  describe '#cancellation' do
+    it 'returns the cancellation current on the calling thread' do
+      cancellation = ACP::Transport::Cancellation.new
+      seen = Thread.new do
+        ACP::Transport::Cancellation.current = cancellation
+        @transport.cancellation
+      end.value
+
+      assert_same cancellation, seen
+    end
+  end
+
+  describe 'routing an inbound message' do
+    it 'serves a $/cancel_request that carries an id as a request' do
+      start
+      send_message({ 'jsonrpc' => '2.0', 'id' => 4, 'method' => '$/cancel_request', 'params' => { 'requestId' => 1 } })
+
+      assert_equal error_reply(4, ACP::RequestError.method_not_found('$/cancel_request')), receive_message
+    end
+
+    it 'serves a request with the handler for its method, passing its params' do
+      start(requests: echo.merge('other' => ->(_) { { 'handler' => 'other' } }))
+      send_message(echo_request(7))
+
+      assert_equal echo_reply(7), receive_message
+    end
+
+    it 'ignores a notification with no handler' do
+      start(requests: echo)
+      send_message({ 'jsonrpc' => '2.0', 'method' => 'nope' })
+      send_message(echo_request(1))
+
+      assert_equal [echo_reply(1), []], [receive_message, @logger.drain]
+    end
+
+    it 'delivers a notification\'s params to the handler for its method' do
+      seen = Thread::Queue.new
+      start(notifications: { 'session/cancel' => seen.method(:push), 'other' => ->(_) { seen << :other } })
+      send_message({ 'jsonrpc' => '2.0', 'method' => 'session/cancel', 'params' => { 'sessionId' => 'sess_1' } })
+
+      assert_equal({ 'sessionId' => 'sess_1' }, seen.pop(timeout: 2))
+    end
+
+    it 'runs a notification handler on the reader thread' do
+      seen = Thread::Queue.new
+      start(notifications: { 'session/update' => ->(_) { seen << Thread.current } })
+      send_message({ 'jsonrpc' => '2.0', 'method' => 'session/update' })
+
+      assert_same @reader, seen.pop(timeout: 2)
+    end
+
+    it 'logs an error when a notification handler raises and keeps reading' do
+      seen = Thread::Queue.new
+      start(notifications: { 'boom' => ->(_) { raise 'kaboom' }, 'session/cancel' => seen.method(:push) })
+      send_message({ 'jsonrpc' => '2.0', 'method' => 'boom' })
+      send_message({ 'jsonrpc' => '2.0', 'method' => 'session/cancel', 'params' => { 'sessionId' => 'sess_1' } })
+
+      assert_equal(
+        [{ 'sessionId' => 'sess_1' }, [:error, 'notification handler raised RuntimeError: kaboom']],
+        [seen.pop(timeout: 2), @logger.pop]
+      )
+    end
+
+    it 'ignores a result for an id that is not pending' do
+      start(requests: echo)
+      send_message({ 'jsonrpc' => '2.0', 'id' => 99, 'result' => {} })
+      send_message(echo_request(1))
+
+      assert_equal echo_reply(1), receive_message
+    end
+
+    it 'settles an outbound request with the error it is answered with' do
+      start
+      pending = Thread.new { @transport.request('fs/read_text_file', { 'path' => 'missing.txt' }) }
+      error = { 'code' => -32_002, 'message' => 'Resource not found', 'data' => { 'path' => 'missing.txt' } }
+      send_message({ 'jsonrpc' => '2.0', 'id' => receive_message.fetch('id'), 'error' => error })
+      result = value_of(pending)
+
+      assert_equal(
+        [ACP::RequestError, -32_002, 'Resource not found', { 'path' => 'missing.txt' }],
+        [result.class, result.code, result.message, result.data]
+      )
+    end
+
+    {
+      'is not an object' => 'boom',
+      'has a non-integer code' => { 'code' => '-32002', 'message' => 'Resource not found' },
+      'has a non-string message' => { 'code' => -32_002, 'message' => nil }
+    }.each do |fault, error|
+      it "answers an error response whose error #{fault} with invalid request" do
+        start
+        send_message({ 'jsonrpc' => '2.0', 'id' => 3, 'error' => error })
+
+        assert_equal error_reply(3, ACP::RequestError.invalid_request), receive_message
+      end
+    end
+
+    it 'answers a message that is neither a request, a notification nor a response with invalid request' do
+      start
+      send_message({ 'jsonrpc' => '2.0', 'id' => 7, 'method' => 5 })
+
+      assert_equal error_reply(7, ACP::RequestError.invalid_request), receive_message
+    end
+
+    it 'echoes a string id on an invalid request reply' do
+      start
+      send_message({ 'jsonrpc' => '2.0', 'id' => 'req-7' })
+
+      assert_equal 'req-7', receive_message.fetch('id')
+    end
+
+    {
+      'no id' => { 'jsonrpc' => '2.0' },
+      'an id that is not a string or number' => { 'jsonrpc' => '2.0', 'id' => [7] }
+    }.each do |fault, message|
+      it "answers an invalid request with #{fault} with a null id" do
+        start
+        send_message(message)
+
+        assert_equal error_reply(nil, ACP::RequestError.invalid_request), receive_message
+      end
+    end
+  end
+
+  describe 'parsing an inbound line' do
+    it 'answers a line of invalid UTF-8 with a parse error and keeps reading' do
+      start(requests: echo)
+      @peer_writer.puts("{\"jsonrpc\": \"2.0\", \"method\": \"\xFF\"}")
+      send_message(echo_request(2))
+
+      assert_equal(
+        [error_reply(nil, ACP::RequestError.parse_error), echo_reply(2)],
+        [receive_message, receive_message]
+      )
+    end
+
+    it 'answers a line that is not JSON with a parse error and keeps reading' do
+      start(requests: echo)
+      @peer_writer.puts('{"jsonrpc": "2.0", "id": 1, "method"')
+      send_message(echo_request(2))
+
+      assert_equal(
+        [error_reply(nil, ACP::RequestError.parse_error), echo_reply(2)],
+        [receive_message, receive_message]
+      )
+    end
+
+    it 'answers JSON that is not an object with invalid request' do
+      start
+      @peer_writer.puts('[1, 2]')
+
+      assert_equal error_reply(nil, ACP::RequestError.invalid_request), receive_message
+    end
+  end
+
+  describe 'serving an inbound request' do
+    it 'gives each handler its own cancellation' do
+      seen = Thread::Queue.new
+      start(requests: { 'echo' => ->(params) { params.tap { seen << @transport.cancellation } } })
+      [1, 2].each { |id| send_message(echo_request(id)) }
+      cancellations = [seen.pop(timeout: 2), seen.pop(timeout: 2)]
+
+      assert_equal(
+        [[ACP::Transport::Cancellation, ACP::Transport::Cancellation], 2],
+        [cancellations.map(&:class), cancellations.uniq.size]
+      )
+    end
+
+    it 'answers a later request while an earlier handler is still running' do
+      release = Thread::Queue.new
+      start(requests: echo.merge('block' => ->(_) { release.pop.then { { 'blocked' => 'done' } } }))
+      send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'block' })
+      send_message(echo_request(2))
+      answered_first = receive_message
+      release << true
+
+      assert_equal(
+        [echo_reply(2), { 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'blocked' => 'done' } }],
+        [answered_first, receive_message]
+      )
+    end
+
+    it 'keeps reading while a handler waits on its own outbound request' do
+      cancels = Thread::Queue.new
+      prompt = lambda do |params|
+        permission = @transport.request('session/request_permission', params)
+        { 'permission' => permission, 'cancelled' => cancels.pop(timeout: 2) }
+      end
+      start(requests: { 'session/prompt' => prompt }, notifications: { 'session/cancel' => cancels.method(:push) })
+      send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'session/prompt' })
+      permission_id = receive_message.fetch('id')
+      send_message({ 'jsonrpc' => '2.0', 'method' => 'session/cancel', 'params' => { 'sessionId' => 'sess_1' } })
+      send_message({ 'jsonrpc' => '2.0', 'id' => permission_id, 'result' => { 'outcome' => 'cancelled' } })
+
+      assert_equal(
+        { 'permission' => { 'outcome' => 'cancelled' }, 'cancelled' => { 'sessionId' => 'sess_1' } },
+        receive_message.fetch('result')
+      )
+    end
+
+    it 'answers a method with no handler with method not found naming the method' do
+      start
+      send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'nope' })
+
+      assert_equal error_reply(1, ACP::RequestError.method_not_found('nope')), receive_message
+    end
+
+    it 'answers with a Reply\'s result, then runs its after callback' do
+      after = -> { @transport.notify('session/update', { 'after' => true }) }
+      start(requests: { 'echo' => ->(params) { ACP::Transport::Reply.new(params, after:) } })
+      send_message(echo_request(1))
+
+      assert_equal(
+        [echo_reply(1), { 'jsonrpc' => '2.0', 'method' => 'session/update', 'params' => { 'after' => true } }],
+        [receive_message, receive_message]
+      )
+    end
+
+    it 'logs an error when a Reply\'s after callback raises, having already answered' do
+      after = -> { raise 'kaboom' }
+      start(requests: { 'echo' => ->(params) { ACP::Transport::Reply.new(params, after:) } })
+      send_message(echo_request(1))
+
+      assert_equal(
+        [echo_reply(1), [:error, 'reply after callback raised RuntimeError: kaboom']],
+        [receive_message, @logger.pop]
+      )
+    end
+
+    it 'answers with the error a handler returns' do
+      error = ACP::RequestError.new(code: -32_001, message: 'handler said no', data: { 'why' => 'because' })
+      start(requests: { 'refuse' => ->(_) { error } })
+      send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'refuse' })
+
+      assert_equal error_reply(1, error), receive_message
+    end
+
+    it 'stops tracking a request once it is answered, so a later cancel for its id does nothing' do
+      seen = Thread::Queue.new
+      start(requests: { 'echo' => ->(params) { params.tap { seen << [Thread.current, @transport.cancellation] } } })
+      send_message(echo_request(1))
+      serving, cancellation = seen.pop(timeout: 2)
+      serving.join(2)
       receive_message
-    )
+      send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => 1 } })
+      send_message(echo_request(2))
+      seen.pop(timeout: 2)
+
+      refute_predicate cancellation, :cancelled?
+    end
   end
 
-  it 'answers an invalid envelope with a readable id by echoing the id' do
-    start
-    send_message({ 'jsonrpc' => '2.0', 'id' => 7, 'method' => 5 })
+  describe 'receiving $/cancel_request' do
+    {
+      'no params' => nil,
+      'params that are not an object' => [7],
+      'no requestId' => {},
+      'a requestId that is not a string or integer' => { 'requestId' => 7.5 }
+    }.each do |fault, params|
+      it "warns and drops one with #{fault}, then keeps reading" do
+        start(requests: echo)
+        send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => params }.compact)
+        send_message(echo_request(1))
 
-    assert_equal(
-      { 'jsonrpc' => '2.0', 'id' => 7, 'error' => { 'code' => -32_600, 'message' => 'Invalid request' } },
-      receive_message
-    )
+        assert_equal(
+          [echo_reply(1), [:warn, 'dropped malformed $/cancel_request: missing requestId']],
+          [receive_message, @logger.pop]
+        )
+      end
+    end
+
+    it 'ignores one for an id that is not being served and keeps reading' do
+      start(requests: echo)
+      send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => 99 } })
+      send_message(echo_request(1))
+
+      assert_equal [echo_reply(1), []], [receive_message, @logger.drain]
+    end
+
+    [7, 'req-7'].each do |id|
+      it "cancels the cancellation of the request being served under the #{id.class.name.downcase} id" do
+        handler = lambda do |_params|
+          Timeout.timeout(2) { sleep(0.001) until @transport.cancellation.cancelled? }
+          { 'saw' => 'cancel' }
+        end
+        start(requests: { 'wait' => handler })
+        send_message({ 'jsonrpc' => '2.0', 'id' => id, 'method' => 'wait' })
+        send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => id } })
+
+        assert_equal({ 'jsonrpc' => '2.0', 'id' => id, 'result' => { 'saw' => 'cancel' } }, receive_message)
+      end
+    end
+
+    it 'leaves the answer to the handler: a cancelled request is answered once, with the handler\'s outcome' do
+      release = Thread::Queue.new
+      start(requests: echo.merge('wait' => ->(_) { release.pop.then { { 'wait' => 'done' } } }))
+      send_message({ 'jsonrpc' => '2.0', 'id' => 7, 'method' => 'wait' })
+      send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => 7 } })
+      send_message(echo_request(8))
+      answered_first = receive_message
+      release << true
+
+      assert_equal(
+        [echo_reply(8), { 'jsonrpc' => '2.0', 'id' => 7, 'result' => { 'wait' => 'done' } }],
+        [answered_first, receive_message]
+      )
+    end
   end
 
-  it 'logs a write to a closed peer and keeps serving' do
-    start(requests: { 'echo' => ->(params) { params } })
-    @peer_reader.close
-    send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'echo', 'params' => { 'text' => 'hi' } })
-    send_message({ 'jsonrpc' => '2.0', 'id' => 2, 'method' => 'echo', 'params' => { 'text' => 'again' } })
+  describe 'a request handler that raises' do
+    it 'is answered with an internal error that carries none of the exception' do
+      start(requests: { 'boom' => ->(_) { raise 'secret db password leaked' } })
+      send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'boom' })
 
-    assert_equal(
-      [
-        [:warn, 'write to closed peer: Errno::EPIPE: Broken pipe'],
-        [:warn, 'write to closed peer: Errno::EPIPE: Broken pipe']
-      ],
-      [@logger.pop, @logger.pop]
-    )
+      assert_equal error_reply(1, ACP::RequestError.internal_error), receive_message
+    end
+
+    it 'logs the exception as an error' do
+      start(requests: { 'boom' => ->(_) { raise 'secret db password leaked' } })
+      send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'boom' })
+
+      assert_equal [:error, 'request handler raised RuntimeError: secret db password leaked'], @logger.pop
+    end
   end
 
-  it 'releases a pending outbound request with an error at EOF' do
-    start
-    pending = Thread.new { @transport.request('session/request_permission') }
-    receive_message
-    @peer_writer.close
+  describe 'writing to a closed peer' do
+    it 'warns instead of raising, for every write' do
+      @peer_reader.close
+      2.times { @transport.notify('session/update') }
+      warning = [:warn, "write to closed peer: Errno::EPIPE: #{Errno::EPIPE.new.message}"]
 
-    assert_equal [:error, { 'code' => -32_603, 'message' => 'Connection closed' }], outcome(pending)
-  end
+      assert_equal [warning, warning], @logger.drain
+    end
 
-  it 'ends the reader thread at EOF and refuses later requests' do
-    start
-    @peer_writer.close
+    it 'does not kill the reader thread when its own reply cannot be written' do
+      seen = Thread::Queue.new
+      start(notifications: { 'session/cancel' => seen.method(:push) })
+      @peer_reader.close
+      @peer_writer.puts('not json')
+      warning = @logger.pop
+      send_message({ 'jsonrpc' => '2.0', 'method' => 'session/cancel', 'params' => { 'sessionId' => 'sess_1' } })
 
-    closed = ACP::Transport::Stdio::CONNECTION_CLOSED
-
-    assert_equal [@reader, closed], [@reader.join(2), @transport.request('session/request_permission')]
+      assert_equal(
+        [[:warn, "write to closed peer: Errno::EPIPE: #{Errno::EPIPE.new.message}"], { 'sessionId' => 'sess_1' }],
+        [warning, seen.pop(timeout: 2)]
+      )
+    end
   end
 end
