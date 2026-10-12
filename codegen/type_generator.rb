@@ -3,6 +3,28 @@
 module TypeGenerator
   extend self
 
+  # @rbs!
+  #   type file = [String, String]
+  #
+  #   type check = [:string]
+  #              | [:boolean]
+  #              | [:integer, Integer?, Integer?]
+  #              | [:number, Numeric?, Numeric?]
+  #              | [:enum, Array[String | Integer]]
+  #              | [:one_of, Array[String], check?]
+  #              | [:hash, check]
+  #              | [:array, check]
+  #              | [:object, String]
+  #              | [:objects, String]
+  #
+  #   type conversion = [:call, String]
+  #                   | [:send, String]
+  #                   | [:map | :transform_values, conversion]
+  #
+  #   type piece = [String, Array[expression], [String, expression]?, String?]
+  #
+  #   type expression = String | piece
+
   NAMESPACE = 'ACP::Types'
   UNSTABLE_NAMESPACE = "#{NAMESPACE}::Unstable".freeze #: String
 

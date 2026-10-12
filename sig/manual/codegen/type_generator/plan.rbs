@@ -3,6 +3,4 @@
 
 module TypeGenerator::Plan
   extend ::TypeGenerator::Plan
-
-  type reach = :normal | Array[String]
 end

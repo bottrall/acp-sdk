@@ -3,6 +3,9 @@
 module TypeGenerator::Plan
   extend self
 
+  # @rbs!
+  #   type reach = :normal | Array[String]
+
   # @rbs schema: Hash[String, untyped]
   # @rbs unstable_schema: Hash[String, untyped]?
   # @rbs return: Hash[String, String]
@@ -78,8 +81,6 @@ module TypeGenerator::Plan
       if !schema.generated?(name) then []
       elsif status == :normal then TypeGenerator::Resolve.definition_files(defs, name)
       else
-        # Only the def's own class file gives way to the alias: its nested
-        # union modules are still referenced.
         kept = TypeGenerator::Resolve.definition_files(defs, name).reject { |path, _| path == path(schema.const(name)) }
         kept.push(alias_file(schema, name, subsumed[name])) if subsumed[name]
         kept
