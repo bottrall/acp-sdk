@@ -255,7 +255,7 @@ module TypeGenerator::Emit
   # @rbs tag: [String, String]?
   # @rbs return: Array[String]
   def to_h_method(fields, tag)
-    entry = ->(field) { "'#{field.json}' => #{convert(field.type.to, field.attr, field.nilable?)}" }
+    entry = ->(field) { "'#{field.json}' => #{to_expression(field)}" }
     flattened, plain = fields.partition(&:flattened?)
     clearable, settled = plain.partition(&:clearable?)
     required, optional = settled.partition(&:required?)
@@ -271,6 +271,17 @@ module TypeGenerator::Emit
       *flattened.map { |field| ".merge(#{field.attr}.to_h)" }
     ].join
     ["# @rbs return: #{TypeGenerator::RAW_HASH}", 'def to_h', *indent(hash_literal(entries, suffix, 4), 2), 'end']
+  end
+
+  # The sentinel is told apart by class because Steep narrows the union on `is_a?` but not on `== :unset`.
+  #
+  # @rbs field: TypeGenerator::Field
+  # @rbs return: String
+  def to_expression(field)
+    converted = convert(field.type.to, field.attr, field.nilable?)
+    return converted unless field.clearable? && field.type.to
+
+    "#{field.attr}.is_a?(Symbol) ? #{field.attr} : #{converted}"
   end
 
   # @rbs prefix: String
@@ -294,7 +305,9 @@ module TypeGenerator::Emit
   # @rbs column: Integer
   # @rbs return: Array[String]
   def hash_literal(entries, suffix, column)
-    single = entries.empty? ? "{}#{suffix}" : "{ #{entries.join(', ')} }#{suffix}"
+    return ["{}#{suffix}"] if entries.empty?
+
+    single = "{ #{entries.join(', ')} }#{suffix}"
     return [single] if column + single.length <= TypeGenerator::MAX_LINE_LENGTH
 
     ['{', *entries.map { |entry| "  #{entry}," }.tap { |lines| lines[-1] = lines[-1].chomp(',') }, "}#{suffix}"]

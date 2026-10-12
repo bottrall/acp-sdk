@@ -770,6 +770,24 @@ describe TypeGenerator::Emit do
     end
   end
 
+  describe '.to_expression' do
+    it 'converts a field that is not clearable' do
+      mode = field('mode', type: type_of('ACP::Types::Mode', to: [:send, 'to_h']))
+
+      assert_equal 'mode.to_h', emit.to_expression(mode)
+    end
+
+    it 'is the bare attribute of a clearable field without a conversion' do
+      assert_equal 'title', emit.to_expression(field('title', required: false, clearable: true))
+    end
+
+    it 'passes the unset sentinel of a clearable field through unconverted' do
+      stamp = field('stamp', type: type_of('ACP::Types::Stamp', to: [:send, 'to_h']), required: false, clearable: true)
+
+      assert_equal 'stamp.is_a?(Symbol) ? stamp : stamp&.to_h', emit.to_expression(stamp)
+    end
+  end
+
   describe '.call' do
     it 'is the bare prefix without arguments' do
       assert_equal ['def initialize'], emit.call('def initialize', [], 2)
@@ -791,6 +809,12 @@ describe TypeGenerator::Emit do
   describe '.hash_literal' do
     it 'is empty braces, with the suffix, when there are no entries' do
       assert_equal ['{}.merge(mode.to_h)'], emit.hash_literal([], '.merge(mode.to_h)', 4)
+    end
+
+    it 'keeps empty braces on one line even when the suffix passes the line limit' do
+      suffix = ".merge(#{filling(4, '{}.merge()')}x)"
+
+      assert_equal ["{}#{suffix}"], emit.hash_literal([], suffix, 4)
     end
 
     it 'stays on one line when it ends exactly at the line limit' do
