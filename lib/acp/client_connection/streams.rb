@@ -152,7 +152,7 @@ class ACP::ClientConnection::Streams
   # @rbs return: void
   def complete_elicitation(params)
     notification = ACP::Types::CompleteElicitationNotification.from_h(params)
-  rescue KeyError, TypeError, NoMethodError => e
+  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError => e
     @logger.warn("dropped malformed elicitation/complete: #{e.class}: #{e.message}")
   else
     known = @lock.synchronize { @outstanding_elicitations.delete(notification.elicitation_id) }

@@ -488,6 +488,8 @@ class ACP::ClientConnection
   # @rbs return: (ACP::Types::CreateElicitationResponse | ACP::RequestError)
   def create_elicitation(params)
     request = ACP::Types::CreateElicitationRequest.from_h(params)
+  rescue ACP::Types::ParseError => e
+    ACP::RequestError.invalid_params([e.message])
   rescue KeyError, TypeError, NoMethodError
     ACP::RequestError.invalid_params
   else
