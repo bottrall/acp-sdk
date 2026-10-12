@@ -273,6 +273,14 @@ describe ACP::ClientConnection::Streams do
       assert_same answer, reply
       assert_equal([%w[s1 c7]], handled.map { |request| [request.session_id, request.tool_call.tool_call_id] })
     end
+
+    it "re-raises the handler's error to its caller" do
+      failure = RuntimeError.new('handler failed')
+      engine = streams(permission: ->(_request) { raise failure })
+      raised = assert_raises(RuntimeError) { within { engine.request_permission(permission_request) } }
+
+      assert_same failure, raised
+    end
   end
 
   describe 'cancel' do
