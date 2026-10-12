@@ -51,14 +51,16 @@ class ACP::Transport::Stdio
 
   # @rbs method: String
   # @rbs params: untyped
-  # @rbs return: (Hash[String, untyped] | ACP::RequestError)
+  # @rbs return: untyped
   def request(method, params = nil)
     queue = Thread::Queue.new
     id = register(queue)
     return CONNECTION_CLOSED unless id
 
     write({ 'jsonrpc' => '2.0', 'id' => id, 'method' => method, 'params' => params }.compact)
-    queue.pop || CONNECTION_CLOSED
+    result = queue.pop
+    # A null result pops nil just as a closed queue does.
+    queue.closed? ? CONNECTION_CLOSED : result
   end
 
   # @rbs method: String
@@ -265,7 +267,7 @@ class ACP::Transport::Stdio
   end
 
   # @rbs id: untyped
-  # @rbs result: (Hash[String, untyped] | ACP::RequestError)
+  # @rbs result: untyped
   # @rbs return: Thread::Queue?
   def settle(id, result)
     @lock.synchronize { @pending.delete(id) }&.tap { |queue| queue.push(result) }
