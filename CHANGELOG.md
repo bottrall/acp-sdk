@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.11.0](https://github.com/bottrall/acp-sdk/compare/v0.10.0...v0.11.0) (2026-10-12)
+
+
+### Features
+
+* standardize ClientConnection senders on verb-noun naming ([#118](https://github.com/bottrall/acp-sdk/issues/118)) ([1b844ec](https://github.com/bottrall/acp-sdk/commit/1b844ecccef5b8714c5e3f2d0299713f0ee09e0f))
+
+
+### Bug Fixes
+
+* answer malformed elicitation params as invalid params ([#133](https://github.com/bottrall/acp-sdk/issues/133)) ([b9e1c51](https://github.com/bottrall/acp-sdk/commit/b9e1c510b60f78986998ba8be56c8a039488ee95)), closes [#125](https://github.com/bottrall/acp-sdk/issues/125)
+* answer the agent when a permission handler raises ([#134](https://github.com/bottrall/acp-sdk/issues/134)) ([a0f61a9](https://github.com/bottrall/acp-sdk/commit/a0f61a9db3589848fafadb7b4e19ad70b260f508)), closes [#124](https://github.com/bottrall/acp-sdk/issues/124)
+* cancel the echo agent's in-flight turn when its session is closed or deleted ([#136](https://github.com/bottrall/acp-sdk/issues/136)) ([e04a8c0](https://github.com/bottrall/acp-sdk/commit/e04a8c0bb672b569d68029c63eaee826d00c84fd)), closes [#130](https://github.com/bottrall/acp-sdk/issues/130)
+* **codegen:** keep the unset sentinel out of clearable to_h conversions ([#140](https://github.com/bottrall/acp-sdk/issues/140)) ([67769d7](https://github.com/bottrall/acp-sdk/commit/67769d7ff5d9f93dfe3f3ea2ba4ac71126caad60)), closes [#131](https://github.com/bottrall/acp-sdk/issues/131)
+* **codegen:** resolve primitive unions from each option's resolved shape ([#141](https://github.com/bottrall/acp-sdk/issues/141)) ([0b574ae](https://github.com/bottrall/acp-sdk/commit/0b574ae9d33c6c10eb0a00866b6c07f1601e01e8)), closes [#132](https://github.com/bottrall/acp-sdk/issues/132)
+* **codegen:** subsume union-variant twins into variant aliases ([#103](https://github.com/bottrall/acp-sdk/issues/103)) ([bdc0005](https://github.com/bottrall/acp-sdk/commit/bdc0005460c0fd133a09f10cf61f9f5717012e16)), closes [#93](https://github.com/bottrall/acp-sdk/issues/93)
+* echo slash commands followed only by whitespace ([#135](https://github.com/bottrall/acp-sdk/issues/135)) ([bb4bde6](https://github.com/bottrall/acp-sdk/commit/bb4bde6951ceb54ac87c92ec335dcdd319fd7b81)), closes [#129](https://github.com/bottrall/acp-sdk/issues/129)
+* read mcpCapabilities alone when deciding whether MCP is advertised ([#139](https://github.com/bottrall/acp-sdk/issues/139)) ([a6e882e](https://github.com/bottrall/acp-sdk/commit/a6e882ebf3c69f0aa8692100e81e61a085007a8b)), closes [#128](https://github.com/bottrall/acp-sdk/issues/128)
+* return a null or false result instead of "Connection closed" ([#137](https://github.com/bottrall/acp-sdk/issues/137)) ([19be64d](https://github.com/bottrall/acp-sdk/commit/19be64df6064e370bb23614a3b8df1056649cd3b)), closes [#127](https://github.com/bottrall/acp-sdk/issues/127)
+* settle a pending request when its response is malformed ([#138](https://github.com/bottrall/acp-sdk/issues/138)) ([7d0586e](https://github.com/bottrall/acp-sdk/commit/7d0586e856a54e5779e4d523bd0862ab57f44b10)), closes [#126](https://github.com/bottrall/acp-sdk/issues/126)
+
 ## [0.10.0](https://github.com/bottrall/acp-sdk/compare/v0.9.0...v0.10.0) (2026-10-07)
 
 
