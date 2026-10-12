@@ -1,0 +1,8 @@
+# rbs-inline does not emit `extend self`, so without this reopen the module's
+# methods aren't visible as singleton methods.
+
+module TypeGenerator::Plan
+  extend ::TypeGenerator::Plan
+
+  type reach = :normal | Array[String]
+end

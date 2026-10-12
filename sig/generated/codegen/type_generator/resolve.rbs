@@ -1,0 +1,72 @@
+# Generated from codegen/type_generator/resolve.rb with RBS::Inline
+
+module TypeGenerator::Resolve
+  # @rbs definition: Hash[String, untyped]
+  # @rbs return: untyped
+  def variants: (Hash[String, untyped] definition) -> untyped
+
+  # @rbs definition: Hash[String, untyped]
+  # @rbs return: Symbol
+  def kind: (Hash[String, untyped] definition) -> Symbol
+
+  # @rbs schema: Hash[String, untyped]
+  # @rbs return: bool
+  def object_like?: (Hash[String, untyped] schema) -> bool
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs return: Array[TypeGenerator::file]
+  def definition_files: (TypeGenerator::Schema defs, String name) -> Array[TypeGenerator::file]
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs schema: Hash[String, untyped]
+  # @rbs return: TypeGenerator::Type
+  def resolve: (TypeGenerator::Schema defs, Hash[String, untyped] schema) -> TypeGenerator::Type
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs schema: Hash[String, untyped]
+  # @rbs return: TypeGenerator::Type
+  def resolve_inline: (TypeGenerator::Schema defs, Hash[String, untyped] schema) -> TypeGenerator::Type
+
+  # @rbs schema: Hash[String, untyped]
+  # @rbs type: String
+  # @rbs return: TypeGenerator::check
+  def primitive_check: (Hash[String, untyped] schema, String type) -> TypeGenerator::check
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs return: TypeGenerator::Type
+  def resolve_ref: (TypeGenerator::Schema defs, String name) -> TypeGenerator::Type
+
+  # @rbs method: :map | :transform_values
+  # @rbs conversion: TypeGenerator::conversion?
+  # @rbs return: TypeGenerator::conversion?
+  def elementwise: (:map | :transform_values method, TypeGenerator::conversion? conversion) -> TypeGenerator::conversion?
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs schema: Hash[String, untyped]
+  # @rbs except: Array[String]
+  # @rbs clearable: Array[String]
+  # @rbs return: Array[TypeGenerator::Field]
+  def fields: (TypeGenerator::Schema defs, Hash[String, untyped] schema, ?except: Array[String], ?clearable: Array[String]) -> Array[TypeGenerator::Field]
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs return: Array[TypeGenerator::Field]
+  def object_fields: (TypeGenerator::Schema defs, String name) -> Array[TypeGenerator::Field]
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs return: Array[TypeGenerator::file]
+  def object_files: (TypeGenerator::Schema defs, String name) -> Array[TypeGenerator::file]
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs return: String?
+  def union_const: (TypeGenerator::Schema defs, String name) -> String?
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs return: String
+  def flattened_union: (TypeGenerator::Schema defs, String name) -> String
+end

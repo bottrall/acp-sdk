@@ -1,0 +1,81 @@
+# Generated from codegen/type_generator/plan.rb with RBS::Inline
+
+module TypeGenerator::Plan
+  # @rbs schema: Hash[String, untyped]
+  # @rbs unstable_schema: Hash[String, untyped]?
+  # @rbs return: Hash[String, String]
+  def files: (Hash[String, untyped] schema, ?Hash[String, untyped]? unstable_schema) -> Hash[String, String]
+
+  # Identical defs resolve to the stable classes, so the stable namespace is
+  # byte-identical whether or not a caller opts in.
+  #
+  # @rbs defs: Hash[String, Hash[String, untyped]]
+  # @rbs unstable_schema: Hash[String, untyped]
+  # @rbs return: Hash[String, String]
+  def unstable_files: (Hash[String, Hash[String, untyped]] defs, Hash[String, untyped] unstable_schema) -> Hash[String, String]
+
+  # Aliases are required after the classes they alias: nothing autoloads here,
+  # so constant assignment evaluates its target.
+  #
+  # @rbs paths: Array[String]
+  # @rbs aliases: Array[String]
+  # @rbs return: Hash[String, String]
+  def opt_in_file: (Array[String] paths, Array[String] aliases) -> Hash[String, String]
+
+  # A subsumed def gets an alias, not a class: a standalone to_h would drop the
+  # discriminator tag the variant stamps. The alias file replaces only the
+  # def's own class file, since its nested union modules are still referenced;
+  # a def several variant classes subsume has no single alias target, so it
+  # gets no file.
+  #
+  # @rbs schema: TypeGenerator::Schema
+  # @rbs roots: Array[String]
+  # @rbs return: [Hash[String, String], Array[String]]
+  def generate: (TypeGenerator::Schema schema, Array[String] roots) -> [ Hash[String, String], Array[String] ]
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs pending: Array[[String, TypeGenerator::Plan::reach]]
+  # @rbs seen: Hash[String, TypeGenerator::Plan::reach]
+  # @rbs return: Hash[String, TypeGenerator::Plan::reach]
+  def reachable: (TypeGenerator::Schema defs, Array[[ String, TypeGenerator::Plan::reach ]] pending, Hash[String, TypeGenerator::Plan::reach] seen) -> Hash[String, TypeGenerator::Plan::reach]
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs return: Array[[String, TypeGenerator::Plan::reach]]
+  def edges: (TypeGenerator::Schema defs, String name) -> Array[[ String, TypeGenerator::Plan::reach ]]
+
+  # A subsuming option's allOf ref is not a normal edge — the refed def's
+  # fields inline into the variant class — but the option's own properties
+  # keep theirs.
+  #
+  # @rbs node: untyped
+  # @rbs return: Array[String]
+  def plain_refs: (untyped node) -> Array[String]
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs return: Array[[String, String]]
+  def subsumed_edges: (TypeGenerator::Schema defs, String name) -> Array[[ String, String ]]
+
+  # @rbs ref: String
+  # @rbs return: String
+  def ref_name: (String ref) -> String
+
+  # @rbs const: String
+  # @rbs return: String
+  def path: (String const) -> String
+
+  # @rbs name: String
+  # @rbs return: String
+  def snake: (String name) -> String
+
+  # @rbs name: String
+  # @rbs return: String
+  def camel: (String name) -> String
+
+  # @rbs schema: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs target: String
+  # @rbs return: TypeGenerator::file
+  def alias_file: (TypeGenerator::Schema schema, String name, String target) -> TypeGenerator::file
+end

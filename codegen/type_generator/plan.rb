@@ -3,6 +3,9 @@
 module TypeGenerator::Plan
   extend self
 
+  # @rbs schema: Hash[String, untyped]
+  # @rbs unstable_schema: Hash[String, untyped]?
+  # @rbs return: Hash[String, String]
   def files(schema, unstable_schema = nil)
     defs = schema.fetch('$defs')
     roots = defs.select { |_, definition| definition.key?('x-method') }.keys
@@ -18,6 +21,10 @@ module TypeGenerator::Plan
 
   # Identical defs resolve to the stable classes, so the stable namespace is
   # byte-identical whether or not a caller opts in.
+  #
+  # @rbs defs: Hash[String, Hash[String, untyped]]
+  # @rbs unstable_schema: Hash[String, untyped]
+  # @rbs return: Hash[String, String]
   def unstable_files(defs, unstable_schema)
     unstable_defs = unstable_schema.fetch('$defs')
     twins = unstable_defs.reject { |name, definition| defs[name] == definition }.keys
@@ -29,6 +36,10 @@ module TypeGenerator::Plan
 
   # Aliases are required after the classes they alias: nothing autoloads here,
   # so constant assignment evaluates its target.
+  #
+  # @rbs paths: Array[String]
+  # @rbs aliases: Array[String]
+  # @rbs return: Hash[String, String]
   def opt_in_file(paths, aliases)
     classes, alias_files = paths.partition { |path| !aliases.include?(path) }
     requires = [*classes, *alias_files].map { |path| "require_relative '#{path.delete_suffix('.rb')}'" }
@@ -55,44 +66,64 @@ module TypeGenerator::Plan
   # def's own class file, since its nested union modules are still referenced;
   # a def several variant classes subsume has no single alias target, so it
   # gets no file.
+  #
+  # @rbs schema: TypeGenerator::Schema
+  # @rbs roots: Array[String]
+  # @rbs return: [Hash[String, String], Array[String]]
   def generate(schema, roots)
     seen = reachable(schema, roots.map { |name| [name, :normal] }, {})
     subsumed = seen.filter_map { |name, status| [name, status.first] if status.is_a?(Array) && status.size == 1 }.to_h
     defs = schema.with_subsumed(subsumed)
     files = seen.flat_map do |name, status|
-      next [] unless schema.generated?(name)
-      next TypeGenerator::Resolve.definition_files(defs, name) if status == :normal
-
-      kept = TypeGenerator::Resolve.definition_files(defs, name).reject { |path, _| path == path(schema.const(name)) }
-      kept.push(alias_file(schema, name, subsumed[name])) if subsumed[name]
-      kept
+      if !schema.generated?(name) then []
+      elsif status == :normal then TypeGenerator::Resolve.definition_files(defs, name)
+      else
+        # Only the def's own class file gives way to the alias: its nested
+        # union modules are still referenced.
+        kept = TypeGenerator::Resolve.definition_files(defs, name).reject { |path, _| path == path(schema.const(name)) }
+        kept.push(alias_file(schema, name, subsumed[name])) if subsumed[name]
+        kept
+      end
     end.sort.to_h
     aliases = subsumed.filter_map { |name, _| path(schema.const(name)) if schema.generated?(name) }.sort
     [files, aliases]
   end
 
-  # Traversal continues through subsumed defs: their fields inline into the
-  # variant classes, so refs inside them still generate classes.
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs pending: Array[[String, TypeGenerator::Plan::reach]]
+  # @rbs seen: Hash[String, TypeGenerator::Plan::reach]
+  # @rbs return: Hash[String, TypeGenerator::Plan::reach]
   def reachable(defs, pending, seen)
-    return seen if pending.empty?
+    first, *rest = pending
+    return seen unless first
 
-    ((name, edge), *rest) = pending
-    prior = seen[name]
-    return reachable(defs, rest, seen) if prior == :normal
-    return reachable(defs, rest, seen.merge(name => edge == :normal ? :normal : prior | edge)) if prior
-
-    reachable(defs, rest + edges(defs, name), seen.merge(name => edge))
+    name, edge = first
+    case (prior = seen.fetch(name, nil))
+    when :normal then reachable(defs, rest, seen)
+    when Array then reachable(defs, rest, seen.merge(name => edge.is_a?(Array) ? prior | edge : edge))
+    else
+      # Traversal continues through subsumed defs: their fields inline into the
+      # variant classes, so refs inside them still generate classes.
+      reachable(defs, rest + edges(defs, name), seen.merge(name => edge))
+    end
   end
 
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs return: Array[[String, TypeGenerator::Plan::reach]]
   def edges(defs, name)
     definition = defs.fetch(name)
-    plain_refs(definition).map { |ref| [ref, :normal] } +
-      subsumed_edges(defs, name).map { |ref, variant| [ref, [variant]] }
+    normal = plain_refs(definition).map { |ref| [ref, :normal] } #: Array[[String, TypeGenerator::Plan::reach]]
+    claimed = subsumed_edges(defs, name).map { |ref, variant| [ref, [variant]] } #: Array[[String, TypeGenerator::Plan::reach]]
+    normal + claimed
   end
 
   # A subsuming option's allOf ref is not a normal edge — the refed def's
   # fields inline into the variant class — but the option's own properties
   # keep theirs.
+  #
+  # @rbs node: untyped
+  # @rbs return: Array[String]
   def plain_refs(node)
     case node
     when Hash
@@ -103,20 +134,36 @@ module TypeGenerator::Plan
     end
   end
 
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs return: Array[[String, String]]
   def subsumed_edges(defs, name)
     union = TypeGenerator::Resolve.union_const(defs, name)
     union ? TypeGenerator::Unions.variant_refs(defs, union, defs.fetch(name)) : []
   end
 
+  # @rbs ref: String
+  # @rbs return: String
   def ref_name(ref) = ref.delete_prefix('#/$defs/')
 
+  # @rbs const: String
+  # @rbs return: String
   def path(const)
     "#{const.delete_prefix("#{TypeGenerator::NAMESPACE}::").split('::').map { |part| snake(part) }.join('/')}.rb"
   end
 
+  # @rbs name: String
+  # @rbs return: String
   def snake(name) = name.delete_prefix('_').gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
+
+  # @rbs name: String
+  # @rbs return: String
   def camel(name) = name.split(/[^a-zA-Z\d]/).map(&:capitalize).join
 
+  # @rbs schema: TypeGenerator::Schema
+  # @rbs name: String
+  # @rbs target: String
+  # @rbs return: TypeGenerator::file
   def alias_file(schema, name, target)
     rbs = "# @rbs!\n#   class #{schema.const(name)} = #{target}\n"
     [path(schema.const(name)), "#{schema.header}\n#{rbs}\n#{schema.const(name)} = #{target}\n"]

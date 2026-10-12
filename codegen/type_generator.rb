@@ -4,13 +4,13 @@ module TypeGenerator
   extend self
 
   NAMESPACE = 'ACP::Types'
-  UNSTABLE_NAMESPACE = "#{NAMESPACE}::Unstable".freeze
+  UNSTABLE_NAMESPACE = "#{NAMESPACE}::Unstable".freeze #: String
 
   # Hand-authored files living inside the generated tree: every generated
   # from_h raises ParseError and calls Check, but no schema def produces them.
   # The Rakefile neither emits nor deletes them, so regeneration preserves them
   # and types:check's diff still covers the whole tree.
-  SUPPORT_FILES = %w[check.rb parse_error.rb].freeze
+  SUPPORT_FILES = %w[check.rb parse_error.rb].freeze #: Array[String]
   HEADER = <<~TEXT
     # frozen_string_literal: true
 
@@ -33,10 +33,10 @@ module TypeGenerator
     'ElicitationUrlMode' => 'scope',
     'SessionConfigOption' => 'kind',
     'SetSessionConfigOptionRequest' => 'value'
-  }.freeze
+  }.freeze #: Hash[String, String]
 
   # The schema can't mark where null differs from absent; these fields document "Set to null to clear".
-  CLEARABLE = { 'SessionInfoUpdate' => %w[title updatedAt] }.freeze
+  CLEARABLE = { 'SessionInfoUpdate' => %w[title updatedAt] }.freeze #: Hash[String, Array[String]]
 
   ALIASES = {
     'SessionListRequest' => 'ListSessionsRequest',
@@ -44,7 +44,7 @@ module TypeGenerator
     'SessionLoadRequest' => 'LoadSessionRequest',
     'SessionNewRequest' => 'NewSessionRequest',
     'SessionPromptRequest' => 'PromptRequest'
-  }.freeze
+  }.freeze #: Hash[String, String]
 
   # Ruby reserved words can't be local variables or plain identifiers in the
   # generated from_h/to_h bodies, so their attrs get a trailing underscore;
@@ -54,30 +54,45 @@ module TypeGenerator
     def defined? do else elsif end ensure false for if in module next nil not
     or redo rescue retry return self super then true undef unless until when
     while yield
-  ].freeze
+  ].freeze #: Array[String]
 
-  PRIMITIVES = { 'boolean' => 'bool', 'integer' => 'Integer', 'number' => 'Numeric', 'string' => 'String' }.freeze
+  PRIMITIVES = { 'boolean' => 'bool', 'integer' => 'Integer', 'number' => 'Numeric', 'string' => 'String' }.freeze #: Hash[String, String]
 
   RUBY_CLASSES = {
     'boolean' => %w[TrueClass FalseClass],
     'integer' => %w[Integer],
     'number' => %w[Numeric],
     'string' => %w[String]
-  }.freeze
+  }.freeze #: Hash[String, Array[String]]
 
   CHECK = 'ACP::Types::Check'
 
   # A variant class named after one of these would shadow it in the RBS of its
   # union's namespace, where the generated signatures refer to it unqualified.
-  CORE_CLASSES = %w[Array Hash Integer Numeric String].freeze
+  CORE_CLASSES = %w[Array Hash Integer Numeric String].freeze #: Array[String]
 
   RAW_HASH = 'Hash[String, untyped]'
 
-  TYPELESS_PROPERTY_KEYS = %w[type $ref allOf anyOf].freeze
+  TYPELESS_PROPERTY_KEYS = %w[type $ref allOf anyOf].freeze #: Array[String]
 
   class Type
-    attr_reader :rbs, :from, :to, :check
+    # @rbs @nullable: bool
 
+    # @dynamic rbs
+    attr_reader :rbs #: String
+    # @dynamic from
+    attr_reader :from #: TypeGenerator::conversion?
+    # @dynamic to
+    attr_reader :to #: TypeGenerator::conversion?
+    # @dynamic check
+    attr_reader :check #: TypeGenerator::check?
+
+    # @rbs rbs: String
+    # @rbs from: TypeGenerator::conversion?
+    # @rbs to: TypeGenerator::conversion?
+    # @rbs nullable: bool
+    # @rbs check: TypeGenerator::check?
+    # @rbs return: void
     def initialize(rbs:, from: nil, to: nil, nullable: false, check: nil)
       @rbs = rbs
       @from = from
@@ -87,13 +102,33 @@ module TypeGenerator
       freeze
     end
 
+    # @rbs return: bool
     def nullable? = @nullable
   end
 
   class Field
-    attr_reader :json, :attr, :type
+    # @rbs @required: bool
+    # @rbs @nullable: bool
+    # @rbs @clearable: bool
+    # @rbs @flattened: bool
 
     # A flattened field has no JSON key: schemars merges its union variant's properties into the parent.
+    #
+    # @dynamic json
+    attr_reader :json #: String?
+    # @dynamic attr
+    attr_reader :attr #: String
+    # @dynamic type
+    attr_reader :type #: TypeGenerator::Type
+
+    # @rbs attr: String
+    # @rbs type: TypeGenerator::Type
+    # @rbs required: bool
+    # @rbs nullable: bool
+    # @rbs json: String?
+    # @rbs clearable: bool
+    # @rbs flattened: bool
+    # @rbs return: void
     def initialize(attr:, type:, required:, nullable:, json: nil, clearable: false, flattened: false)
       @json = json
       @attr = attr
@@ -105,16 +140,35 @@ module TypeGenerator
       freeze
     end
 
+    # @rbs return: bool
     def required? = @required
+
+    # @rbs return: bool
     def nullable? = @nullable
+
+    # @rbs return: bool
     def clearable? = @clearable
+
+    # @rbs return: bool
     def flattened? = @flattened
+
+    # @rbs return: bool
     def nilable? = !required? || nullable?
   end
 
   class Schema
-    attr_reader :header
+    # @rbs @defs: Hash[String, Hash[String, untyped]]
+    # @rbs @twins: Array[String]?
+    # @rbs @subsumed: Hash[String, String]?
 
+    # @dynamic header
+    attr_reader :header #: String
+
+    # @rbs defs: Hash[String, Hash[String, untyped]]
+    # @rbs header: String
+    # @rbs twins: Array[String]?
+    # @rbs subsumed: Hash[String, String]?
+    # @rbs return: void
     def initialize(defs, header: HEADER, twins: nil, subsumed: nil)
       @defs = defs
       @header = header
@@ -123,20 +177,45 @@ module TypeGenerator
       freeze
     end
 
+    # @rbs name: String
+    # @rbs return: Hash[String, untyped]
     def fetch(name) = @defs.fetch(name)
+
+    # @rbs name: String
+    # @rbs return: String
     def const(name) = "#{@twins&.include?(name) ? UNSTABLE_NAMESPACE : NAMESPACE}::#{name}"
-    def generated?(name) = @twins.nil? || @twins.include?(name)
+
+    # @rbs name: String
+    # @rbs return: bool
+    def generated?(name)
+      twins = @twins
+      twins.nil? || twins.include?(name)
+    end
 
     # A subsumed def's nested declarations live under the variant constant
     # that absorbed it: RBS can't declare a namespace under a class alias.
+    #
+    # @rbs name: String
+    # @rbs return: String
     def nested_const(name) = @subsumed&.fetch(name, nil) || const(name)
 
+    # @rbs subsumed: Hash[String, String]
+    # @rbs return: TypeGenerator::Schema
     def with_subsumed(subsumed) = Schema.new(@defs, header: @header, twins: @twins, subsumed:)
   end
 
   class Dispatch
-    attr_reader :tag, :tagged, :untagged
+    # @dynamic tag
+    attr_reader :tag #: String?
+    # @dynamic tagged
+    attr_reader :tagged #: Array[[String, String]]
+    # @dynamic untagged
+    attr_reader :untagged #: Array[[String, String]]
 
+    # @rbs tag: String?
+    # @rbs tagged: Array[[String, String]]
+    # @rbs untagged: Array[[String, String]]
+    # @rbs return: void
     def initialize(tag:, tagged:, untagged:)
       @tag = tag
       @tagged = tagged
@@ -145,6 +224,9 @@ module TypeGenerator
     end
   end
 
+  # @rbs schema: Hash[String, untyped]
+  # @rbs unstable_schema: Hash[String, untyped]?
+  # @rbs return: Hash[String, String]
   def files(schema, unstable_schema = nil) = Plan.files(schema, unstable_schema)
 end
 

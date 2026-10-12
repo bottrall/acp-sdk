@@ -1,0 +1,139 @@
+# Generated from codegen/type_generator/emit.rb with RBS::Inline
+
+module TypeGenerator::Emit
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs const: String
+  # @rbs fields: Array[TypeGenerator::Field]
+  # @rbs tag: [String, String]?
+  # @rbs return: TypeGenerator::file
+  def class_file: (TypeGenerator::Schema defs, String const, Array[TypeGenerator::Field] fields, ?tag: [ String, String ]?) -> TypeGenerator::file
+
+  # @rbs opening: String
+  # @rbs sections: Array[Array[String]]
+  # @rbs header: String
+  # @rbs return: String
+  def source: (String opening, Array[Array[String]] sections, String header) -> String
+
+  # @rbs lines: Array[String]
+  # @rbs depth: Integer
+  # @rbs return: Array[String]
+  def indent: (Array[String] lines, Integer depth) -> Array[String]
+
+  # @rbs field: TypeGenerator::Field
+  # @rbs return: String
+  def rbs_type: (TypeGenerator::Field field) -> String
+
+  # @rbs field: TypeGenerator::Field
+  # @rbs return: Array[String]
+  def attr_reader: (TypeGenerator::Field field) -> Array[String]
+
+  # @rbs fields: Array[TypeGenerator::Field]
+  # @rbs return: Array[String]
+  def initialize_method: (Array[TypeGenerator::Field] fields) -> Array[String]
+
+  # A do...end in a keyword-argument position binds its block to `new`, so
+  # fields whose guard takes a block are assigned to locals first.
+  #
+  # @rbs const: String
+  # @rbs fields: Array[TypeGenerator::Field]
+  # @rbs return: Array[String]
+  def from_h_method: (String const, Array[TypeGenerator::Field] fields) -> Array[String]
+
+  # @rbs args: Array[[String, TypeGenerator::expression?]]
+  # @rbs column: Integer
+  # @rbs return: Array[String]
+  def new_call: (Array[[ String, TypeGenerator::expression? ]] args, Integer column) -> Array[String]
+
+  # @rbs name: String
+  # @rbs expr: TypeGenerator::expression?
+  # @rbs return: String
+  def new_arg: (String name, TypeGenerator::expression? expr) -> String
+
+  # @rbs size: Integer
+  # @rbs index: Integer
+  # @rbs return: String
+  def arg_comma: (Integer size, Integer index) -> String
+
+  # @rbs field: TypeGenerator::Field
+  # @rbs return: TypeGenerator::expression
+  def from_expression: (TypeGenerator::Field field) -> TypeGenerator::expression
+
+  # Top-level guards take the field path as a string; guards nested in a
+  # container take the block's `path` parameter, so the Check module can report
+  # absolute paths.
+  #
+  # @rbs spec: TypeGenerator::check
+  # @rbs source: TypeGenerator::expression
+  # @rbs path: String
+  # @rbs nilable: bool
+  # @rbs clearable: bool
+  # @rbs return: TypeGenerator::piece
+  def guard: (TypeGenerator::check spec, TypeGenerator::expression source, String path, bool nilable, bool clearable) -> TypeGenerator::piece
+
+  # @rbs nilable: bool
+  # @rbs clearable: bool
+  # @rbs return: Array[String]
+  def guard_options: (bool nilable, bool clearable) -> Array[String]
+
+  # @rbs min: Numeric?
+  # @rbs max: Numeric?
+  # @rbs return: Array[String]
+  def bounds: (Numeric? min, Numeric? max) -> Array[String]
+
+  # @rbs value: Numeric
+  # @rbs return: String
+  def numeric: (Numeric value) -> String
+
+  # @rbs values: Array[String | Integer]
+  # @rbs return: String
+  def enum_values: (Array[String | Integer] values) -> String
+
+  # @rbs value: String | Integer
+  # @rbs return: String
+  def enum_value: (String | Integer value) -> String
+
+  # @rbs piece: TypeGenerator::expression
+  # @rbs return: String
+  def inline: (TypeGenerator::expression piece) -> String
+
+  # @rbs piece: TypeGenerator::expression
+  # @rbs return: [String, TypeGenerator::expression]?
+  def piece_block: (TypeGenerator::expression piece) -> [ String, TypeGenerator::expression ]?
+
+  # @rbs piece: TypeGenerator::expression
+  # @rbs column: Integer
+  # @rbs prefix: String
+  # @rbs suffix: String
+  # @rbs return: Array[String]
+  def render: (TypeGenerator::expression piece, Integer column, ?String prefix, ?String suffix) -> Array[String]
+
+  # @rbs fields: Array[TypeGenerator::Field]
+  # @rbs tag: [String, String]?
+  # @rbs return: Array[String]
+  def to_h_method: (Array[TypeGenerator::Field] fields, [ String, String ]? tag) -> Array[String]
+
+  # @rbs prefix: String
+  # @rbs args: Array[String]
+  # @rbs column: Integer
+  # @rbs return: Array[String]
+  def call: (String prefix, Array[String] args, Integer column) -> Array[String]
+
+  # @rbs entries: Array[String]
+  # @rbs suffix: String
+  # @rbs column: Integer
+  # @rbs return: Array[String]
+  def hash_literal: (Array[String] entries, String suffix, Integer column) -> Array[String]
+
+  # Conversions stay tagged arrays rather than POROs: they only exist to be pattern-matched here, and array patterns
+  # match the nested shapes (`[:map, [:send, 'to_h']]`) directly.
+  #
+  # @rbs conversion: TypeGenerator::conversion?
+  # @rbs expression: String
+  # @rbs nilable: bool
+  # @rbs return: String
+  def convert: (TypeGenerator::conversion? conversion, String expression, bool nilable) -> String
+
+  # @rbs rbs: String
+  # @rbs return: String
+  def optional: (String rbs) -> String
+end
