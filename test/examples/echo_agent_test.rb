@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 require 'test_helper'
+require 'json'
+require 'open3'
+require 'rbconfig'
+require 'timeout'
 require_relative '../../examples/echo_agent'
 
 class EchoAgentClient
@@ -581,6 +585,24 @@ describe EchoAgent do
       )
 
       assert_equal [ACP::Types::StopReason::CANCELLED, []], [prompt('hello').stop_reason, echoed]
+    end
+  end
+
+  describe 'run as a script' do
+    it 'serves the echo agent over stdin and stdout until the input ends' do
+      script = File.expand_path('../../examples/echo_agent.rb', __dir__)
+      request = { 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => { 'protocolVersion' => 1 } }
+      result, status = Open3.popen2(RbConfig.ruby, script) do |stdin, stdout, waiter|
+        stdin.puts(JSON.generate(request))
+        reply = Timeout.timeout(5) { JSON.parse(stdout.gets) }
+        stdin.close
+        [reply.fetch('result'), Timeout.timeout(5) { waiter.value }]
+      end
+
+      assert_equal(
+        ['echo-agent', EchoAgent::CAPABILITIES.to_h, true],
+        [result.dig('agentInfo', 'name'), result['agentCapabilities'], status.success?]
+      )
     end
   end
 end
