@@ -8,6 +8,7 @@ target :lib do
   signature 'sig/_private'
 
   check 'lib'
+  check 'codegen'
 
   library 'json'
   library 'open3'

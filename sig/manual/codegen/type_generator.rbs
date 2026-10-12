@@ -1,0 +1,27 @@
+# rbs-inline does not emit `extend self`, so without this reopen the module's
+# methods aren't visible as singleton methods.
+
+module TypeGenerator
+  extend ::TypeGenerator
+
+  type file = [String, String]
+
+  type check = [:string]
+             | [:boolean]
+             | [:integer, Integer?, Integer?]
+             | [:number, Numeric?, Numeric?]
+             | [:enum, Array[String | Integer]]
+             | [:one_of, Array[String], check?]
+             | [:hash, check]
+             | [:array, check]
+             | [:object, String]
+             | [:objects, String]
+
+  type conversion = [:call, String]
+                  | [:send, String]
+                  | [:map | :transform_values, conversion]
+
+  type piece = [String, Array[expression], [String, expression]?, String?]
+
+  type expression = String | piece
+end

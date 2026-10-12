@@ -1,0 +1,183 @@
+# Generated from codegen/type_generator.rb with RBS::Inline
+
+module TypeGenerator
+  NAMESPACE: ::String
+
+  UNSTABLE_NAMESPACE: String
+
+  # Hand-authored files living inside the generated tree: every generated
+  # from_h raises ParseError and calls Check, but no schema def produces them.
+  # The Rakefile neither emits nor deletes them, so regeneration preserves them
+  # and types:check's diff still covers the whole tree.
+  SUPPORT_FILES: Array[String]
+
+  HEADER: ::String
+
+  UNSTABLE_HEADER: ::String
+
+  MAX_LINE_LENGTH: ::Integer
+
+  # schemars flattens these Rust enums into their parent object without naming
+  # the field that holds them, so the names follow the Rust SDK's.
+  FLATTENED_UNION_ATTRS: Hash[String, String]
+
+  # The schema can't mark where null differs from absent; these fields document "Set to null to clear".
+  CLEARABLE: Hash[String, Array[String]]
+
+  ALIASES: Hash[String, String]
+
+  # Ruby reserved words can't be local variables or plain identifiers in the
+  # generated from_h/to_h bodies, so their attrs get a trailing underscore;
+  # the JSON key stays as the schema spells it.
+  RUBY_KEYWORDS: Array[String]
+
+  PRIMITIVES: Hash[String, String]
+
+  RUBY_CLASSES: Hash[String, Array[String]]
+
+  CHECK: ::String
+
+  # A variant class named after one of these would shadow it in the RBS of its
+  # union's namespace, where the generated signatures refer to it unqualified.
+  CORE_CLASSES: Array[String]
+
+  RAW_HASH: ::String
+
+  TYPELESS_PROPERTY_KEYS: Array[String]
+
+  class Type
+    @nullable: bool
+
+    # @dynamic rbs
+    attr_reader rbs: String
+
+    # @dynamic from
+    attr_reader from: TypeGenerator::conversion?
+
+    # @dynamic to
+    attr_reader to: TypeGenerator::conversion?
+
+    # @dynamic check
+    attr_reader check: TypeGenerator::check?
+
+    # @rbs rbs: String
+    # @rbs from: TypeGenerator::conversion?
+    # @rbs to: TypeGenerator::conversion?
+    # @rbs nullable: bool
+    # @rbs check: TypeGenerator::check?
+    # @rbs return: void
+    def initialize: (rbs: String, ?from: TypeGenerator::conversion?, ?to: TypeGenerator::conversion?, ?nullable: bool, ?check: TypeGenerator::check?) -> void
+
+    # @rbs return: bool
+    def nullable?: () -> bool
+  end
+
+  class Field
+    @required: bool
+
+    @nullable: bool
+
+    @clearable: bool
+
+    @flattened: bool
+
+    # A flattened field has no JSON key: schemars merges its union variant's properties into the parent.
+    #
+    # @dynamic json
+    attr_reader json: String?
+
+    # @dynamic attr
+    attr_reader attr: String
+
+    # @dynamic type
+    attr_reader type: TypeGenerator::Type
+
+    # @rbs attr: String
+    # @rbs type: TypeGenerator::Type
+    # @rbs required: bool
+    # @rbs nullable: bool
+    # @rbs json: String?
+    # @rbs clearable: bool
+    # @rbs flattened: bool
+    # @rbs return: void
+    def initialize: (attr: String, type: TypeGenerator::Type, required: bool, nullable: bool, ?json: String?, ?clearable: bool, ?flattened: bool) -> void
+
+    # @rbs return: bool
+    def required?: () -> bool
+
+    # @rbs return: bool
+    def nullable?: () -> bool
+
+    # @rbs return: bool
+    def clearable?: () -> bool
+
+    # @rbs return: bool
+    def flattened?: () -> bool
+
+    # @rbs return: bool
+    def nilable?: () -> bool
+  end
+
+  class Schema
+    @defs: Hash[String, Hash[String, untyped]]
+
+    @twins: Array[String]?
+
+    @subsumed: Hash[String, String]?
+
+    # @dynamic header
+    attr_reader header: String
+
+    # @rbs defs: Hash[String, Hash[String, untyped]]
+    # @rbs header: String
+    # @rbs twins: Array[String]?
+    # @rbs subsumed: Hash[String, String]?
+    # @rbs return: void
+    def initialize: (Hash[String, Hash[String, untyped]] defs, ?header: String, ?twins: Array[String]?, ?subsumed: Hash[String, String]?) -> void
+
+    # @rbs name: String
+    # @rbs return: Hash[String, untyped]
+    def fetch: (String name) -> Hash[String, untyped]
+
+    # @rbs name: String
+    # @rbs return: String
+    def const: (String name) -> String
+
+    # @rbs name: String
+    # @rbs return: bool
+    def generated?: (String name) -> bool
+
+    # A subsumed def's nested declarations live under the variant constant
+    # that absorbed it: RBS can't declare a namespace under a class alias.
+    #
+    # @rbs name: String
+    # @rbs return: String
+    def nested_const: (String name) -> String
+
+    # @rbs subsumed: Hash[String, String]
+    # @rbs return: TypeGenerator::Schema
+    def with_subsumed: (Hash[String, String] subsumed) -> TypeGenerator::Schema
+  end
+
+  class Dispatch
+    # @dynamic tag
+    attr_reader tag: String?
+
+    # @dynamic tagged
+    attr_reader tagged: Array[[ String, String ]]
+
+    # @dynamic untagged
+    attr_reader untagged: Array[[ String, String ]]
+
+    # @rbs tag: String?
+    # @rbs tagged: Array[[String, String]]
+    # @rbs untagged: Array[[String, String]]
+    # @rbs return: void
+    def initialize: (tag: String?, tagged: Array[[ String, String ]], untagged: Array[[ String, String ]]) -> void
+  end
+
+  # @rbs schema: Hash[String, untyped]
+  # @rbs unstable_schema: Hash[String, untyped]?
+  # @rbs return: Hash[String, String]
+  def files: (Hash[String, untyped] schema, ?Hash[String, untyped]? unstable_schema) -> Hash[String, String]
+end

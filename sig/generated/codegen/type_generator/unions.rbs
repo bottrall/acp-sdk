@@ -1,0 +1,95 @@
+# Generated from codegen/type_generator/unions.rb with RBS::Inline
+
+module TypeGenerator::Unions
+  # @rbs options: Array[Hash[String, untyped]]
+  # @rbs return: String?
+  def discriminator: (Array[Hash[String, untyped]] options) -> String?
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs union: String
+  # @rbs definition: Hash[String, untyped]
+  # @rbs return: Array[TypeGenerator::file]
+  def union_files: (TypeGenerator::Schema defs, String union, Hash[String, untyped] definition) -> Array[TypeGenerator::file]
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs union: String
+  # @rbs definition: Hash[String, untyped]
+  # @rbs return: [String?, Array[[Hash[String, untyped], String]], Array[[Hash[String, untyped], String]]]
+  def variant_consts: (TypeGenerator::Schema defs, String union, Hash[String, untyped] definition) -> [ String?, Array[[ Hash[String, untyped], String ]], Array[[ Hash[String, untyped], String ]] ]
+
+  # A def reached only through an option like this is subsumed by the variant
+  # class: the option carries its own properties, which inline the refed def's
+  # fields, so no flat class is emitted for it. `not` options never become
+  # variants, so their refs stay normal edges.
+  #
+  # @rbs option: Hash[String, untyped]
+  # @rbs return: boolish
+  def subsumes_ref?: (Hash[String, untyped] option) -> boolish
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs union: String
+  # @rbs definition: Hash[String, untyped]
+  # @rbs return: Array[[String, String]]
+  def variant_refs: (TypeGenerator::Schema defs, String union, Hash[String, untyped] definition) -> Array[[ String, String ]]
+
+  # @rbs options: Array[Hash[String, untyped]]
+  # @rbs tag: String?
+  # @rbs return: Array[String?]
+  def variant_names: (Array[Hash[String, untyped]] options, String? tag) -> Array[String?]
+
+  # @rbs option: Hash[String, untyped]
+  # @rbs return: String?
+  def variant_ref: (Hash[String, untyped] option) -> String?
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs option: Hash[String, untyped]
+  # @rbs tag: String?
+  # @rbs return: Array[TypeGenerator::Field]
+  def variant_fields: (TypeGenerator::Schema defs, Hash[String, untyped] option, String? tag) -> Array[TypeGenerator::Field]
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs union: String
+  # @rbs option: Hash[String, untyped]
+  # @rbs return: String
+  def untagged_const: (TypeGenerator::Schema defs, String union, Hash[String, untyped] option) -> String
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs option: Hash[String, untyped]
+  # @rbs return: Array[String]
+  def required_keys: (TypeGenerator::Schema defs, Hash[String, untyped] option) -> Array[String]
+
+  # @rbs key_sets: Array[Array[String]]
+  # @rbs return: Array[String]
+  def unique_keys: (Array[Array[String]] key_sets) -> Array[String]
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs union: String
+  # @rbs dispatch: TypeGenerator::Dispatch
+  # @rbs return: TypeGenerator::file
+  def union_file: (TypeGenerator::Schema defs, String union, TypeGenerator::Dispatch dispatch) -> TypeGenerator::file
+
+  # @rbs types: Array[String]
+  # @rbs return: Array[String]
+  def type_alias: (Array[String] types) -> Array[String]
+
+  # @rbs dispatch: TypeGenerator::Dispatch
+  # @rbs return: Array[String]
+  def dispatch_body: (TypeGenerator::Dispatch dispatch) -> Array[String]
+
+  # @rbs branches: Array[[String, Array[String]]]
+  # @rbs fallback: String
+  # @rbs return: Array[String]
+  def key_dispatch: (Array[[ String, Array[String] ]] branches, String fallback) -> Array[String]
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs union: String
+  # @rbs definition: Hash[String, untyped]
+  # @rbs return: TypeGenerator::file
+  def array_union_file: (TypeGenerator::Schema defs, String union, Hash[String, untyped] definition) -> TypeGenerator::file
+
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs const: String
+  # @rbs definition: Hash[String, untyped]
+  # @rbs return: TypeGenerator::file
+  def enum_file: (TypeGenerator::Schema defs, String const, Hash[String, untyped] definition) -> TypeGenerator::file
+end

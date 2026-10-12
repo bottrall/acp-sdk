@@ -3,6 +3,11 @@
 module TypeGenerator::Emit
   extend self
 
+  # @rbs defs: TypeGenerator::Schema
+  # @rbs const: String
+  # @rbs fields: Array[TypeGenerator::Field]
+  # @rbs tag: [String, String]?
+  # @rbs return: TypeGenerator::file
   def class_file(defs, const, fields, tag: nil)
     sections = [
       *fields.map { |field| attr_reader(field) },
@@ -13,23 +18,36 @@ module TypeGenerator::Emit
     [TypeGenerator::Plan.path(const), source("class #{const}", sections, defs.header)]
   end
 
+  # @rbs opening: String
+  # @rbs sections: Array[Array[String]]
+  # @rbs header: String
+  # @rbs return: String
   def source(opening, sections, header)
     body = sections.map { |lines| indent(lines, 2).join("\n") }.join("\n\n")
     "#{header}\n#{opening}\n#{body}\nend\n"
   end
 
+  # @rbs lines: Array[String]
+  # @rbs depth: Integer
+  # @rbs return: Array[String]
   def indent(lines, depth) = lines.map { |line| "#{' ' * depth}#{line}" }
 
+  # @rbs field: TypeGenerator::Field
+  # @rbs return: String
   def rbs_type(field)
     return field.type.rbs unless field.nilable?
 
     field.clearable? ? "#{optional(field.type.rbs)} | :unset" : optional(field.type.rbs)
   end
 
+  # @rbs field: TypeGenerator::Field
+  # @rbs return: Array[String]
   def attr_reader(field)
     ["# @dynamic #{field.attr}", "attr_reader :#{field.attr} #: #{rbs_type(field)}"]
   end
 
+  # @rbs fields: Array[TypeGenerator::Field]
+  # @rbs return: Array[String]
   def initialize_method(fields)
     required, optional = fields.partition(&:required?)
     defaults = optional.map { |field| "#{field.attr}: #{field.clearable? ? ':unset' : 'nil'}" }
@@ -46,6 +64,10 @@ module TypeGenerator::Emit
 
   # A do...end in a keyword-argument position binds its block to `new`, so
   # fields whose guard takes a block are assigned to locals first.
+  #
+  # @rbs const: String
+  # @rbs fields: Array[TypeGenerator::Field]
+  # @rbs return: Array[String]
   def from_h_method(const, fields)
     param = fields.empty? ? '_hash' : 'hash'
     expressions = fields.to_h { |field| [field, from_expression(field)] }
@@ -53,7 +75,7 @@ module TypeGenerator::Emit
     args = fields.map do |field|
       expression = expressions.fetch(field)
       [field.attr, piece_block(expression) ? nil : expression]
-    end
+    end #: Array[[String, TypeGenerator::expression?]]
     temps = blocky.map { |field| render(expressions.fetch(field), 4, "#{field.attr} = ") }
     [
       "# @rbs #{param}: #{TypeGenerator::RAW_HASH}",
@@ -65,6 +87,9 @@ module TypeGenerator::Emit
     ]
   end
 
+  # @rbs args: Array[[String, TypeGenerator::expression?]]
+  # @rbs column: Integer
+  # @rbs return: Array[String]
   def new_call(args, column)
     return ['new'] if args.empty?
 
@@ -82,14 +107,22 @@ module TypeGenerator::Emit
     ['new(', *lines, ')']
   end
 
+  # @rbs name: String
+  # @rbs expr: TypeGenerator::expression?
+  # @rbs return: String
   def new_arg(name, expr)
     expr.nil? ? "#{name}:" : "#{name}: #{inline(expr)}"
   end
 
+  # @rbs size: Integer
+  # @rbs index: Integer
+  # @rbs return: String
   def arg_comma(size, index)
     index == size - 1 ? '' : ','
   end
 
+  # @rbs field: TypeGenerator::Field
+  # @rbs return: TypeGenerator::expression
   def from_expression(field)
     return convert(field.type.from, 'hash', false) if field.flattened?
 
@@ -100,7 +133,7 @@ module TypeGenerator::Emit
         "hash.fetch('#{field.json}', :unset)"
       else
         "hash['#{field.json}']"
-      end
+      end #: TypeGenerator::expression
     unless field.type.check
       return convert(field.type.from, source.is_a?(String) ? source : inline(source), field.nilable?)
     end
@@ -111,10 +144,19 @@ module TypeGenerator::Emit
   # Top-level guards take the field path as a string; guards nested in a
   # container take the block's `path` parameter, so the Check module can report
   # absolute paths.
+  #
+  # @rbs spec: TypeGenerator::check
+  # @rbs source: TypeGenerator::expression
+  # @rbs path: String
+  # @rbs nilable: bool
+  # @rbs clearable: bool
+  # @rbs return: TypeGenerator::piece
   def guard(spec, source, path, nilable, clearable)
     check = TypeGenerator::CHECK
     opts = guard_options(nilable, clearable)
-    case spec
+    # Steep 2.1 rejects pattern matching as unsupported syntax and leaves this
+    # case unchecked.
+    case spec # steep:ignore UnsupportedSyntax
     in [:string] then ["#{check}.string", [source, path, *opts], nil, nil]
     in [:boolean] then ["#{check}.boolean", [source, path, *opts], nil, nil]
     in [:integer, min, max] then ["#{check}.integer", [source, path, *bounds(min, max), *opts], nil, nil]
@@ -132,29 +174,43 @@ module TypeGenerator::Emit
     end
   end
 
+  # @rbs nilable: bool
+  # @rbs clearable: bool
+  # @rbs return: Array[String]
   def guard_options(nilable, clearable)
     { allow_nil: nilable, allow_unset: clearable }.select { |_, set| set }.map { |name, _| "#{name}: true" }
   end
 
+  # @rbs min: Numeric?
+  # @rbs max: Numeric?
+  # @rbs return: Array[String]
   def bounds(min, max)
-    { min: min, max: max }.select { |_, value| value }.map { |name, value| "#{name}: #{numeric(value)}" }
+    { min: min, max: max }.filter_map { |name, value| "#{name}: #{numeric(value)}" if value }
   end
 
+  # @rbs value: Numeric
+  # @rbs return: String
   def numeric(value) = value.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\1_').reverse
 
+  # @rbs values: Array[String | Integer]
+  # @rbs return: String
   def enum_values(values)
-    words = values.all?(String) && values.size > 1 && values.all? { |value| value.match?(/\A[\w-]+\z/) }
+    words = values.size > 1 && values.all? { |value| value.is_a?(String) && value.match?(/\A[\w-]+\z/) }
     return "%w[#{values.join(' ')}]" if words
 
     "[#{values.map { |value| enum_value(value) }.join(', ')}]"
   end
 
+  # @rbs value: String | Integer
+  # @rbs return: String
   def enum_value(value)
     return numeric(value) if value.is_a?(Integer)
 
     "'#{value.gsub('\\', '\\\\\\\\').gsub("'", "\\\\'")}'"
   end
 
+  # @rbs piece: TypeGenerator::expression
+  # @rbs return: String
   def inline(piece)
     return piece if piece.is_a?(String)
 
@@ -165,8 +221,15 @@ module TypeGenerator::Emit
     rendered
   end
 
+  # @rbs piece: TypeGenerator::expression
+  # @rbs return: [String, TypeGenerator::expression]?
   def piece_block(piece) = piece.is_a?(Array) ? piece[2] : nil
 
+  # @rbs piece: TypeGenerator::expression
+  # @rbs column: Integer
+  # @rbs prefix: String
+  # @rbs suffix: String
+  # @rbs return: Array[String]
   def render(piece, column, prefix = '', suffix = '')
     line = "#{prefix}#{inline(piece)}#{suffix}"
     return [line] if column + line.length <= TypeGenerator::MAX_LINE_LENGTH || piece.is_a?(String)
@@ -188,13 +251,19 @@ module TypeGenerator::Emit
     ["#{prefix}#{callee}(", *lines, ") do |#{block[0]}|", *body, "end#{tail}#{suffix}"]
   end
 
+  # @rbs fields: Array[TypeGenerator::Field]
+  # @rbs tag: [String, String]?
+  # @rbs return: Array[String]
   def to_h_method(fields, tag)
     entry = ->(field) { "'#{field.json}' => #{convert(field.type.to, field.attr, field.nilable?)}" }
     flattened, plain = fields.partition(&:flattened?)
     clearable, settled = plain.partition(&:clearable?)
     required, optional = settled.partition(&:required?)
     nullable, present = required.partition(&:nullable?)
-    entries = [*(tag && "'#{tag[0]}' => '#{tag[1]}'"), *(optional.empty? ? required : present + optional).map(&entry)]
+    entries = [
+      tag && "'#{tag[0]}' => '#{tag[1]}'",
+      *(optional.empty? ? required : present + optional).map(&entry)
+    ].compact
     suffix = [
       ('.compact' unless optional.empty?),
       (".merge(#{nullable.map(&entry).join(', ')})" unless optional.empty? || nullable.empty?),
@@ -204,6 +273,10 @@ module TypeGenerator::Emit
     ["# @rbs return: #{TypeGenerator::RAW_HASH}", 'def to_h', *indent(hash_literal(entries, suffix, 4), 2), 'end']
   end
 
+  # @rbs prefix: String
+  # @rbs args: Array[String]
+  # @rbs column: Integer
+  # @rbs return: Array[String]
   def call(prefix, args, column)
     return [prefix] if args.empty?
 
@@ -216,6 +289,10 @@ module TypeGenerator::Emit
     ["#{prefix}(", *indent(lines, 2), ')']
   end
 
+  # @rbs entries: Array[String]
+  # @rbs suffix: String
+  # @rbs column: Integer
+  # @rbs return: Array[String]
   def hash_literal(entries, suffix, column)
     single = entries.empty? ? "{}#{suffix}" : "{ #{entries.join(', ')} }#{suffix}"
     return [single] if column + single.length <= TypeGenerator::MAX_LINE_LENGTH
@@ -225,9 +302,16 @@ module TypeGenerator::Emit
 
   # Conversions stay tagged arrays rather than POROs: they only exist to be pattern-matched here, and array patterns
   # match the nested shapes (`[:map, [:send, 'to_h']]`) directly.
+  #
+  # @rbs conversion: TypeGenerator::conversion?
+  # @rbs expression: String
+  # @rbs nilable: bool
+  # @rbs return: String
   def convert(conversion, expression, nilable)
     dot = nilable ? '&.' : '.'
-    case conversion
+    # Steep 2.1 rejects pattern matching as unsupported syntax and leaves this
+    # case unchecked.
+    case conversion # steep:ignore UnsupportedSyntax
     in nil then expression
     in [:call, callee] if nilable then "#{expression}&.then { |value| #{callee}(value) }"
     in [:call, callee] then "#{callee}(#{expression})"
@@ -238,6 +322,8 @@ module TypeGenerator::Emit
     end
   end
 
+  # @rbs rbs: String
+  # @rbs return: String
   def optional(rbs)
     return rbs if rbs == 'untyped' || rbs.split(' | ').include?('nil')
 
