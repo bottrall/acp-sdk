@@ -127,6 +127,16 @@ describe ACP::Transport::Stdio do
       assert_equal [{ 'content' => 'A' }, { 'content' => 'B' }], [value_of(first), value_of(second)]
     end
 
+    [nil, false].each do |result|
+      it "returns a #{result.inspect} result instead of connection closed" do
+        start
+        pending = Thread.new { @transport.request('_vendor/thing') }
+        send_message({ 'jsonrpc' => '2.0', 'id' => receive_message.fetch('id'), 'result' => result })
+
+        assert_equal [result], [value_of(pending)]
+      end
+    end
+
     it 'returns connection closed when the input ends before the answer' do
       start
       pending = Thread.new { @transport.request('session/request_permission') }

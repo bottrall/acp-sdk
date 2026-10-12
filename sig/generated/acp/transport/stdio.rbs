@@ -38,8 +38,8 @@ class ACP::Transport::Stdio
 
   # @rbs method: String
   # @rbs params: untyped
-  # @rbs return: (Hash[String, untyped] | ACP::RequestError)
-  def request: (String method, ?untyped params) -> (Hash[String, untyped] | ACP::RequestError)
+  # @rbs return: untyped
+  def request: (String method, ?untyped params) -> untyped
 
   # @rbs method: String
   # @rbs params: untyped
@@ -143,9 +143,9 @@ class ACP::Transport::Stdio
   def register: (Thread::Queue queue) -> Integer?
 
   # @rbs id: untyped
-  # @rbs result: (Hash[String, untyped] | ACP::RequestError)
+  # @rbs result: untyped
   # @rbs return: Thread::Queue?
-  def settle: (untyped id, Hash[String, untyped] | ACP::RequestError result) -> Thread::Queue?
+  def settle: (untyped id, untyped result) -> Thread::Queue?
 
   # @rbs return: void
   def close: () -> void
