@@ -175,7 +175,7 @@ class EchoAgent
 
   def respond(session_id, blocks)
     command, rest = blocks.first&.text.to_s.split(' ', 2)
-    return echo(session_id, blocks) unless rest
+    return echo(session_id, blocks) if rest.to_s.empty?
 
     case command
     when '/read' then read(session_id, rest)
@@ -203,6 +203,8 @@ class EchoAgent
       rescue ArgumentError
         return ACP::RequestError.invalid_params
       end
+
+    return ACP::RequestError.invalid_params if command.empty?
 
     terminal = @client.create_terminal(ACP::Types::CreateTerminalRequest.new(session_id:, command:, args:))
     return terminal if terminal.is_a?(ACP::RequestError)
