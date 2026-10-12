@@ -165,7 +165,7 @@ class EchoAgent
 
   def cancelled?(session_id, permission)
     permission.outcome.is_a?(ACP::Types::RequestPermissionOutcome::Cancelled) ||
-      @lock.synchronize { @cancelled.include?(session_id) }
+      @lock.synchronize { @cancelled.include?(session_id) || !@sessions.key?(session_id) }
   end
 
   def allowed?(permission)
@@ -232,7 +232,8 @@ class EchoAgent
 
   def record(session_id, updates)
     @lock.synchronize do
-      @sessions[session_id] = @sessions.fetch(session_id).with_history(updates)
+      session = @sessions[session_id]
+      @sessions[session_id] = session.with_history(updates) if session
     end
   end
 end
