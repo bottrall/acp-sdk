@@ -270,6 +270,15 @@ describe EchoAgent do
       assert_equal [['/read'], []], [echoed, sent(:read_text_file)]
     end
 
+    it 'echoes a command followed only by whitespace' do
+      start(**terminal)
+      prompts = ['/read ', '/write   ', '/run ']
+      prompts.each { |text| prompt(text) }
+      requests = %i[read_text_file write_text_file create_terminal].flat_map { |name| sent(name) }
+
+      assert_equal [prompts, []], [echoed, requests]
+    end
+
     describe 'with /read' do
       it 'asks the client for the rest of the line as a path' do
         start(read_text_file: ACP::Types::ReadTextFileResponse.new(content: 'contents'))
@@ -338,6 +347,12 @@ describe EchoAgent do
           [ACP::RequestError::INVALID_PARAMS, []],
           [prompt('/run echo "hello').code, sent(:create_terminal)]
         )
+      end
+
+      it 'rejects an empty command without creating a terminal' do
+        start(**terminal)
+
+        assert_equal [ACP::RequestError::INVALID_PARAMS, []], [prompt("/run ''").code, sent(:create_terminal)]
       end
 
       it 'creates a terminal for the command with its shell-split arguments' do
