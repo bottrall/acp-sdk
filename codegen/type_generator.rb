@@ -1,18 +1,5 @@
 # frozen_string_literal: true
 
-# Turns the vendored ACP JSON Schema into the frozen value classes under
-# lib/acp/types. `files` is pure; the Rakefile does the writing. The stages
-# share the POROs and schema-wide constants declared here: Plan decides which
-# defs exist and which files they become, Resolve turns schema JSON into
-# Type/Field, Emit renders those as Ruby source, and Unions emits the union,
-# array-union, and enum strategies.
-#
-# A def reached only through a variant option's allOf ref is subsumed by that
-# variant class — the option carries its own properties, so the variant's
-# fields already inline the def's. The def gets no class file of its own
-# (its standalone to_h would drop the discriminator tag the variant stamps);
-# instead the flat name becomes an alias constant of the variant constant, or,
-# when several variant constants subsume it, no constant at all.
 module TypeGenerator
   extend self
 
@@ -71,7 +58,6 @@ module TypeGenerator
 
   PRIMITIVES = { 'boolean' => 'bool', 'integer' => 'Integer', 'number' => 'Numeric', 'string' => 'String' }.freeze
 
-  # Ruby classes a primitive union accepts, in the schema's variant order.
   RUBY_CLASSES = {
     'boolean' => %w[TrueClass FalseClass],
     'integer' => %w[Integer],
@@ -92,11 +78,6 @@ module TypeGenerator
   class Type
     attr_reader :rbs, :from, :to, :check
 
-    # `check` describes how from_h validates the value, as a tagged array the
-    # `guard` case turns into a Check call: [:string], [:boolean],
-    # [:integer, min, max], [:number, min, max], [:enum, values],
-    # [:one_of, classes], [:hash, inner], [:array, inner], [:object, const] or
-    # [:objects, const]. nil means the value passes through unvalidated.
     def initialize(rbs:, from: nil, to: nil, nullable: false, check: nil)
       @rbs = rbs
       @from = from
@@ -131,10 +112,6 @@ module TypeGenerator
     def nilable? = !required? || nullable?
   end
 
-  # The defs of one generation pass. In the unstable pass `twins` marks the
-  # defs generated under the unstable namespace; every other def resolves to
-  # the identical stable class. `subsumed` maps a def a variant class absorbs
-  # to that variant's constant.
   class Schema
     attr_reader :header
 

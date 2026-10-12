@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# A request handler's outcome plus a callback the transport runs once that
-# outcome is on the wire, for messages the peer must only see after the reply.
 class ACP::Transport::Reply
   # @dynamic result
   attr_reader :result #: ACP::Transport::Stdio::_ToH

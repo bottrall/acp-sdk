@@ -15,8 +15,6 @@ describe ACP::AgentConnection::OptionalMethod::Spec do
     )
   }
 
-  # One advertised InitializeResponse per optional method, keyed by its
-  # agent_method; the first test pins this table to the data table's keys.
   advertised = {
     authenticate: lambda {
       ACP::Types::InitializeResponse.new(protocol_version: 1, auth_methods: [auth_method])

@@ -2,11 +2,8 @@
 
 require_relative '../../../codegen/type_generator'
 
-# Hand-written fixture schemas for the codegen tests. Each def exercises one
-# emitter branch (object, union, array_union, enum, primitive_union); the
-# shapes mirror what schemars emits for the vendored ACP schemas. Def names
-# are synthetic so they can be evaluated into ACP::Types without colliding
-# with the generated classes.
+# Def names are synthetic so they can be evaluated into ACP::Types without
+# colliding with the generated classes.
 module FixtureSchemas
   STABLE = {
     '$defs' => {
@@ -122,8 +119,6 @@ module FixtureSchemas
     }
   }.freeze
 
-  # The unstable schema shares every def with STABLE except: Step gains a
-  # `name` property (a twin to regenerate) and Gadget is unique to it.
   UNSTABLE = {
     '$defs' => STABLE['$defs'].merge(
       'Step' => {

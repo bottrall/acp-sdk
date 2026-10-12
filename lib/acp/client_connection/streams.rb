@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
-# The session-streaming engine: the per-session update queue registry, the
-# permission queue dance, and the elicitation registry. It holds no send
-# facade of its own — requests go through the sender and answers to the agent
-# ride the connection's routes — so it is unit-testable without a transport.
+# It holds no send facade of its own — requests go through the sender and
+# answers to the agent ride the connection's routes — so it is unit-testable
+# without a transport.
 class ACP::ClientConnection::Streams
   CANCELLED = ACP::Types::RequestPermissionResponse.new(
     outcome: ACP::Types::RequestPermissionOutcome::Cancelled.new
@@ -138,9 +137,6 @@ class ACP::ClientConnection::Streams
     pending&.each { |replies| replies << [:value, CANCELLED] }
   end
 
-  # The route is registered at start, before connect records the advertised
-  # capabilities, so a request for an unadvertised mode answers -32602.
-  #
   # @rbs elicitation_id: String
   # @rbs return: void
   def register_elicitation(elicitation_id)

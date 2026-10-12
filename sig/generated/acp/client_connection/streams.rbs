@@ -1,9 +1,8 @@
 # Generated from lib/acp/client_connection/streams.rb with RBS::Inline
 
-# The session-streaming engine: the per-session update queue registry, the
-# permission queue dance, and the elicitation registry. It holds no send
-# facade of its own — requests go through the sender and answers to the agent
-# ride the connection's routes — so it is unit-testable without a transport.
+# It holds no send facade of its own — requests go through the sender and
+# answers to the agent ride the connection's routes — so it is unit-testable
+# without a transport.
 class ACP::ClientConnection::Streams
   CANCELLED: ACP::Types::RequestPermissionResponse
 
@@ -68,9 +67,6 @@ class ACP::ClientConnection::Streams
   # @rbs return: void
   def cancel: (String session_id) -> void
 
-  # The route is registered at start, before connect records the advertised
-  # capabilities, so a request for an unadvertised mode answers -32602.
-  #
   # @rbs elicitation_id: String
   # @rbs return: void
   def register_elicitation: (String elicitation_id) -> void

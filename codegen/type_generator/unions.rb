@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# Emits the union, array-union, and enum strategies: discriminator tagging,
-# the variant classes, and the dispatch bodies that route from_h/from_a.
 module TypeGenerator::Unions
   extend self
 
@@ -30,11 +28,6 @@ module TypeGenerator::Unions
     [union_file(defs, union, dispatch), *tagged_classes, *untagged_classes]
   end
 
-  # The discriminator tag plus the variant constants union_files emits, paired
-  # with their option and partitioned by the tag: tagged options name
-  # themselves after the discriminator value (falling back to the allOf ref
-  # when that would shadow a core class), untagged ones after their title —
-  # or, when the option is just the refed def, the def's own constant.
   def variant_consts(defs, union, definition)
     options = TypeGenerator::Resolve.variants(definition).reject { |option| option.key?('not') }
     tag = discriminator(options)
@@ -50,8 +43,6 @@ module TypeGenerator::Unions
   # variants, so their refs stay normal edges.
   def subsumes_ref?(option) = option.key?('properties') && !option.key?('not') && variant_ref(option)
 
-  # The defs a union's variant classes subsume, as [refed_def, variant_const]
-  # pairs — the same constants union_files emits for those options.
   def variant_refs(defs, union, definition)
     _, tagged, untagged = variant_consts(defs, union, definition)
     [*tagged, *untagged].filter_map do |option, variant|

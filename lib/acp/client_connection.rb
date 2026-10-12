@@ -26,12 +26,6 @@ class ACP::ClientConnection
 
   IGNORE = ->(_notification) {} #: ^(ACP::Types::SessionNotification) -> void
 
-  # One row of the serve table: the wire method the transport dispatches, the
-  # request type parsed from its params, the ivar holding the injected handler
-  # that serves the route, and the capability gate both connect's pre-flight
-  # and the per-route check read. family is the ivar connect records the
-  # family's advertisement in, and refuse names the ACP::RequestError
-  # constructor answering an unadvertised request.
   class Route
     # @rbs @wire: String
     # @rbs @type: ACP::Transport::_Parser
@@ -85,8 +79,7 @@ class ACP::ClientConnection
     attr_reader :label #: String
   end
 
-  # The served routes, the single declaration of route → type → gate →
-  # handler. The routes are registered at start, before connect records the
+  # The routes are registered at start, before connect records the
   # advertisement, so each one answers its refusal until then. The terminal
   # capability is a single bool, so its five routes share one gate.
   #
@@ -377,9 +370,7 @@ class ACP::ClientConnection
     parse(ACP::Types::LogoutResponse, @transport.request('logout', request.to_h))
   end
 
-  # Sends an extension request, keyed by its raw `_`-prefixed wire name, and
-  # returns the agent's reply as-is: extension methods have no schema to
-  # parse the result into.
+  # Extension methods have no schema to parse the result into.
   #
   # @rbs method: String
   # @rbs params: untyped
@@ -440,9 +431,6 @@ class ACP::ClientConnection
     ACP::RequestError.public_send(route.refuse, route.key)
   end
 
-  # The fs and terminal capabilities initialize advertises that no injected
-  # handler serves.
-  #
   # @rbs name: String
   # @rbs family: Symbol
   # @rbs capabilities: untyped
@@ -519,9 +507,6 @@ class ACP::ClientConnection
     handler.call(request)
   end
 
-  # The elicitation capabilities initialize advertises that no injected
-  # handler serves.
-  #
   # @rbs capabilities: ACP::Types::ElicitationCapabilities?
   # @rbs return: Array[String]
   def unserved_elicitation_modes(capabilities)

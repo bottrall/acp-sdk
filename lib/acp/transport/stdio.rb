@@ -2,11 +2,10 @@
 
 require 'json'
 
-# JSON-RPC 2.0 over newline-delimited JSON on an IO pair. A reader thread
-# dispatches inbound messages while outbound requests are pending, and each
-# inbound request is served on its own thread, so a handler can make an
-# outbound request mid-turn and still see notifications (e.g. session/cancel)
-# that arrive meanwhile.
+# A reader thread dispatches inbound messages while outbound requests are
+# pending, and each inbound request is served on its own thread, so a handler
+# can make an outbound request mid-turn and still see notifications (e.g.
+# session/cancel) that arrive meanwhile.
 class ACP::Transport::Stdio
   # @rbs @input: _Reader
   # @rbs @output: _Writer
@@ -38,9 +37,6 @@ class ACP::Transport::Stdio
     @logger = logger
   end
 
-  # Returns the reader thread, which ends at EOF on input after releasing any
-  # pending outbound requests.
-  #
   # @rbs requests: Hash[String, _Handler]
   # @rbs notifications: Hash[String, _NotificationHandler]
   # @rbs return: Thread
@@ -90,11 +86,6 @@ class ACP::Transport::Stdio
     @lock.synchronize { @pending.keys }.each { |id| cancel(id) }
   end
 
-  # The cancellation of the request the calling thread is serving, or nil off
-  # a serve thread. A handler observes the peer's $/cancel_request through it
-  # and can end early with ACP::RequestError.request_cancelled; whatever it
-  # returns, the transport sends exactly one response.
-  #
   # @rbs return: ACP::Transport::Cancellation?
   def cancellation
     ACP::Transport::Cancellation.current
@@ -246,9 +237,6 @@ class ACP::Transport::Stdio
     ACP::RequestError.internal_error
   end
 
-  # The success arm is whatever the handler returned, which the transport only
-  # knows serializes with to_h; RequestError picks the error arm of the reply.
-  #
   # @rbs id: untyped
   # @rbs outcome: (_ToH | ACP::RequestError)
   # @rbs return: void

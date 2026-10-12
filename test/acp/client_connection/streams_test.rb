@@ -3,8 +3,6 @@
 require 'test_helper'
 require 'timeout'
 
-# Returns the request it received and can hold the reply on a gate, so a
-# stream stays open between two threads.
 class SenderStub
   attr_reader :requests
 
@@ -27,8 +25,6 @@ class SenderStub
   def cancellation; end
 end
 
-# Unit tests for the session-streaming engine: it runs against a sender stub,
-# with no transport and no send facade.
 describe ACP::ClientConnection::Streams do
   def within(seconds = 2, &)
     Timeout.timeout(seconds, &)
