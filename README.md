@@ -62,6 +62,8 @@ The agent's contract:
 
 Extensions are `_`-prefixed methods outside the spec. `AgentConnection` takes `extension_requests` and `extension_notifications` hashes keyed by the raw wire name, and `client.ext_request` and `client.ext_notify` send them to the client; a handler name without the `_` prefix raises `ArgumentError`, and an extension request with no handler is answered with `-32601`.
 
+An embedder that manages the connection's lifecycle keeps a reference to the transport it built: `transport.serving_ids` returns the ids of the requests whose handlers are still running, and `transport.drain` blocks, with no timeout, until those handlers have replied and any `session_created` hook has run. `drain` waits only for the requests in flight when it is called, so join the reader thread `start` returns first — once the client hangs up nothing new arrives — and close the IOs after it returns. A write after either end of the output has closed is logged to the transport's logger as a warning and dropped rather than raised.
+
 [`examples/echo_agent.rb`](https://github.com/bottrall/acp-sdk/blob/main/examples/echo_agent.rb) is a complete agent that streams updates, asks permission, handles cancellation, reads and writes files and runs commands through the client (`/read <path>`, `/write <path> <text>` and `/run <command> [args]`, each advertised as a slash command only when the client supports it), and supports `session/load`, `session/list`, `session/resume`, `session/close` and `session/delete`.
 
 ## Driving an agent

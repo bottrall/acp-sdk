@@ -50,6 +50,30 @@ describe ACP::Transport::Stdio do
     { 'jsonrpc' => '2.0', 'id' => id, 'result' => { 'text' => 'hi' } }
   end
 
+  def start_gated
+    @entered = Thread::Queue.new
+    @gates = { 'a' => Thread::Queue.new, 'b' => Thread::Queue.new }
+    wait = lambda do |params|
+      @entered << Thread.current
+      @gates.fetch(params.fetch('gate')).pop
+      params
+    end
+    start(requests: { 'wait' => wait })
+  end
+
+  def send_gated(id, gate)
+    send_message({ 'jsonrpc' => '2.0', 'id' => id, 'method' => 'wait', 'params' => { 'gate' => gate } })
+    @entered.pop(timeout: 2)
+  end
+
+  def open_gate(gate)
+    @gates.fetch(gate) << true
+  end
+
+  def wait_until_blocked(thread)
+    Timeout.timeout(2) { Thread.pass until thread.status == 'sleep' }
+  end
+
   describe '#initialize' do
     it 'logs to stderr when no logger is given' do
       transport = ACP::Transport::Stdio.new(input: @input, output: @output)
@@ -245,6 +269,59 @@ describe ACP::Transport::Stdio do
       end.value
 
       assert_same cancellation, seen
+    end
+  end
+
+  describe '#serving_ids' do
+    before { start_gated }
+    after { %w[a b].each { |gate| open_gate(gate) } }
+
+    it 'lists the id of each request being served, in arrival order' do
+      send_gated(1, 'a')
+      send_gated('req-2', 'b')
+
+      assert_equal [1, 'req-2'], @transport.serving_ids
+    end
+
+    it 'lists an id the peer reuses once for each request still served under it' do
+      first = send_gated(1, 'a')
+      send_gated(1, 'b')
+      both = @transport.serving_ids
+      open_gate('a')
+      first.join(2)
+
+      assert_equal [[1, 1], [1]], [both, @transport.serving_ids]
+    end
+  end
+
+  describe '#drain' do
+    before { start_gated }
+    after { %w[a b].each { |gate| open_gate(gate) } }
+
+    it 'blocks until every request in flight is answered' do
+      first = send_gated(1, 'a')
+      send_gated(2, 'b')
+      drainer = Thread.new { @transport.drain }
+      wait_until_blocked(drainer)
+      open_gate('a')
+      first.join(2)
+      draining = drainer.alive?
+      open_gate('b')
+
+      assert_equal [true, drainer, []], [draining, drainer.join(2), @transport.serving_ids]
+    end
+
+    it 'does not wait for a request that arrives after it is called' do
+      send_gated(1, 'a')
+      drainer = Thread.new do
+        @transport.drain
+        @transport.serving_ids
+      end
+      wait_until_blocked(drainer)
+      send_gated(2, 'b')
+      open_gate('a')
+
+      assert_equal [2], value_of(drainer)
     end
   end
 
@@ -556,6 +633,27 @@ describe ACP::Transport::Stdio do
       end
     end
 
+    it 'cancels every request served under the id and no other' do
+      cancellations = Thread::Queue.new
+      release = Thread::Queue.new
+      wait = lambda do |_params|
+        cancellations << @transport.cancellation
+        release.pop
+      end
+      start(requests: echo.merge('wait' => wait))
+      served = [7, 7, 8].map do |id|
+        send_message({ 'jsonrpc' => '2.0', 'id' => id, 'method' => 'wait' })
+        cancellations.pop(timeout: 2)
+      end
+      send_message({ 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => 7 } })
+      send_message(echo_request(9))
+      receive_message
+      states = served.map(&:cancelled?)
+      release.close
+
+      assert_equal [true, true, false], states
+    end
+
     it 'leaves the answer to the handler: a cancelled request is answered once, with the handler\'s outcome' do
       release = Thread::Queue.new
       start(requests: echo.merge('wait' => ->(_) { release.pop.then { { 'wait' => 'done' } } }))
@@ -621,6 +719,13 @@ describe ACP::Transport::Stdio do
       release << true
 
       assert_equal [:warn, "write to closed peer: Errno::EPIPE: #{Errno::EPIPE.new.message}"], @logger.pop
+    end
+
+    it 'warns instead of raising when the output itself is closed' do
+      @output.close
+      @transport.notify('session/update')
+
+      assert_equal [[:warn, 'write to closed peer: IOError: closed stream']], @logger.drain
     end
   end
 end

@@ -11,7 +11,7 @@ class ACP::Transport::Stdio
 
   @next_id: Integer
 
-  @serving: Hash[untyped, ACP::Transport::Cancellation]
+  @serving: Hash[Thread, ACP::Transport::Stdio::Serving]
 
   @pending: Hash[untyped, Thread::Queue]
 
@@ -69,6 +69,15 @@ class ACP::Transport::Stdio
   # @rbs return: ACP::Transport::Cancellation?
   def cancellation: () -> ACP::Transport::Cancellation?
 
+  # @rbs return: Array[untyped]
+  def serving_ids: () -> Array[untyped]
+
+  # Joins the requests in flight at the call, not one the reader dispatches
+  # meanwhile: join the reader thread first to leave nothing in flight.
+  #
+  # @rbs return: void
+  def drain: () -> void
+
   private
 
   # @rbs line: String
@@ -101,18 +110,6 @@ class ACP::Transport::Stdio
   # @rbs method: String
   # @rbs return: void
   def serve: (_Handler? handler, untyped id, untyped params, String method) -> void
-
-  # Registered before the serve thread starts so a cancel racing the request
-  # cannot be missed, and dropped once the response is on the wire so later
-  # cancels for the id are ignored.
-  #
-  # @rbs id: untyped
-  # @rbs return: ACP::Transport::Cancellation
-  def register_serving: (untyped id) -> ACP::Transport::Cancellation
-
-  # @rbs id: untyped
-  # @rbs return: void
-  def unregister_serving: (untyped id) -> void
 
   # A notification has no reply to carry a malformed params failure, so one
   # is warned and dropped rather than answered.
@@ -160,8 +157,9 @@ class ACP::Transport::Stdio
   # @rbs return: void
   def close: () -> void
 
-  # A closed peer must not kill the thread writing the reply: the reader has
-  # to keep draining input so pending requests still settle at EOF.
+  # A closed peer (EPIPE) or an output the embedder already closed (IOError)
+  # must not kill the thread writing the reply: the reader has to keep
+  # draining input so pending requests still settle at EOF.
   #
   # @rbs message: Hash[String, untyped]
   # @rbs return: void
