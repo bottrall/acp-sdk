@@ -12,7 +12,7 @@ class ACP::Transport::Stdio
   # @rbs @write_lock: Thread::Mutex
   # @rbs @lock: Thread::Mutex
   # @rbs @pending: Hash[untyped, Thread::Queue]
-  # @rbs @serving: Hash[untyped, ACP::Transport::Cancellation]
+  # @rbs @serving: Hash[Thread, ACP::Transport::Stdio::Serving]
   # @rbs @next_id: Integer
   # @rbs @closed: bool
   # @rbs @logger: ACP::Transport::_Logger
@@ -98,6 +98,19 @@ class ACP::Transport::Stdio
     ACP::Transport::Cancellation.current
   end
 
+  # @rbs return: Array[untyped]
+  def serving_ids
+    @lock.synchronize { @serving.each_value.map(&:id) }
+  end
+
+  # Joins the requests in flight at the call, not one the reader dispatches
+  # meanwhile: join the reader thread first to leave nothing in flight.
+  #
+  # @rbs return: void
+  def drain
+    @lock.synchronize { @serving.keys }.each(&:join)
+  end
+
   private
 
   # @rbs line: String
@@ -172,37 +185,27 @@ class ACP::Transport::Stdio
   # @rbs method: String
   # @rbs return: void
   def serve(handler, id, params, method)
-    cancellation = register_serving(id)
-    Thread.new do
-      ACP::Transport::Cancellation.current = cancellation
-      outcome = handler ? invoke(handler, params) : ACP::RequestError.method_not_found(method)
-      case outcome
-      when ACP::Transport::Reply
-        reply(id, outcome.result)
-        quietly('reply after callback', &outcome.after)
-      else reply(id, outcome)
-      end
-    ensure
-      unregister_serving(id)
-    end
-  end
-
-  # Registered before the serve thread starts so a cancel racing the request
-  # cannot be missed, and dropped once the response is on the wire so later
-  # cancels for the id are ignored.
-  #
-  # @rbs id: untyped
-  # @rbs return: ACP::Transport::Cancellation
-  def register_serving(id)
     cancellation = ACP::Transport::Cancellation.new
-    @lock.synchronize { @serving[id] = cancellation }
-    cancellation
-  end
-
-  # @rbs id: untyped
-  # @rbs return: void
-  def unregister_serving(id)
-    @lock.synchronize { @serving.delete(id) }
+    # Registered on the reader thread so a cancel racing the request cannot
+    # be missed. The serve thread starts under the lock so it is registered
+    # before a drain can miss it or it can unregister itself.
+    @lock.synchronize do
+      thread = Thread.new do
+        ACP::Transport::Cancellation.current = cancellation
+        outcome = handler ? invoke(handler, params) : ACP::RequestError.method_not_found(method)
+        case outcome
+        when ACP::Transport::Reply
+          reply(id, outcome.result)
+          quietly('reply after callback', &outcome.after)
+        else reply(id, outcome)
+        end
+      ensure
+        # Unregistered only after the reply and its after callback, so drain waits
+        # for both and later cancels for the id are ignored.
+        @lock.synchronize { @serving.delete(Thread.current) }
+      end
+      @serving[thread] = Serving.new(id:, cancellation:)
+    end
   end
 
   # A notification has no reply to carry a malformed params failure, so one
@@ -216,8 +219,10 @@ class ACP::Transport::Stdio
       return @logger.warn('dropped malformed $/cancel_request: missing requestId')
     end
 
-    cancellation = @lock.synchronize { @serving[id] }
-    cancellation&.cancel
+    cancellations = @lock.synchronize do
+      @serving.each_value.filter_map { |entry| entry.cancellation if entry.id == id }
+    end
+    cancellations.each(&:cancel)
   end
 
   # For code with no reply to carry an error: a notification handler, or a
@@ -290,8 +295,9 @@ class ACP::Transport::Stdio
     end
   end
 
-  # A closed peer must not kill the thread writing the reply: the reader has
-  # to keep draining input so pending requests still settle at EOF.
+  # A closed peer (EPIPE) or an output the embedder already closed (IOError)
+  # must not kill the thread writing the reply: the reader has to keep
+  # draining input so pending requests still settle at EOF.
   #
   # @rbs message: Hash[String, untyped]
   # @rbs return: void
@@ -301,7 +307,7 @@ class ACP::Transport::Stdio
       @output.write(line)
       @output.flush
     end
-  rescue Errno::EPIPE => e
+  rescue Errno::EPIPE, IOError => e
     @logger.warn("write to closed peer: #{e.class}: #{e.message}")
   end
 end
