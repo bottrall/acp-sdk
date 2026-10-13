@@ -37,6 +37,19 @@ describe ACP::RequestError do
     end
   end
 
+  describe '#connection_closed?' do
+    it 'is true for the closed-connection sentinel' do
+      assert_predicate ACP::RequestError::CONNECTION_CLOSED, :connection_closed?
+    end
+
+    it 'is false for another error with the same code and message' do
+      sentinel = ACP::RequestError::CONNECTION_CLOSED
+      error = ACP::RequestError.new(code: sentinel.code, message: sentinel.message)
+
+      refute_predicate error, :connection_closed?
+    end
+  end
+
   describe '.parse_error' do
     it 'builds a -32700 error' do
       error = ACP::RequestError.parse_error

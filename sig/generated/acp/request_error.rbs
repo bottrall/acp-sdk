@@ -36,6 +36,14 @@ class ACP::RequestError
   # @rbs return: Hash[String, untyped]
   def to_h: () -> Hash[String, untyped]
 
+  CONNECTION_CLOSED: ACP::RequestError
+
+  # Identity rather than code and message: a live peer can answer with the
+  # same pair, and that refusal must not read as a closed connection.
+  #
+  # @rbs return: bool
+  def connection_closed?: () -> bool
+
   # @rbs return: ACP::RequestError
   def self.parse_error: () -> ACP::RequestError
 

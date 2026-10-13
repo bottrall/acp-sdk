@@ -36,6 +36,16 @@ class ACP::RequestError
     { 'code' => code, 'message' => message, 'data' => data }.compact
   end
 
+  CONNECTION_CLOSED = new(code: INTERNAL_ERROR, message: 'Connection closed') #: ACP::RequestError
+
+  # Identity rather than code and message: a live peer can answer with the
+  # same pair, and that refusal must not read as a closed connection.
+  #
+  # @rbs return: bool
+  def connection_closed?
+    equal?(CONNECTION_CLOSED)
+  end
+
   # @rbs return: ACP::RequestError
   def self.parse_error
     new(code: PARSE_ERROR, message: 'Parse error')

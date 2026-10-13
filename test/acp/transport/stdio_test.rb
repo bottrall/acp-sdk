@@ -82,7 +82,7 @@ describe ACP::Transport::Stdio do
       @input.close
 
       assert_raises(IOError) { reader.join(2) }
-      assert_same ACP::Transport::Stdio::CONNECTION_CLOSED, @transport.request('session/request_permission')
+      assert_same ACP::RequestError::CONNECTION_CLOSED, @transport.request('session/request_permission')
     end
   end
 
@@ -94,7 +94,7 @@ describe ACP::Transport::Stdio do
       refused = @transport.request('session/request_permission')
       @output.close
 
-      assert_equal [ACP::Transport::Stdio::CONNECTION_CLOSED, nil], [refused, @peer_reader.gets]
+      assert_equal [ACP::RequestError::CONNECTION_CLOSED, nil], [refused, @peer_reader.gets]
     end
 
     it 'writes the request with a fresh id, its method and its params' do
@@ -143,7 +143,7 @@ describe ACP::Transport::Stdio do
       receive_message
       @peer_writer.close
 
-      assert_same ACP::Transport::Stdio::CONNECTION_CLOSED, value_of(pending)
+      assert_same ACP::RequestError::CONNECTION_CLOSED, value_of(pending)
     end
   end
 

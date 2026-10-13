@@ -17,9 +17,7 @@ class ACP::Transport::Stdio
   # @rbs @closed: bool
   # @rbs @logger: ACP::Transport::_Logger
 
-  CONNECTION_CLOSED = ACP::RequestError.new(
-    code: ACP::RequestError::INTERNAL_ERROR, message: 'Connection closed'
-  ) #: ACP::RequestError
+  CONNECTION_CLOSED = ACP::RequestError::CONNECTION_CLOSED #: ACP::RequestError
 
   # @rbs input: _Reader
   # @rbs output: _Writer
