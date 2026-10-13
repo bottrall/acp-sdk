@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.13.0](https://github.com/bottrall/acp-sdk/compare/v0.12.0...v0.13.0) (2026-10-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* the ACP::Transport::_Transport, ACP::Transport::_Peer, ACP::ClientConnection::Streams::_Sender and ACP::AgentConnection::_Client interfaces no longer exist. Name ACP::Transport::Stdio and ACP::AgentConnection::Client instead.
+
+### Features
+
+* type transport and client seams as concrete classes ([#149](https://github.com/bottrall/acp-sdk/issues/149)) ([89805a0](https://github.com/bottrall/acp-sdk/commit/89805a0a462701a9528a059a63dc5147ba2285c2))
+
 ## [0.12.0](https://github.com/bottrall/acp-sdk/compare/v0.11.0...v0.12.0) (2026-10-13)
 
 
