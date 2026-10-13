@@ -37,6 +37,13 @@ class ACP::Transport::Stdio
     @logger = logger
   end
 
+  # Joining the returned thread does not wait for the requests still being
+  # served. EOF cancels none of them (only the peer's $/cancel_request does):
+  # each handler runs to completion and its reply is still written, to be
+  # warned and dropped if the peer is gone. A caller blocked in #request, a
+  # handler waiting on its own request included, is released with
+  # CONNECTION_CLOSED.
+  #
   # @rbs requests: Hash[String, _Handler]
   # @rbs notifications: Hash[String, _NotificationHandler]
   # @rbs return: Thread
@@ -273,6 +280,9 @@ class ACP::Transport::Stdio
     @lock.synchronize { @pending.delete(id) }&.tap { |queue| queue.push(result) }
   end
 
+  # Leaves @serving alone on purpose: embedders rely on in-flight handlers
+  # running to completion after the input ends.
+  #
   # @rbs return: void
   def close
     @lock.synchronize do
