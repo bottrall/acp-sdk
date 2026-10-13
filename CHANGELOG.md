@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.0](https://github.com/bottrall/acp-sdk/compare/v0.11.0...v0.12.0) (2026-10-13)
+
+
+### Features
+
+* add RequestError#connection_closed? predicate ([#145](https://github.com/bottrall/acp-sdk/issues/145)) ([16692be](https://github.com/bottrall/acp-sdk/commit/16692be92531e2ddbf14d6547a1bbb431cc151d3)), closes [#108](https://github.com/bottrall/acp-sdk/issues/108)
+* expose Stdio serving state and drain ([#148](https://github.com/bottrall/acp-sdk/issues/148)) ([e8169c1](https://github.com/bottrall/acp-sdk/commit/e8169c1902d8f8ab185cc809e14f08ea98300007)), closes [#107](https://github.com/bottrall/acp-sdk/issues/107)
+
 ## [0.11.0](https://github.com/bottrall/acp-sdk/compare/v0.10.0...v0.11.0) (2026-10-12)
 
 
