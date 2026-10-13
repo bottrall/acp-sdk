@@ -9,10 +9,3 @@ class ACP::ClientConnection
     def call: (ACP::Types::SessionNotification) -> void
   end
 end
-
-class ACP::ClientConnection::Streams
-  interface _Sender
-    def request: (String method, ?untyped params) -> (Hash[String, untyped] | ACP::RequestError)
-    def cancellation: () -> ACP::Transport::Cancellation?
-  end
-end

@@ -15,14 +15,14 @@ class ACP::AgentConnection
 
   @capabilities: ACP::Types::AgentCapabilities
 
-  @transport: ACP::Transport::_Transport
+  @transport: ACP::Transport::Stdio
 
   # The schema has no initialize capability for modes or config options: an
   # agent offers them per session, in its session responses, so they are
   # routed whenever the agent defines them.
   PER_SESSION: Hash[String, Symbol]
 
-  # @rbs transport: ACP::Transport::_Transport
+  # @rbs transport: ACP::Transport::Stdio
   # @rbs capabilities: ACP::Types::AgentCapabilities
   # @rbs agent_info: ACP::Types::Implementation?
   # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]
@@ -31,7 +31,7 @@ class ACP::AgentConnection
   # @rbs logger: ACP::Transport::_Logger
   # @rbs &factory: (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent
   # @rbs return: void
-  def initialize: (transport: ACP::Transport::_Transport, capabilities: ACP::Types::AgentCapabilities, ?agent_info: ACP::Types::Implementation?, ?auth_methods: Array[ACP::Types::AuthMethod::t], ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) { (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent } -> void
+  def initialize: (transport: ACP::Transport::Stdio, capabilities: ACP::Types::AgentCapabilities, ?agent_info: ACP::Types::Implementation?, ?auth_methods: Array[ACP::Types::AuthMethod::t], ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) { (ACP::AgentConnection::Client) -> ACP::AgentConnection::_Agent } -> void
 
   # @rbs return: Thread
   def start: () -> Thread

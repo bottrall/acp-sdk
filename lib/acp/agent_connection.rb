@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class ACP::AgentConnection
-  # @rbs @transport: ACP::Transport::_Transport
+  # @rbs @transport: ACP::Transport::Stdio
   # @rbs @capabilities: ACP::Types::AgentCapabilities
   # @rbs @agent_info: ACP::Types::Implementation?
   # @rbs @auth_methods: Array[ACP::Types::AuthMethod::t]
@@ -18,7 +18,7 @@ class ACP::AgentConnection
     'session/set_config_option' => :change_session_config_option
   }.freeze #: Hash[String, Symbol]
 
-  # @rbs transport: ACP::Transport::_Transport
+  # @rbs transport: ACP::Transport::Stdio
   # @rbs capabilities: ACP::Types::AgentCapabilities
   # @rbs agent_info: ACP::Types::Implementation?
   # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]

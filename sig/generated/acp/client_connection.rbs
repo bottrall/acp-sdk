@@ -1,7 +1,7 @@
 # Generated from lib/acp/client_connection.rb with RBS::Inline
 
 class ACP::ClientConnection
-  @transport: ACP::Transport::_Transport
+  @transport: ACP::Transport::Stdio
 
   @permission: ACP::ClientConnection::_PermissionHandler
 
@@ -96,7 +96,7 @@ class ACP::ClientConnection
   # up others.
   SERVE: Array[ACP::ClientConnection::Route]
 
-  # @rbs transport: ACP::Transport::_Transport
+  # @rbs transport: ACP::Transport::Stdio
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
   # @rbs read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
   # @rbs write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
@@ -117,7 +117,7 @@ class ACP::ClientConnection
   # @rbs streams: ACP::ClientConnection::Streams?
   # @rbs logger: ACP::Transport::_Logger
   # @rbs return: void
-  def initialize: (transport: ACP::Transport::_Transport, permission: ACP::ClientConnection::_PermissionHandler, ?read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?, ?write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?, ?create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?, ?terminal_output: (^(ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError))?, ?wait_for_terminal_exit: (^(ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?, ?kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?, ?release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?, ?elicitation: (^(ACP::Types::CreateElicitationRequest) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError))?, ?complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?, ?updates: ACP::ClientConnection::_UpdateHandler, ?mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?streams: ACP::ClientConnection::Streams?, ?logger: ACP::Transport::_Logger) -> void
+  def initialize: (transport: ACP::Transport::Stdio, permission: ACP::ClientConnection::_PermissionHandler, ?read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?, ?write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?, ?create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?, ?terminal_output: (^(ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError))?, ?wait_for_terminal_exit: (^(ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError))?, ?kill_terminal: (^(ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError))?, ?release_terminal: (^(ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError))?, ?elicitation: (^(ACP::Types::CreateElicitationRequest) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError))?, ?complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?, ?updates: ACP::ClientConnection::_UpdateHandler, ?mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?streams: ACP::ClientConnection::Streams?, ?logger: ACP::Transport::_Logger) -> void
 
   # @rbs return: Thread
   def start: () -> Thread

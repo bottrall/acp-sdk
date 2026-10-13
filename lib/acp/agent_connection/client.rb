@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
 class ACP::AgentConnection::Client
-  # @rbs @peer: ACP::Transport::_Peer
+  # @rbs @peer: ACP::Transport::Stdio
   # @rbs @mcp_advertised: bool
 
   # @dynamic capabilities, capabilities=
   attr_accessor :capabilities #: ACP::Types::ClientCapabilities?
 
-  # @rbs peer: ACP::Transport::_Peer
+  # @rbs peer: ACP::Transport::Stdio
   # @rbs mcp_advertised: bool
   # @rbs return: void
   def initialize(peer:, mcp_advertised: false)
