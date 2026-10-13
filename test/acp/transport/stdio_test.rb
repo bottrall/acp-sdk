@@ -76,6 +76,27 @@ describe ACP::Transport::Stdio do
       assert_same @reader, @reader.join(2)
     end
 
+    it 'leaves a handler still running at EOF uncancelled, to finish and answer' do
+      release = Thread::Queue.new
+      wait = ->(_) { release.pop.then { { 'cancelled' => @transport.cancellation.cancelled? } } }
+      start(requests: { 'wait' => wait })
+      send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'wait' })
+      @peer_writer.close
+      @reader.join(2)
+      release << true
+
+      assert_equal({ 'jsonrpc' => '2.0', 'id' => 1, 'result' => { 'cancelled' => false } }, receive_message)
+    end
+
+    it 'releases a handler blocked on its own outbound request at EOF with connection closed, and it still answers' do
+      start(requests: { 'session/prompt' => ->(params) { @transport.request('session/request_permission', params) } })
+      send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'session/prompt' })
+      receive_message
+      @peer_writer.close
+
+      assert_equal error_reply(1, ACP::Transport::Stdio::CONNECTION_CLOSED), receive_message
+    end
+
     it 'closes the transport when the reader thread dies reading' do
       reader = @transport.start
       reader.report_on_exception = false
@@ -588,6 +609,18 @@ describe ACP::Transport::Stdio do
         [[:warn, "write to closed peer: Errno::EPIPE: #{Errno::EPIPE.new.message}"], { 'sessionId' => 'sess_1' }],
         [warning, seen.pop(timeout: 2)]
       )
+    end
+
+    it 'warns and drops the reply of a handler that finishes after EOF once the peer is gone' do
+      release = Thread::Queue.new
+      start(requests: { 'wait' => ->(_) { release.pop.then { { 'wait' => 'done' } } } })
+      send_message({ 'jsonrpc' => '2.0', 'id' => 1, 'method' => 'wait' })
+      @peer_writer.close
+      @reader.join(2)
+      @peer_reader.close
+      release << true
+
+      assert_equal [:warn, "write to closed peer: Errno::EPIPE: #{Errno::EPIPE.new.message}"], @logger.pop
     end
   end
 end
