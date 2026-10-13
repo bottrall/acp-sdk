@@ -85,26 +85,4 @@ class ACP::AgentConnection
     # Runs on the transport's reader thread, so it must return quickly.
     def mcp_message_notification: (ACP::Types::Unstable::MessageMcpNotification notification) -> void
   end
-
-  # What an agent sees of ACP::AgentConnection::Client, so tests can pass a fake.
-  interface _Client
-    def update: (String session_id, ACP::Types::SessionUpdate::t update) -> void
-    def available_commands: (String session_id, Array[ACP::Types::AvailableCommand] commands) -> void
-    def request_permission: (ACP::Types::RequestPermissionRequest) -> (ACP::Types::RequestPermissionResponse | ACP::RequestError)
-    def cancel_requests: () -> void
-    def cancelled?: () -> bool
-    def read_text_file: (ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError)
-    def write_text_file: (ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError)
-    def create_terminal: (ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError)
-    def terminal_output: (ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError)
-    def wait_for_terminal_exit: (ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError)
-    def kill_terminal: (ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError)
-    def release_terminal: (ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
-    def create_elicitation: (ACP::Types::CreateElicitationRequest request) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError)
-    def complete_elicitation: (ACP::Types::CompleteElicitationNotification notification) -> void
-    def mcp_message: (ACP::Types::Unstable::MessageMcpRequest request) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
-    def ext_request: (String method, ?untyped params) -> (Hash[String, untyped] | ACP::RequestError)
-    def ext_notify: (String method, ?untyped params) -> void
-    def capabilities: () -> ACP::Types::ClientCapabilities?
-  end
 end

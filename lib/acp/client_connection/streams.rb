@@ -8,7 +8,7 @@ class ACP::ClientConnection::Streams
     outcome: ACP::Types::RequestPermissionOutcome::Cancelled.new
   ) #: ACP::Types::RequestPermissionResponse
 
-  # @rbs @sender: ACP::ClientConnection::Streams::_Sender
+  # @rbs @sender: ACP::Transport::Stdio
   # @rbs @permission: ACP::ClientConnection::_PermissionHandler
   # @rbs @updates: ACP::ClientConnection::_UpdateHandler
   # @rbs @complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
@@ -18,7 +18,7 @@ class ACP::ClientConnection::Streams
   # @rbs @pending_permissions: Hash[String, Array[Thread::Queue]]
   # @rbs @outstanding_elicitations: Hash[String, bool]
 
-  # @rbs sender: ACP::ClientConnection::Streams::_Sender
+  # @rbs sender: ACP::Transport::Stdio
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
   # @rbs logger: ACP::Transport::_Logger

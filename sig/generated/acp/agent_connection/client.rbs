@@ -3,15 +3,15 @@
 class ACP::AgentConnection::Client
   @mcp_advertised: bool
 
-  @peer: ACP::Transport::_Peer
+  @peer: ACP::Transport::Stdio
 
   # @dynamic capabilities, capabilities=
   attr_accessor capabilities: ACP::Types::ClientCapabilities?
 
-  # @rbs peer: ACP::Transport::_Peer
+  # @rbs peer: ACP::Transport::Stdio
   # @rbs mcp_advertised: bool
   # @rbs return: void
-  def initialize: (peer: ACP::Transport::_Peer, ?mcp_advertised: bool) -> void
+  def initialize: (peer: ACP::Transport::Stdio, ?mcp_advertised: bool) -> void
 
   # @rbs session_id: String
   # @rbs update: ACP::Types::SessionUpdate::t

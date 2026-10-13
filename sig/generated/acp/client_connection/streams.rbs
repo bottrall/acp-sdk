@@ -22,15 +22,15 @@ class ACP::ClientConnection::Streams
 
   @permission: ACP::ClientConnection::_PermissionHandler
 
-  @sender: ACP::ClientConnection::Streams::_Sender
+  @sender: ACP::Transport::Stdio
 
-  # @rbs sender: ACP::ClientConnection::Streams::_Sender
+  # @rbs sender: ACP::Transport::Stdio
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
   # @rbs logger: ACP::Transport::_Logger
   # @rbs complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
   # @rbs return: void
-  def initialize: (sender: ACP::ClientConnection::Streams::_Sender, permission: ACP::ClientConnection::_PermissionHandler, updates: ACP::ClientConnection::_UpdateHandler, logger: ACP::Transport::_Logger, ?complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?) -> void
+  def initialize: (sender: ACP::Transport::Stdio, permission: ACP::ClientConnection::_PermissionHandler, updates: ACP::ClientConnection::_UpdateHandler, logger: ACP::Transport::_Logger, ?complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?) -> void
 
   # The request waits on its own thread so the caller's thread can yield each
   # update as it arrives. The reader thread queues an update before it settles
