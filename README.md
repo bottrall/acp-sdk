@@ -1,90 +1,117 @@
 # acp-sdk
 
 [![Gem Version](https://badge.fury.io/rb/acp-sdk.svg)](https://rubygems.org/gems/acp-sdk)
+[![CI](https://github.com/bottrall/acp-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/bottrall/acp-sdk/actions/workflows/ci.yml)
 
-A Ruby SDK for the [Agent Client Protocol](https://agentclientprotocol.com) (ACP). It covers both sides of the protocol:
+A Ruby SDK for the [Agent Client Protocol](https://agentclientprotocol.com) (ACP), the protocol editors such as Zed and JetBrains use to talk to coding agents. Use it to:
 
-- **Agent side** (`ACP::AgentConnection`): expose your agent to ACP clients such as Zed and JetBrains.
-- **Client side** (`ACP::ClientConnection`): drive ACP agents from Ruby, for an editor integration or for tests.
+- **Build an agent** that any ACP client can run.
+- **Drive an agent** from Ruby, for an editor integration, a script or a test suite.
 
-Every ACP request, response and notification is a generated Ruby class under `ACP::Types`, and messages travel as JSON-RPC over stdio. The SDK speaks ACP protocol version 1.
+Every ACP message is a typed Ruby object, and the SDK takes care of the wire format, capability negotiation and cancellation. It speaks ACP protocol version 1.
 
 ## Installation
 
-Requires Ruby 3.4 or later (CI tests 3.4 and 4.0).
-
-Add the gem to your Gemfile:
+Requires Ruby 3.4 or later.
 
 ```sh
 bundle add acp-sdk
 ```
 
-Or install it directly:
-
-```sh
-gem install acp-sdk
-```
-
-Then require it:
-
 ```ruby
 require 'acp/sdk'
 ```
 
-## Serving an agent
+## Building an agent
 
-An agent is a plain Ruby object. `ACP::AgentConnection` answers `initialize` itself, turns each request into its generated `ACP::Types` object, calls the agent, and sends back what it returns. The factory block receives an `ACP::AgentConnection::Client` handle, which the agent keeps for sending session updates, asking permission, reading and writing files, and running commands in terminals.
+An agent is a plain Ruby object. `ACP::AgentConnection` calls its methods with typed requests and sends back what they return. The block receives a `client` handle for talking back to the editor.
 
 ```ruby
 require 'acp/sdk'
+require 'securerandom'
 
-connection = ACP::AgentConnection.new(
+class MyAgent
+  def initialize(client:)
+    @client = client
+  end
+
+  def new_session(_request)
+    ACP::Types::NewSessionResponse.new(session_id: SecureRandom.uuid)
+  end
+
+  def prompt(request)
+    reply = ACP::Types::ContentBlock::Text.new(text: 'Hello from Ruby!')
+    @client.update(request.session_id, ACP::Types::SessionUpdate::AgentMessageChunk.new(content: reply))
+    ACP::Types::PromptResponse.new(stop_reason: ACP::Types::StopReason::END_TURN)
+  end
+
+  def cancel(_notification); end
+end
+
+ACP::AgentConnection.new(
   transport: ACP::Transport::Stdio.new(input: $stdin, output: $stdout),
-  capabilities: ACP::Types::AgentCapabilities.new(load_session: true),
+  capabilities: ACP::Types::AgentCapabilities.new,
   agent_info: ACP::Types::Implementation.new(name: 'my-agent', version: '1.0.0')
-) { |client| MyAgent.new(client:) }
-connection.start.join
+) { |client| MyAgent.new(client:) }.start.join
 ```
 
-The agent's contract:
+Point your editor at that script and you have a working agent. For a fuller one that streams updates, asks permission, handles cancellation, uses files and terminals and persists sessions, see [`examples/echo_agent.rb`](https://github.com/bottrall/acp-sdk/blob/main/examples/echo_agent.rb).
 
-- It defines `new_session`, `prompt` and `cancel`. `load_session`, `list_sessions`, `resume_session`, `close_session` and `delete_session` are required only when `capabilities` advertises `load_session` or `session_capabilities.list`, `.resume`, `.close` or `.delete`, and `authenticate` only when `auth_methods` is non-empty, and `logout` only when `capabilities` advertises `auth.logout`; `start` raises `ArgumentError` when one is advertised but missing, and a method that is not advertised is answered with `-32601`. `change_session_mode` and `change_session_config_option` are optional, since modes and config options are offered per session rather than in `initialize`; `session/set_mode` and `session/set_config_option` are answered with `-32601` when the agent does not define them. `session_created`, if defined, runs right after the `session/new` reply is sent. `fork_session` is the same shape but unstable: `session/fork` routes only when the caller has opted into the unstable types with `require 'acp/types/unstable'` and `capabilities` advertises `session_capabilities.fork`, and is answered with `-32601` otherwise. `list_providers`, `set_provider` and `disable_provider` are the same shape but unstable too: `providers/list`, `providers/set` and `providers/disable` route only when the caller has opted into the unstable types with `require 'acp/types/unstable'` and `capabilities` advertises `providers`, and are answered with `-32601` otherwise.
-- Each request method returns its response type or an `ACP::RequestError`, which is sent as the error reply. Params that do not match the schema are answered with `-32602` before the agent sees them, with `data` naming the failing path, e.g. `{ errors: ['sessionId: expected String, got Integer'] }`.
-- A handler that raises is answered with `-32603` and the message `Internal error`. Nothing from the exception reaches the peer — its class and message are logged to the transport's logger instead, since messages can interpolate paths, queries or credentials. Return an `ACP::RequestError` from the handler when the peer should see a real error message.
-- `cancel` runs on the transport's reader thread, so it must return quickly: set a flag and let the prompt notice it, and call `client.cancel_requests` to cancel the connection's outstanding requests to the client — a blocked `request_permission` or `wait_for_terminal_exit`, say. That sends `$/cancel_request` for each one, and the blocked call returns once the client answers it, with its response or the `-32800` error.
-- After a cancel, the agent must itself end the turn with `stopReason: cancelled`. `ACP::AgentConnection` does not enforce it.
-- `client.cancelled?` is true in a handler when the client cancelled the request it is serving with `$/cancel_request`. The handler can end early by returning `ACP::RequestError.request_cancelled`, which is answered as `-32800`, or return a normal response, which is sent as-is — the transport sends exactly one response either way.
-- `client.capabilities` is `nil` until the client sends `initialize`.
-- `client.read_text_file` and `client.write_text_file` take an `ACP::Types::ReadTextFileRequest` or `ACP::Types::WriteTextFileRequest` and return the response type or an `ACP::RequestError`. Unless `client.capabilities` advertises `fs.read_text_file` or `fs.write_text_file`, they return `-32601` without sending anything to the client.
-- `client.create_terminal`, `client.terminal_output`, `client.wait_for_terminal_exit`, `client.kill_terminal` and `client.release_terminal` take the matching `ACP::Types` request (`CreateTerminalRequest`, `TerminalOutputRequest`, `WaitForTerminalExitRequest`, `KillTerminalRequest`, `ReleaseTerminalRequest`) and return its response type or an `ACP::RequestError`. Unless `client.capabilities` advertises `terminal`, they return `-32601` without sending anything to the client. The agent must release every terminal it creates.
-- `client.create_elicitation` takes an `ACP::Types::CreateElicitationRequest` and returns an `ACP::Types::CreateElicitationResponse` or an `ACP::RequestError`. Unless `client.capabilities` advertises the `elicitation.form` or `elicitation.url` mode the request asks for, it returns `-32601` without sending anything to the client. A response action the SDK does not know comes through as the raw hash the client sent. `client.complete_elicitation` takes an `ACP::Types::CompleteElicitationNotification` and sends nothing, returning `-32601`, unless the client advertises `elicitation.url`, since only URL-mode elicitations are completed.
-- Once the transport's input ends, a `client` request still waiting for its answer and every one made afterwards return an `ACP::RequestError` whose `connection_closed?` is true. It is false for every error the client sent, even one with the same `-32603` code and `Connection closed` message, so a handler can tell a client that is gone from one that refused without matching the message.
+### Agent methods
 
-Extensions are `_`-prefixed methods outside the spec. `AgentConnection` takes `extension_requests` and `extension_notifications` hashes keyed by the raw wire name, and `client.ext_request` and `client.ext_notify` send them to the client; a handler name without the `_` prefix raises `ArgumentError`, and an extension request with no handler is answered with `-32601`.
+Each request method returns its response type, or an [`ACP::RequestError`](#errors) to reject the request.
 
-An embedder that manages the connection's lifecycle keeps a reference to the transport it built: `transport.serving_ids` returns the ids of the requests whose handlers are still running, and `transport.drain` blocks, with no timeout, until those handlers have replied and any `session_created` hook has run. `drain` waits only for the requests in flight when it is called, so join the reader thread `start` returns first — once the client hangs up nothing new arrives — and close the IOs after it returns. A write after either end of the output has closed is logged to the transport's logger as a warning and dropped rather than raised.
+| Method | Implement it when |
+| --- | --- |
+| `new_session`, `prompt`, `cancel` | Always |
+| `load_session` | `capabilities` sets `load_session` |
+| `list_sessions`, `resume_session`, `close_session`, `delete_session` | `capabilities.session_capabilities` sets `list`, `resume`, `close` or `delete` |
+| `authenticate` | You pass `auth_methods:` |
+| `logout` | `capabilities.auth` sets `logout` |
+| `change_session_mode`, `change_session_config_option` | Your sessions offer modes or config options |
+| `session_created(response)` | You want a hook after `session/new` is answered, e.g. to send available commands |
 
-[`examples/echo_agent.rb`](https://github.com/bottrall/acp-sdk/blob/main/examples/echo_agent.rb) is a complete agent that streams updates, asks permission, handles cancellation, reads and writes files and runs commands through the client (`/read <path>`, `/write <path> <text>` and `/run <command> [args]`, each advertised as a slash command only when the client supports it), and supports `session/load`, `session/list`, `session/resume`, `session/close` and `session/delete`.
+`start` raises `ArgumentError` if you advertise a capability without implementing its method. Requests for anything you don't advertise are rejected before they reach your agent.
+
+### Calling the client
+
+| `client.` | Does |
+| --- | --- |
+| `update(session_id, update)` | Streams a `SessionUpdate`: message chunks, tool calls, plans and so on |
+| `available_commands(session_id, commands)` | Advertises slash commands |
+| `request_permission(request)` | Asks the user to approve a tool call |
+| `read_text_file`, `write_text_file` | Reads and writes files through the editor |
+| `create_terminal`, `terminal_output`, `wait_for_terminal_exit`, `kill_terminal`, `release_terminal` | Runs commands in the editor. Release every terminal you create. |
+| `create_elicitation`, `complete_elicitation` | Asks the user for structured input |
+| `capabilities` | The client's `ClientCapabilities` (`nil` until the client connects) |
+
+File, terminal and elicitation calls need the matching client capability. Without it they return an error without contacting the client, so check `client.capabilities` before offering a feature that depends on one.
+
+### Cancellation
+
+`cancel` must return quickly, so record the cancellation and return. Call `client.cancel_requests` to unblock anything your agent is waiting on (a permission prompt, a terminal), then have `prompt` return `StopReason::CANCELLED`. The SDK doesn't end the turn for you.
+
+Inside a request handler, `client.cancelled?` tells you whether the client has cancelled that request. Return `ACP::RequestError.request_cancelled` to stop early.
+
+### Shutting down
+
+`start` returns a thread that finishes when the client disconnects. To wait for in-flight handlers before closing your IO, keep a reference to the transport and call `transport.drain` after joining that thread.
 
 ## Driving an agent
 
-`ACP::ClientConnection` is the other side of the same transport. Each method takes the request's generated `ACP::Types` object and returns its response type or the agent's `ACP::RequestError`. `connect` sends `initialize`, since Ruby reserves that name for the constructor, and `authenticate` and `logout` send their namesake methods. `set_session_mode` sends `session/set_mode`, and `set_session_config_option` sends `session/set_config_option` and returns the session's complete option list, which replaces any state held from an earlier reply. `fork_session` sends `session/fork`; it is unstable, so the request and response types exist only under `ACP::Types::Unstable` and calling it before `require 'acp/types/unstable'` raises `NameError`. `list_providers`, `set_provider` and `disable_provider` send `providers/list`, `providers/set` and `providers/disable` on the same unstable terms. A handler that raises is answered with `-32603` and the message `Internal error`, and the exception is only logged to the transport's logger.
-
-`ACP::AgentProcess.spawn` starts a command with args, env and cwd, wires its stdio to a new `ACP::ClientConnection` and starts it. The block receives the connection and the process handle (`pid`, plus `stderr` when captured), and the child is terminated — after its stdin is closed, with TERM and then KILL if it will not exit — when the block exits, so a raised block cannot leak the process. Without a block, `spawn` returns the process and calling `terminate` is yours. `stderr` is `:inherit` by default, so the child writes to your stderr; pass `:capture` to collect it on the process instead.
+`ACP::AgentProcess.spawn` launches an agent as a child process and connects to it. The process is terminated when the block exits, even if the block raises.
 
 ```ruby
-require 'acp/sdk'
-
-response = ACP::AgentProcess.spawn(
+ACP::AgentProcess.spawn(
   'my-agent', '--flag',
   env: { 'API_KEY' => '...' },
   cwd: Dir.pwd,
-  stderr: :capture,
   permission: ->(request) { ask_the_user(request) },
   updates: ->(notification) { show(notification) }
 ) do |connection|
   connection.connect(ACP::Types::InitializeRequest.new(protocol_version: 1))
   session = connection.new_session(ACP::Types::NewSessionRequest.new(cwd: Dir.pwd, mcp_servers: []))
+
   prompt = [ACP::Types::ContentBlock::Text.new(text: 'hello')]
   connection.prompt_session(ACP::Types::PromptRequest.new(session_id: session.session_id, prompt:)) do |update|
     print update.content.text if update.is_a?(ACP::Types::SessionUpdate::AgentMessageChunk)
@@ -92,52 +119,90 @@ response = ACP::AgentProcess.spawn(
 end
 ```
 
-Any transport over a pair of IOs works too, so the connection can still be wired by hand when the agent is not a child process:
+- Connection methods mirror the protocol: `new_session`, `prompt_session`, `cancel_session`, `set_session_mode` and so on. `connect` sends `initialize`, because Ruby reserves that name.
+- `prompt_session` and `load_session` yield the session's updates as they arrive. Updates sent at other times go to `updates:`.
+- Without a block, `spawn` returns the process and you call `terminate` yourself. Pass `stderr: :capture` to collect the agent's stderr on `process.stderr`.
+
+### Serving files, terminals and elicitation
+
+To let the agent use files, terminals or elicitation, build an `ACP::ClientConnection` with the matching handlers and advertise the capability when you connect:
 
 ```ruby
 connection = ACP::ClientConnection.new(
-  transport: ACP::Transport::Stdio.new(input: some_io, output: other_io),
+  transport: ACP::Transport::Stdio.new(input: agent_stdout, output: agent_stdin),
   permission: ->(request) { ask_the_user(request) },
   read_text_file: ->(request) { ACP::Types::ReadTextFileResponse.new(content: File.read(request.path)) },
-  write_text_file: ->(request) {
+  write_text_file: lambda { |request|
     File.write(request.path, request.content)
     ACP::Types::WriteTextFileResponse.new
-  },
-  updates: ->(notification) { show(notification) }
+  }
+)
+connection.start
+connection.connect(
+  ACP::Types::InitializeRequest.new(
+    protocol_version: 1,
+    client_capabilities: ACP::Types::ClientCapabilities.new(
+      fs: ACP::Types::FileSystemCapabilities.new(read_text_file: true, write_text_file: true)
+    )
+  )
 )
 ```
 
-- `prompt_session` and `load_session` yield the session's updates on the calling thread as they arrive and return once the agent replies. Updates outside those calls, such as the available commands after `session/new`, go to `updates`, which runs on the reader thread and must return quickly. `resume_session` does not take a block: the agent must not replay history on resume, so unlike `load_session` there is nothing to stream. `close_session` and `delete_session` end the session, discarding it on the agent, and return once the agent replies.
-- `permission` answers `session/request_permission` with an `ACP::Types::RequestPermissionResponse` or an `ACP::RequestError`. It runs on its own thread, so it may block while the user decides, and `cancel_session` can be sent meanwhile.
-- The agent may cancel any outstanding request with `$/cancel_request`: a handler that can end early checks `connection.cancelled?` — close over the connection when constructing it — and returns `ACP::RequestError.request_cancelled`, which is answered as `-32800`. The permission handler still sees the cancel on its own thread. Whatever the handler returns, the transport sends exactly one response.
-- `read_text_file` and `write_text_file` answer the agent's `fs/read_text_file` and `fs/write_text_file` with an `ACP::Types::ReadTextFileResponse`, an `ACP::Types::WriteTextFileResponse` or an `ACP::RequestError`. They are routed by the `fs` capabilities `connect` sends: a method the client does not advertise is answered with `-32601` without reaching the handler, and `connect` raises `ArgumentError` — before sending `initialize` — when the request advertises a capability that has no handler.
-- `create_terminal`, `terminal_output`, `wait_for_terminal_exit`, `kill_terminal` and `release_terminal` answer the agent's `terminal/create`, `terminal/output`, `terminal/wait_for_exit`, `terminal/kill` and `terminal/release` with the matching `ACP::Types` response or an `ACP::RequestError`. They are routed by the `terminal` capability `connect` sends, the same way as `fs`: a method the client does not advertise is answered with `-32601` without reaching the handler, and `connect` raises `ArgumentError` — before sending `initialize` — when the request advertises `terminal` with any of the five missing. The transport serves each request on its own thread, so `wait_for_terminal_exit` may block without holding up the others.
-- `elicitation` answers the agent's `elicitation/create` with an `ACP::Types::CreateElicitationResponse` or an `ACP::RequestError`, serving both form and url mode, and `complete_elicitation` receives the agent's `elicitation/complete` notification. They are routed by the `elicitation` capabilities `connect` sends: a request whose mode the client does not advertise is answered with `-32602` without reaching the handler, and `connect` raises `ArgumentError` — before sending `initialize` — when the request advertises `elicitation.form` or `elicitation.url` with no `elicitation` handler. The client tracks the elicitation ids of the url-mode requests it serves, so a completion for an unknown or already-completed id is ignored. `complete_elicitation` runs on the reader thread and must return quickly; it may be omitted, in which case completions are only tracked.
-- Once the transport's input ends, a request still waiting for its answer and every one made afterwards return an `ACP::RequestError` whose `connection_closed?` is true. It is false for every error the agent sent, so a closed agent is told apart from a refusal without matching the message.
+| Handlers | Capability |
+| --- | --- |
+| `permission` | Always required |
+| `read_text_file`, `write_text_file` | `fs.read_text_file`, `fs.write_text_file` |
+| `create_terminal`, `terminal_output`, `wait_for_terminal_exit`, `kill_terminal`, `release_terminal` | `terminal` |
+| `elicitation`, `complete_elicitation` | `elicitation.form` or `elicitation.url` |
 
-Extensions work the same way in both directions: `extension_requests` and `extension_notifications` are hashes keyed by the raw `_`-prefixed wire name, `ext_request` sends one to the agent and returns its result as-is, and `ext_notify` sends an extension notification. A handler name without the `_` prefix raises `ArgumentError`, and an extension request nothing answers gets `-32601`.
+Each handler returns the response type or an `ACP::RequestError`. `connect` raises `ArgumentError` if you advertise a capability without its handlers.
+
+`permission` and the request handlers each run on their own thread, so they can block while the user decides. `updates` and `complete_elicitation` must return quickly.
+
+## Errors
+
+`ACP::RequestError` is what you return to reject a request, and what you get back when the other side rejects yours. Errors are returned, never raised:
+
+```ruby
+session = connection.new_session(request)
+if session.is_a?(ACP::RequestError)
+  warn "#{session.code}: #{session.message}"
+end
+```
+
+- Build standard errors with `ACP::RequestError.invalid_params`, `.method_not_found`, `.resource_not_found`, `.auth_required` or `.request_cancelled`, or custom ones with `ACP::RequestError.new(code:, message:, data:)`.
+- If a handler raises, the other side only sees `Internal error`. The exception is logged rather than sent, so a message can't leak paths or secrets. Return a `RequestError` when the other side should see the reason.
+- If the connection drops, pending and later requests return an error whose `connection_closed?` is true.
 
 ## Types
 
-Every ACP request, response and notification is a generated, frozen value class under `ACP::Types` with `from_h` and `to_h`. A few of its names are deliberate enough to deserve a note:
+Every ACP message is a frozen value class under `ACP::Types`, built with snake_case keyword arguments and converted with `from_h` and `to_h`.
 
-- `CancelRequestNotification` and `CancelNotification` are different methods with different payloads: the former is the params of the JSON-RPC-level `$/cancel_request`, which the transport handles itself, the latter is the params of ACP's `session/cancel`. Both spellings are the schema's, not a typo.
-- The schema names `session/new`, `session/load`, `session/list` and `session/prompt`'s params and result `NewSessionRequest`, `LoadSessionRequest`, `ListSessionsRequest` and `PromptRequest`, so the wire-shaped spellings exist as alias constants: `ACP::Types::SessionNewRequest`, `SessionLoadRequest`, `SessionListRequest`, `SessionListResponse` and `SessionPromptRequest` are the same classes as their targets. Both names are public API and here to stay — use whichever reads better.
-- The schema's pure string enums are generated as constant modules, for building requests and matching responses without string literals: `ACP::Types::ToolKind::EDIT`, `ACP::Types::StopReason::CANCELLED`, `ACP::Types::PlanEntryPriority::HIGH`, `ACP::Types::Role::USER` and the rest. They carry no validation of their own — the generated `from_h` checks incoming values against the schema regardless of how you build outgoing ones.
+- Unions are namespaces of variant classes, such as `ContentBlock::Text` and `SessionUpdate::ToolCall`. Match on them with `is_a?` or `case`.
+- String enums are modules of constants, such as `StopReason::END_TURN`, `ToolKind::EDIT` and `Role::USER`.
 
-## Unstable types
+## Extensions
 
-Some protocol features are not part of the spec yet, so their schema lives in a separate unstable file: draft session updates (`plan_update`, `plan_removed`, `notice`, `compaction_update`, `compaction_summary_chunk`, `subagent_update`, `session_message`, `session_message_chunk`), `PromptResponse#usage`, the NE (next edit) and provider methods, and the matching capabilities. They are generated under `ACP::Types::Unstable` and load only when you opt in:
+Custom methods outside the spec must start with `_`. Both connections accept `extension_requests:` and `extension_notifications:` hashes of handlers keyed by method name, and send their own with `ext_request` and `ext_notify`:
+
+```ruby
+ACP::AgentConnection.new(
+  # ...
+  extension_requests: { '_my_agent/ping' => ->(params) { { 'pong' => params } } }
+)
+
+connection.ext_request('_my_agent/ping', { 'hello' => 'world' }) # => { "pong" => { "hello" => "world" } }
+```
+
+## Unstable features
+
+Draft protocol features, such as session forking, providers, usage reporting and plan and compaction updates, live under `ACP::Types::Unstable` and load only when you opt in:
 
 ```ruby
 require 'acp/types/unstable'
 ```
 
-Until then, referencing `ACP::Types::Unstable` is a `NameError`, and the stable `ACP::Types` namespace is byte-identical either way: types the unstable schema shares with the stable one resolve to the same generated classes, so opting in adds names without changing or duplicating any stable one.
-
-These types are **unstable**: they are not part of the ACP spec, agents and clients must not rely on the peer supporting them, and any of them may change or disappear between releases without a major version bump. When a stable schema absorbs one of them, the unstable twin goes away and the stable name stays.
-
-The connections route `session/fork`, the provider methods and `mcp/message`, but not every unstable method has routing yet: the NE methods (`nes/start`, `nes/suggest`, `nes/accept`, `nes/reject`, `nes/close`), the document notifications (`document/didOpen` and friends) and the unstable `ClientCapabilities` are generated as public API for callers wiring those methods at the transport level, and may gain connection routing later.
+Once loaded, the connections support `fork_session`, `list_providers`, `set_provider` and `disable_provider`. Unstable features aren't part of the spec yet. Peers may not support them, and they can change or disappear in any release.
 
 ## Contributing
 
