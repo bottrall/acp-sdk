@@ -245,7 +245,7 @@ class ACP::Transport::Stdio
   #
   # @rbs handler: _Handler
   # @rbs params: untyped
-  # @rbs return: (_ToH | ACP::RequestError | ACP::Transport::Reply)
+  # @rbs return: (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
   def invoke(handler, params)
     handler.call(params)
   rescue StandardError => e
@@ -254,7 +254,7 @@ class ACP::Transport::Stdio
   end
 
   # @rbs id: untyped
-  # @rbs outcome: (_ToH | ACP::RequestError)
+  # @rbs outcome: (ACP::Transport::_Response | ACP::RequestError)
   # @rbs return: void
   def reply(id, outcome)
     payload = case outcome

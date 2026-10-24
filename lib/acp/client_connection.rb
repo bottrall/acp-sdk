@@ -2,7 +2,6 @@
 
 class ACP::ClientConnection
   # @rbs @transport: ACP::Transport::Stdio
-  # @rbs @permission: ACP::ClientConnection::_PermissionHandler
   # @rbs @read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
   # @rbs @write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?
   # @rbs @create_terminal: (^(ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError))?

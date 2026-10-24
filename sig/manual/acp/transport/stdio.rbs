@@ -1,8 +1,4 @@
 class ACP::Transport::Stdio
-  interface _ToH
-    def to_h: () -> Hash[String, untyped]
-  end
-
   interface _Reader
     def each_line: () { (String) -> void } -> untyped
   end
@@ -13,7 +9,7 @@ class ACP::Transport::Stdio
   end
 
   interface _Handler
-    def call: (untyped params) -> (_ToH | ACP::RequestError | ACP::Transport::Reply)
+    def call: (untyped params) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
   end
 
   interface _NotificationHandler
