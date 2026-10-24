@@ -6,4 +6,8 @@ module ACP::Extensions
   # @rbs name: String
   # @rbs return: void
   def validate_name: (String name) -> void
+
+  # @rbs names: Array[String]
+  # @rbs return: void
+  def validate_names: (Array[String] names) -> void
 end

@@ -17,10 +17,7 @@ class ACP::AgentConnection
 
   @transport: ACP::Transport::Stdio
 
-  # The schema has no initialize capability for modes or config options: an
-  # agent offers them per session, in its session responses, so they are
-  # routed whenever the agent defines them.
-  PER_SESSION: Hash[String, Symbol]
+  OPTIONAL_ROUTES: Array[ACP::AgentConnection::OptionalRoute]
 
   # @rbs transport: ACP::Transport::Stdio
   # @rbs capabilities: ACP::Types::AgentCapabilities
@@ -40,23 +37,17 @@ class ACP::AgentConnection
 
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs client: ACP::AgentConnection::Client
+  # @rbs optional: Array[ACP::AgentConnection::OptionalRoute]
   # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
-  def requests: (ACP::AgentConnection::_Agent agent, ACP::AgentConnection::Client client) -> Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
+  def requests: (ACP::AgentConnection::_Agent agent, ACP::AgentConnection::Client client, Array[ACP::AgentConnection::OptionalRoute] optional) -> Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
 
-  # The unstable request types are referenced while the hash is built, so
+  # The unstable request types are referenced while the rows are built, so
   # without the guard start would raise NameError even for an agent that never
-  # advertises fork or providers.
+  # advertises fork or providers. Probing them only after the caller opted in
+  # also keeps a duck-typed capabilities object from advertising them.
   #
-  # @rbs full: ACP::AgentConnection::_FullAgent
-  # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
-  def unstable_requests: (ACP::AgentConnection::_FullAgent full) -> Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
-
-  # The unstable specs pair with the unstable request routes, which reference
-  # the unstable request classes, so both are only probed after the caller
-  # opted in with `require 'acp/types/unstable'`.
-  #
-  # @rbs return: Array[ACP::AgentConnection::OptionalMethod::Spec]
-  def optional_methods: () -> Array[ACP::AgentConnection::OptionalMethod::Spec]
+  # @rbs return: Array[ACP::AgentConnection::OptionalRoute]
+  def unstable_routes: () -> Array[ACP::AgentConnection::OptionalRoute]
 
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs return: Hash[String, ^(untyped) -> void]

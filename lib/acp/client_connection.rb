@@ -200,8 +200,7 @@ class ACP::ClientConnection
     @elicitation_capabilities = nil
     @extension_requests = extension_requests
     @extension_notifications = extension_notifications
-    extension_requests.each_key { |name| ACP::Extensions.validate_name(name) }
-    extension_notifications.each_key { |name| ACP::Extensions.validate_name(name) }
+    ACP::Extensions.validate_names(extension_requests.keys + extension_notifications.keys)
     @streams = streams || Streams.new(sender: transport, permission:, updates:, logger:, complete_elicitation:)
     @logger = logger
   end
