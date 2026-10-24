@@ -8,8 +8,6 @@ class ACP::AgentConnection
     def respond_to?: (Symbol) -> bool
   end
 
-  # Every optional method an agent may define; AgentConnection routes each one
-  # only when initialize advertises it or, per session, the agent defines it.
   interface _FullAgent
     include _Agent
     def authenticate: (ACP::Types::AuthenticateRequest) -> (ACP::Types::AuthenticateResponse | ACP::RequestError)

@@ -141,13 +141,11 @@ class ACP::AgentConnection
     }.merge(optional_requests)
   end
 
-  # The unstable request types are referenced while the rows are built, so
-  # without the guard start would raise NameError even for an agent that never
-  # advertises fork or providers. Probing them only after the caller opted in
-  # also keeps a duck-typed capabilities object from advertising them.
-  #
   # @rbs return: Array[ACP::AgentConnection::OptionalRoute]
   def unstable_routes
+    # The rows reference the unstable request types, so without the guard start
+    # would raise NameError even for an agent that never advertises fork or
+    # providers.
     return [] unless ACP::Types.unstable_enabled?
 
     [

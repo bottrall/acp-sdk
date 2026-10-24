@@ -12,9 +12,6 @@ class ACP::AgentConnection::OptionalRoute
   # @dynamic handle
   attr_reader :handle #: ^(ACP::AgentConnection::_FullAgent, untyped) -> (ACP::Transport::_Response | ACP::RequestError)
 
-  # A nil path marks a per-session method: the schema has no initialize
-  # capability for it, because an agent offers it in its session responses.
-  #
   # @rbs rpc_method: String
   # @rbs type: ACP::Transport::_Parser
   # @rbs agent_method: Symbol
@@ -49,6 +46,8 @@ class ACP::AgentConnection::OptionalRoute
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs return: bool
   def routed?(initialize_response, agent)
+    # The schema gives a per-session method no initialize capability, since an
+    # agent offers it in its session responses.
     path ? advertised?(initialize_response) : agent.respond_to?(agent_method)
   end
 
