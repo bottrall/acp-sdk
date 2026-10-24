@@ -56,16 +56,33 @@ class ClientConnectionStreams
     @log << [:dispatch, params]
   end
 
-  def complete_elicitation(params)
-    @log << [:complete_elicitation, params]
-  end
-
   def cancel(session_id)
     @log << [:cancel, session_id]
   end
+end
 
-  def register_elicitation(elicitation_id)
-    @log << [:register_elicitation, elicitation_id]
+class ClientConnectionInbound
+  attr_accessor :refusal
+
+  def initialize(log)
+    @log = log
+  end
+
+  def requests
+    { 'inbound/request' => :inbound_request }
+  end
+
+  def notifications
+    { 'inbound/notification' => :inbound_notification }
+  end
+
+  def advertise(capabilities)
+    @log << [:advertise, capabilities]
+    raise refusal if refusal
+  end
+
+  def mcp_advertised=(advertised)
+    @log << [:mcp_advertised, advertised]
   end
 end
 
@@ -84,14 +101,15 @@ describe ACP::ClientConnection do
     @log = []
     @transport = ClientConnectionTransport.new(@log)
     @streams = ClientConnectionStreams.new(@log)
+    @inbound = ClientConnectionInbound.new(@log)
   end
 
-  def connection(**)
-    ACP::ClientConnection.new(transport: @transport, permission: ->(_request) {}, streams: @streams, **)
+  def connection
+    ACP::ClientConnection.new(transport: @transport, streams: @streams, inbound: @inbound)
   end
 
-  def started(**)
-    connection(**).tap(&:start)
+  def built(**)
+    ACP::ClientConnection.build(transport: @transport, permission: ->(_request) {}, **).tap(&:start)
   end
 
   def route(wire)
@@ -130,22 +148,16 @@ describe ACP::ClientConnection do
     end
   end
 
-  def serve_handlers(answer = nil)
-    %i[
-      read_text_file
-      write_text_file
-      create_terminal
-      terminal_output
-      wait_for_terminal_exit
-      kill_terminal
-      release_terminal
-    ].to_h { |name| [name, recording(name, answer)] }
-  end
-
-  def parse_error(type, params)
-    type.from_h(params)
-  rescue ACP::Types::ParseError => e
-    e
+  def handler(**methods)
+    log = @log
+    Object.new.tap do |object|
+      methods.each do |name, answer|
+        object.define_singleton_method(name) do |argument|
+          log << [name, argument.class]
+          answer
+        end
+      end
+    end
   end
 
   def self.it_sends(method, wire, request, reply, response)
@@ -157,42 +169,18 @@ describe ACP::ClientConnection do
     end
   end
 
-  describe ACP::ClientConnection::Route do
-    def build(**)
-      ACP::ClientConnection::Route.new(
-        wire: 'x/y', type: ACP::Types::ReadTextFileRequest, handler: :@x, family: :@y, key: 'x.y', **
-      )
-    end
-
-    it 'labels a route with its key when no label is given' do
-      assert_equal 'x.y', build.label
-    end
-
-    it 'keeps a label that differs from the key' do
-      assert_equal %w[x.y x.create], [build(label: 'x.create').key, build(label: 'x.create').label]
-    end
-  end
-
-  describe 'initialize' do
-    it 'refuses an extension request name without the underscore prefix' do
-      assert_raises(ArgumentError) { connection(extension_requests: { 'myapp/ping' => ->(_params) {} }) }
-    end
-
-    it 'refuses an extension notification name without the underscore prefix' do
-      assert_raises(ArgumentError) { connection(extension_notifications: { 'myapp/note' => ->(_params) {} }) }
-    end
-
-    it 'builds streams that send through the transport when none are injected' do
+  describe '.build' do
+    it 'wires streams that send through the transport' do
       @transport.replies['session/prompt'] = { 'stopReason' => 'end_turn' }
       request = ACP::Types::PromptRequest.new(session_id: 's1', prompt: [])
-      answer = started(streams: nil).prompt_session(request) { nil }
+      answer = built.prompt_session(request) { nil }
 
       assert_equal([[[:request, 'session/prompt', request.to_h]], 'end_turn'], [@log, answer.stop_reason])
     end
 
-    it 'builds streams that ask the permission handler when none are injected' do
+    it 'wires the permission handler to session/request_permission' do
       answer = ACP::Types::RequestPermissionResponse.new(outcome: ACP::Types::RequestPermissionOutcome::Cancelled.new)
-      started(streams: nil, permission: recording(:permission, answer))
+      built(permission: recording(:permission, answer))
       reply = route('session/request_permission').call(
         { 'sessionId' => 's', 'toolCall' => { 'toolCallId' => 'c1' }, 'options' => [] }
       )
@@ -200,24 +188,70 @@ describe ACP::ClientConnection do
       assert_equal([answer, [[:permission, ACP::Types::RequestPermissionRequest]]], [reply, @log])
     end
 
-    it 'builds streams that hand session updates to the updates handler when none are injected' do
-      started(streams: nil, updates: recording(:updates))
+    it 'wires the updates handler to session/update' do
+      built(updates: recording(:updates))
       update = { 'sessionUpdate' => 'agent_message_chunk', 'content' => { 'type' => 'text', 'text' => 'hi' } }
       @transport.notification_handlers.fetch('session/update').call({ 'sessionId' => 's', 'update' => update })
 
       assert_equal [[:updates, ACP::Types::SessionNotification]], @log
     end
 
-    it 'builds streams that hand elicitation completions to the complete_elicitation handler when none are injected' do
-      client = started(
-        streams: nil, elicitation: ->(_request) {}, complete_elicitation: recording(:complete_elicitation)
+    it 'wires the fs and terminal handler objects to their routes' do
+      terminal = handler(
+        create_terminal: nil,
+        terminal_output: nil,
+        wait_for_terminal_exit: nil,
+        kill_terminal: :killed,
+        release_terminal: nil
       )
-      client.connect(initialize_request(elicitation: modes(:url)))
-      route('elicitation/create').call(url_params)
+      client = built(fs: handler(read_text_file: :read), terminal:)
+      client.connect(initialize_request(fs: fs(read_text_file: true), terminal: true))
       @log.clear
+      replies = [
+        route('fs/read_text_file').call({ 'sessionId' => 's', 'path' => '/a.txt' }),
+        route('terminal/kill').call({ 'sessionId' => 's', 'terminalId' => 't1' })
+      ]
+
+      assert_equal(
+        [%i[read killed], [[:read_text_file, ACP::Types::ReadTextFileRequest], [:kill_terminal, ACP::Types::KillTerminalRequest]]],
+        [replies, @log]
+      )
+    end
+
+    it 'wires the elicitation handler object to elicitation/create and elicitation/complete' do
+      client = built(elicitation: handler(create_elicitation: :created, complete_elicitation: nil))
+      client.connect(initialize_request(elicitation: modes(:url)))
+      @log.clear
+      reply = route('elicitation/create').call(url_params)
       @transport.notification_handlers.fetch('elicitation/complete').call({ 'elicitationId' => 'e1' })
 
-      assert_equal [[:complete_elicitation, ACP::Types::CompleteElicitationNotification]], @log
+      assert_equal(
+        [:created, [
+          [:create_elicitation, ACP::Types::CreateElicitationRequest],
+          [:complete_elicitation, ACP::Types::CompleteElicitationNotification]
+        ]],
+        [reply, @log]
+      )
+    end
+
+    it 'wires the mcp_message handler and the extension handlers' do
+      mcp = ->(_request) {}
+      request = ->(_params) {}
+      notification = ->(_params) {}
+      built(
+        mcp_message: mcp,
+        extension_requests: { '_myapp/ping' => request },
+        extension_notifications: { '_myapp/note' => notification }
+      )
+
+      assert_equal(
+        [true, true, true],
+        [
+          @transport.handlers.key?('mcp/message'),
+          route('_myapp/ping').equal?(request),
+          @transport.notification_handlers.fetch('_myapp/note').equal?(notification)
+        ]
+      )
     end
   end
 
@@ -226,89 +260,53 @@ describe ACP::ClientConnection do
       assert_same @transport.reader, connection.start
     end
 
-    it 'routes session/request_permission to the streams' do
-      started
+    it 'routes session/request_permission to the streams, beside the inbound requests' do
+      connection.start
       answer = route('session/request_permission').call(:params)
 
-      assert_equal([[%i[request_permission params]], :permission_answer], [@log, answer])
+      assert_equal(
+        [[%i[request_permission params]], :permission_answer, :inbound_request],
+        [@log, answer, route('inbound/request')]
+      )
     end
 
-    it 'routes the extension requests to their handlers' do
-      handler = ->(_params) {}
-      started(extension_requests: { '_myapp/ping' => handler })
-
-      assert_same handler, route('_myapp/ping')
-    end
-
-    it 'routes session/update and elicitation/complete to the streams' do
-      started
+    it 'routes session/update to the streams, beside the inbound notifications' do
+      connection.start
       @transport.notification_handlers.fetch('session/update').call(:update)
-      @transport.notification_handlers.fetch('elicitation/complete').call(:completion)
 
-      assert_equal [%i[dispatch update], %i[complete_elicitation completion]], @log
-    end
-
-    it 'routes the extension notifications to their handlers' do
-      handler = ->(_params) {}
-      started(extension_notifications: { '_myapp/note' => handler })
-
-      assert_same handler, @transport.notification_handlers.fetch('_myapp/note')
+      assert_equal(
+        [[%i[dispatch update]], :inbound_notification],
+        [@log, @transport.notification_handlers.fetch('inbound/notification')]
+      )
     end
   end
 
   describe 'connect' do
-    def refusal(connection, request)
-      [assert_raises(ArgumentError) { connection.connect(request) }.message, @log]
-    end
-
-    it 'refuses to advertise an fs method no handler serves, before sending anything' do
-      client = connection(read_text_file: ->(_request) {})
-      request = initialize_request(fs: fs(read_text_file: true, write_text_file: true))
+    it 'advertises the client capabilities to the inbound side before sending initialize' do
+      request = initialize_request(terminal: true)
+      connection.connect(request)
 
       assert_equal(
-        ['initialize advertises fs methods no handler serves: fs.writeTextFile', []],
-        refusal(client, request)
+        [[:advertise, request.client_capabilities], [:request, 'initialize', request.to_h], [:mcp_advertised, false]],
+        @log
       )
     end
 
-    it 'names only the fs methods the request advertises' do
-      request = initialize_request(fs: fs(read_text_file: true), terminal: true)
+    it 'sends nothing when the inbound side refuses the capabilities' do
+      @inbound.refusal = ArgumentError.new('unserved')
+      request = initialize_request(terminal: true)
+      error = assert_raises(ArgumentError) { connection.connect(request) }
 
-      assert_equal(
-        ['initialize advertises fs methods no handler serves: fs.readTextFile', []],
-        refusal(connection, request)
-      )
+      assert_equal ['unserved', [[:advertise, request.client_capabilities]]], [error.message, @log]
     end
 
-    it 'refuses to advertise the terminal when a terminal method has no handler' do
-      client = connection(create_terminal: ->(_request) {})
-      expected = 'initialize advertises terminal methods no handler serves: ' \
-                 'terminal.output, terminal.wait_for_exit, terminal.kill, terminal.release'
+    it 'tells the inbound side the agent advertised mcpCapabilities.acp when its reply does' do
+      @transport.replies['initialize'] = {
+        'protocolVersion' => 1, 'agentCapabilities' => { 'mcpCapabilities' => { 'acp' => true } }
+      }
+      connection.connect(initialize_request)
 
-      assert_equal [expected, []], refusal(client, initialize_request(terminal: true))
-    end
-
-    it 'refuses to advertise the form elicitation mode with no elicitation handler' do
-      assert_equal(
-        ['initialize advertises elicitation modes no handler serves: elicitation.form', []],
-        refusal(connection, initialize_request(elicitation: modes(:form)))
-      )
-    end
-
-    it 'refuses to advertise the url elicitation mode with no elicitation handler' do
-      assert_equal(
-        ['initialize advertises elicitation modes no handler serves: elicitation.url', []],
-        refusal(connection, initialize_request(elicitation: modes(:url)))
-      )
-    end
-
-    it 'advertises every capability its handlers serve' do
-      client = connection(**serve_handlers, elicitation: ->(_request) {})
-      request = initialize_request(
-        fs: fs(read_text_file: true, write_text_file: true), terminal: true, elicitation: modes(:form, :url)
-      )
-
-      assert_instance_of ACP::Types::InitializeResponse, client.connect(request)
+      assert_equal [:mcp_advertised, true], @log.last
     end
 
     it "returns the agent's error" do
@@ -328,7 +326,10 @@ describe ACP::ClientConnection do
       request = initialize_request
       answer = connection.connect(request)
 
-      assert_equal([[[:request, 'initialize', request.to_h]], ACP::Types::InitializeResponse], [@log, answer.class])
+      assert_equal(
+        [[:request, 'initialize', request.to_h], ACP::Types::InitializeResponse],
+        [@log.find { |entry| entry.first == :request }, answer.class]
+      )
     end
 
     it 'answers a reply naming another protocol version with the unsupported version error' do
@@ -548,150 +549,6 @@ describe ACP::ClientConnection do
     end
   end
 
-  describe 'serving a route' do
-    terminal_params = { 'sessionId' => 's', 'terminalId' => 't1' }
-    routes = [
-      [
-        'fs/read_text_file',
-        :read_text_file,
-        'fs.readTextFile',
-        { 'sessionId' => 's', 'path' => '/a.txt' },
-        ACP::Types::ReadTextFileRequest
-      ],
-      [
-        'fs/write_text_file',
-        :write_text_file,
-        'fs.writeTextFile',
-        { 'sessionId' => 's', 'path' => '/a.txt', 'content' => 'hi' },
-        ACP::Types::WriteTextFileRequest
-      ],
-      [
-        'terminal/create',
-        :create_terminal,
-        'terminal',
-        { 'sessionId' => 's', 'command' => 'echo' },
-        ACP::Types::CreateTerminalRequest
-      ],
-      ['terminal/output', :terminal_output, 'terminal', terminal_params, ACP::Types::TerminalOutputRequest],
-      [
-        'terminal/wait_for_exit',
-        :wait_for_terminal_exit,
-        'terminal',
-        terminal_params,
-        ACP::Types::WaitForTerminalExitRequest
-      ],
-      ['terminal/kill', :kill_terminal, 'terminal', terminal_params, ACP::Types::KillTerminalRequest],
-      ['terminal/release', :release_terminal, 'terminal', terminal_params, ACP::Types::ReleaseTerminalRequest]
-    ]
-
-    def advertising(**capabilities)
-      started(**serve_handlers(:answer)).tap do |client|
-        client.connect(initialize_request(**capabilities))
-        @log.clear
-      end
-    end
-
-    def advertising_everything
-      advertising(fs: fs(read_text_file: true, write_text_file: true), terminal: true)
-    end
-
-    routes.each do |wire, _handler, key, params, _type|
-      it "refuses #{wire} as unadvertised #{key} before connect records the capabilities" do
-        started(**serve_handlers)
-        reply = route(wire).call(params)
-
-        assert_equal([ACP::RequestError.unadvertised(key).to_h, []], [reply.to_h, @log])
-      end
-    end
-
-    it 'refuses fs/read_text_file when connect advertised only fs/write_text_file' do
-      advertising(fs: fs(write_text_file: true))
-      reply = route('fs/read_text_file').call({ 'sessionId' => 's', 'path' => '/a.txt' })
-
-      assert_equal([ACP::RequestError.unadvertised('fs.readTextFile').to_h, []], [reply.to_h, @log])
-    end
-
-    it 'refuses fs/write_text_file when connect advertised only fs/read_text_file' do
-      advertising(fs: fs(read_text_file: true))
-      reply = route('fs/write_text_file').call({ 'sessionId' => 's', 'path' => '/a.txt', 'content' => 'hi' })
-
-      assert_equal([ACP::RequestError.unadvertised('fs.writeTextFile').to_h, []], [reply.to_h, @log])
-    end
-
-    it 'answers params that fail to parse with invalid params carrying the parse error, without calling the handler' do
-      advertising_everything
-      reply = route('fs/read_text_file').call({})
-      error = parse_error(ACP::Types::ReadTextFileRequest, {})
-
-      assert_equal([ACP::RequestError.invalid_params([error.message]).to_h, []], [reply.to_h, @log])
-    end
-
-    routes.each do |wire, handler, _key, params, type|
-      it "parses #{wire} as #{type.name} for the #{handler} handler and returns its answer" do
-        advertising_everything
-        reply = route(wire).call(params)
-
-        assert_equal([:answer, [[handler, type]]], [reply, @log])
-      end
-    end
-  end
-
-  describe 'the mcp/message route' do
-    def mcp_params
-      { 'serverId' => 'srv_1', 'requestId' => 'mcp_1', 'method' => 'tools/call', 'params' => { 'name' => 'echo' } }
-    end
-
-    it 'is not registered without an mcp_message handler' do
-      started
-
-      refute_includes @transport.handlers.keys, 'mcp/message'
-    end
-
-    it 'is not registered when the unstable types are not loaded' do
-      out, _err = Open3.capture3('bundle', 'exec', 'ruby', '-I', 'lib', '-e', <<~RUBY)
-        require 'acp/sdk'
-
-        transport = Class.new do
-          attr_reader :requests
-
-          def start(requests:, notifications:)
-            @requests = requests
-          end
-        end.new
-        ACP::ClientConnection.new(transport:, permission: ->(_request) {}, mcp_message: ->(_request) {}).start
-        print transport.requests.key?('mcp/message')
-      RUBY
-
-      assert_equal 'false', out
-    end
-
-    it 'refuses as unadvertised by the agent before connect records its advertisement' do
-      started(mcp_message: recording(:mcp_message))
-      reply = route('mcp/message').call(mcp_params)
-
-      assert_equal([ACP::RequestError.unadvertised_agent('mcpCapabilities.acp').to_h, []], [reply.to_h, @log])
-    end
-
-    it 'refuses when the initialize reply carries no agent capabilities' do
-      started(mcp_message: recording(:mcp_message)).connect(initialize_request)
-      @log.clear
-      reply = route('mcp/message').call(mcp_params)
-
-      assert_equal([ACP::RequestError.unadvertised_agent('mcpCapabilities.acp').to_h, []], [reply.to_h, @log])
-    end
-
-    it 'parses the request for the mcp_message handler once the initialize reply advertises mcpCapabilities.acp' do
-      @transport.replies['initialize'] = {
-        'protocolVersion' => 1, 'agentCapabilities' => { 'mcpCapabilities' => { 'acp' => true } }
-      }
-      started(mcp_message: recording(:mcp_message, :answer)).connect(initialize_request)
-      @log.clear
-      reply = route('mcp/message').call(mcp_params)
-
-      assert_equal([:answer, [[:mcp_message, ACP::Types::Unstable::MessageMcpRequest]]], [reply, @log])
-    end
-  end
-
   describe 'parsing a reply' do
     def new_session
       connection.new_session(ACP::Types::NewSessionRequest.new(cwd: '/work', mcp_servers: []))
@@ -712,82 +569,6 @@ describe ACP::ClientConnection do
       end
 
       assert_equal(replies.map { |reply| ACP::RequestError.invalid_response(reply).to_h }, answers)
-    end
-  end
-
-  describe 'the elicitation/create route' do
-    def form_params
-      {
-        'sessionId' => 's', 'mode' => 'form', 'message' => 'Pick one',
-        'requestedSchema' => { 'type' => 'object', 'properties' => {} }
-      }
-    end
-
-    def advertising(*names)
-      started(elicitation: recording(:elicitation, :answer)).tap do |client|
-        client.connect(initialize_request(elicitation: modes(*names)))
-        @log.clear
-      end
-    end
-
-    it 'answers params that fail to parse with invalid params carrying the parse error, without calling the handler' do
-      advertising(:form, :url)
-      reply = route('elicitation/create').call({})
-      error = parse_error(ACP::Types::CreateElicitationRequest, {})
-
-      assert_equal([ACP::RequestError.invalid_params([error.message]).to_h, []], [reply.to_h, @log])
-    end
-
-    it 'refuses a form request before connect records the capabilities' do
-      started(elicitation: recording(:elicitation))
-      reply = route('elicitation/create').call(form_params)
-
-      assert_equal([ACP::RequestError.unadvertised_mode('elicitation.form').to_h, []], [reply.to_h, @log])
-    end
-
-    it 'refuses a form request when connect advertised only the url mode' do
-      advertising(:url)
-      reply = route('elicitation/create').call(form_params)
-
-      assert_equal([ACP::RequestError.unadvertised_mode('elicitation.form').to_h, []], [reply.to_h, @log])
-    end
-
-    it 'refuses a url request before connect records the capabilities, without registering it' do
-      started(elicitation: recording(:elicitation))
-      reply = route('elicitation/create').call(url_params)
-
-      assert_equal([ACP::RequestError.unadvertised_mode('elicitation.url').to_h, []], [reply.to_h, @log])
-    end
-
-    it 'refuses a url request when connect advertised only the form mode, without registering it' do
-      advertising(:form)
-      reply = route('elicitation/create').call(url_params)
-
-      assert_equal([ACP::RequestError.unadvertised_mode('elicitation.url').to_h, []], [reply.to_h, @log])
-    end
-
-    it 'refuses a mode it does not know, naming the mode' do
-      advertising(:form, :url)
-      reply = route('elicitation/create').call({ 'sessionId' => 's', 'mode' => 'other', 'message' => 'hi' })
-
-      assert_equal([ACP::RequestError.unadvertised_mode('elicitation.other').to_h, []], [reply.to_h, @log])
-    end
-
-    it 'hands an advertised form request to the elicitation handler and returns its answer' do
-      advertising(:form)
-      reply = route('elicitation/create').call(form_params)
-
-      assert_equal([:answer, [[:elicitation, ACP::Types::CreateElicitationRequest]]], [reply, @log])
-    end
-
-    it 'registers an advertised url request for completion before handing it to the elicitation handler' do
-      advertising(:url)
-      reply = route('elicitation/create').call(url_params)
-
-      assert_equal(
-        [:answer, [[:register_elicitation, 'e1'], [:elicitation, ACP::Types::CreateElicitationRequest]]],
-        [reply, @log]
-      )
     end
   end
 end

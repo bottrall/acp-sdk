@@ -1,0 +1,90 @@
+# Generated from lib/acp/client_connection/inbound.rb with RBS::Inline
+
+class ACP::ClientConnection::Inbound
+  @capabilities: ACP::Types::ClientCapabilities?
+
+  @extension_notifications: Hash[String, ^(untyped) -> void]
+
+  @extension_requests: Hash[String, ^(untyped) -> untyped]
+
+  @mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
+
+  @elicitations: ACP::ClientConnection::Elicitations
+
+  @elicitation: ACP::ClientConnection::_Elicitation?
+
+  @terminal: ACP::ClientConnection::_Terminal?
+
+  @fs: ACP::ClientConnection::_FileSystem?
+
+  FS_ROUTES: Array[ACP::ClientConnection::Inbound::Route]
+
+  # The terminal capability is a single bool, so its five routes share one
+  # gate. Their handlers may block for as long as the command runs, so the
+  # transport must serve each request on its own thread for this not to hold
+  # up others.
+  TERMINAL_ROUTES: Array[ACP::ClientConnection::Inbound::Route]
+
+  # @dynamic mcp_advertised=
+  attr_writer mcp_advertised: bool
+
+  # @rbs elicitations: ACP::ClientConnection::Elicitations
+  # @rbs fs: ACP::ClientConnection::_FileSystem?
+  # @rbs terminal: ACP::ClientConnection::_Terminal?
+  # @rbs elicitation: ACP::ClientConnection::_Elicitation?
+  # @rbs mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) ->
+  #   (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
+  # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
+  # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
+  # @rbs return: void
+  def initialize: (elicitations: ACP::ClientConnection::Elicitations, ?fs: ACP::ClientConnection::_FileSystem?, ?terminal: ACP::ClientConnection::_Terminal?, ?elicitation: ACP::ClientConnection::_Elicitation?, ?mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void]) -> void
+
+  # @rbs return: Hash[String, ACP::Transport::Stdio::_Handler]
+  def requests: () -> Hash[String, ACP::Transport::Stdio::_Handler]
+
+  # @rbs return: Hash[String, ACP::Transport::Stdio::_NotificationHandler]
+  def notifications: () -> Hash[String, ACP::Transport::Stdio::_NotificationHandler]
+
+  # @rbs capabilities: ACP::Types::ClientCapabilities?
+  # @rbs return: void
+  def advertise: (ACP::Types::ClientCapabilities? capabilities) -> void
+
+  private
+
+  # @rbs route: ACP::ClientConnection::Inbound::Route
+  # @rbs handler: untyped
+  # @rbs return: ^(untyped) -> untyped
+  def serve: (ACP::ClientConnection::Inbound::Route route, untyped handler) -> ^(untyped) -> untyped
+
+  # @rbs type: ACP::Transport::_Parser
+  # @rbs params: untyped
+  # @rbs &block: (untyped) -> untyped
+  # @rbs return: untyped
+  def parsed: (ACP::Transport::_Parser type, untyped params) { (untyped) -> untyped } -> untyped
+
+  # @rbs routes: Array[ACP::ClientConnection::Inbound::Route]
+  # @rbs handler: untyped
+  # @rbs capabilities: ACP::Types::ClientCapabilities?
+  # @rbs return: Array[String]
+  def unserved: (Array[ACP::ClientConnection::Inbound::Route] routes, untyped handler, ACP::Types::ClientCapabilities? capabilities) -> Array[String]
+
+  # @rbs capabilities: ACP::Types::ElicitationCapabilities?
+  # @rbs return: Array[String]
+  def unserved_elicitation_modes: (ACP::Types::ElicitationCapabilities? capabilities) -> Array[String]
+
+  # @rbs what: String
+  # @rbs unserved: Array[String]
+  # @rbs return: void
+  def check_served: (String what, Array[String] unserved) -> void
+
+  # @rbs return: Hash[String, ^(untyped) -> untyped]
+  def mcp_requests: () -> Hash[String, ^(untyped) -> untyped]
+
+  # @rbs params: untyped
+  # @rbs return: (ACP::Types::CreateElicitationResponse | ACP::RequestError)
+  def create_elicitation: (untyped params) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::CreateElicitationRequest
+  # @rbs return: ACP::RequestError?
+  def elicitation_refusal: (ACP::Types::CreateElicitationRequest request) -> ACP::RequestError?
+end

@@ -3,31 +3,26 @@
 class ACP::ClientConnection::Streams
   CANCELLED: ACP::Types::RequestPermissionResponse
 
-  @outstanding_elicitations: Hash[String, bool]
-
-  @pending_permissions: Hash[String, Array[Thread::Queue]]
-
-  @streams: Hash[String, Thread::Queue]
-
-  @lock: Thread::Mutex
-
-  @logger: ACP::Transport::_Logger
-
-  @complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
-
-  @updates: ACP::ClientConnection::_UpdateHandler
+  @sender: ACP::Transport::Stdio
 
   @permission: ACP::ClientConnection::_PermissionHandler
 
-  @sender: ACP::Transport::Stdio
+  @updates: ACP::ClientConnection::_UpdateHandler
+
+  @logger: ACP::Transport::_Logger
+
+  @lock: Thread::Mutex
+
+  @streams: Hash[String, Thread::Queue]
+
+  @pending_permissions: Hash[String, Array[Thread::Queue]]
 
   # @rbs sender: ACP::Transport::Stdio
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
   # @rbs logger: ACP::Transport::_Logger
-  # @rbs complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
   # @rbs return: void
-  def initialize: (sender: ACP::Transport::Stdio, permission: ACP::ClientConnection::_PermissionHandler, updates: ACP::ClientConnection::_UpdateHandler, logger: ACP::Transport::_Logger, ?complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?) -> void
+  def initialize: (sender: ACP::Transport::Stdio, permission: ACP::ClientConnection::_PermissionHandler, updates: ACP::ClientConnection::_UpdateHandler, logger: ACP::Transport::_Logger) -> void
 
   # The request waits on its own thread so the caller's thread can yield each
   # update as it arrives. The reader thread queues an update before it settles
@@ -63,19 +58,6 @@ class ACP::ClientConnection::Streams
   # @rbs session_id: String
   # @rbs return: void
   def cancel: (String session_id) -> void
-
-  # @rbs elicitation_id: String
-  # @rbs return: void
-  def register_elicitation: (String elicitation_id) -> void
-
-  # The spec requires a completion for an unknown or already-completed
-  # elicitation id to be ignored, so only an id registered by a served
-  # url-mode request reaches the handler. It runs on the transport's reader
-  # thread, so it must return quickly.
-  #
-  # @rbs params: untyped
-  # @rbs return: void
-  def complete_elicitation: (untyped params) -> void
 
   private
 

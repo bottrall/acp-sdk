@@ -24,9 +24,6 @@ class ACP::AgentConnection::OptionalRoute
   # @rbs return: void
   def initialize: (rpc_method: String, type: ACP::Transport::_Parser, agent_method: Symbol, path: Array[Symbol]?) { (ACP::AgentConnection::_FullAgent, untyped) -> (ACP::Transport::_Response | ACP::RequestError) } -> void
 
-  # Readers missing along the chain count as unadvertised, so the stable
-  # capabilities answer false for the unstable-only paths (fork, providers).
-  #
   # @rbs initialize_response: ACP::Types::InitializeResponse
   # @rbs return: bool
   def advertised?: (ACP::Types::InitializeResponse initialize_response) -> bool
@@ -35,11 +32,4 @@ class ACP::AgentConnection::OptionalRoute
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs return: bool
   def routed?: (ACP::Types::InitializeResponse initialize_response, ACP::AgentConnection::_Agent agent) -> bool
-
-  private
-
-  # @rbs node: untyped
-  # @rbs name: Symbol
-  # @rbs return: untyped
-  def follow: (untyped node, Symbol name) -> untyped
 end

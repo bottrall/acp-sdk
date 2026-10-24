@@ -5,6 +5,19 @@ module ACP::Protocol
 
   extend self
 
+  # Readers missing along the chain count as unadvertised, so the stable
+  # capabilities answer false for the unstable-only paths (fork, providers).
+  #
+  # @rbs capabilities: untyped
+  # @rbs path: Array[Symbol]
+  # @rbs return: bool
+  def advertised?(capabilities, path)
+    # reduce's U pins to the argument's type, but the chain walks through
+    # unrelated capability types.
+    value = path.reduce(capabilities) { |node, name| node.respond_to?(name) ? node.public_send(name) : nil } #: untyped
+    value ? true : false
+  end
+
   # @rbs capabilities: (ACP::Types::AgentCapabilities | ACP::Types::Unstable::AgentCapabilities | Hash[String, untyped])
   # @rbs return: bool
   def mcp_acp_advertised?(capabilities)
