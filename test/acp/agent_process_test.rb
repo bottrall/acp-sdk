@@ -230,6 +230,16 @@ describe ACP::AgentProcess do
 
       assert_predicate err_r, :closed?
     end
+
+    it 'is safe to call again once the pipes are closed' do
+      stdin = StringIO.new
+      err_r, err_w = IO.pipe
+      err_w.close
+      process = build(AgentProcessFakeWaiter.new(exited_pid), stdin:, err_r:)
+      2.times { process.terminate }
+
+      assert_equal [true, true], [stdin.closed?, err_r.closed?]
+    end
   end
 
   describe '#stderr' do

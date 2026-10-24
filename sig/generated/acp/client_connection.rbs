@@ -3,8 +3,6 @@
 class ACP::ClientConnection
   @transport: ACP::Transport::Stdio
 
-  @permission: ACP::ClientConnection::_PermissionHandler
-
   @read_text_file: (^(ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError))?
 
   @write_text_file: (^(ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError))?

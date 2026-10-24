@@ -65,14 +65,14 @@ class ACP::AgentProcess
 
   # @rbs return: void
   def terminate
-    @stdin.close unless @stdin.closed?
+    @stdin.close
     @waiter.join(1) or signal('TERM')
     @waiter.join(2) or signal('KILL')
     @waiter.join(2)
     @reader.join(1)
-    @stdout.close unless @stdout.closed?
+    @stdout.close
     @err_reader&.join(1)
-    @err_r&.close unless @err_r&.closed?
+    @err_r&.close
   end
 
   private
