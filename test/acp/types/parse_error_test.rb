@@ -9,6 +9,12 @@ describe ACP::Types::ParseError do
 
       assert_equal 'sessionId: expected String, got Integer', error.message
     end
+
+    it 'uses the detail alone when the path is empty' do
+      error = ACP::Types::ParseError.new([], 'expected object, got Array')
+
+      assert_equal 'expected object, got Array', error.message
+    end
   end
 
   describe '#path' do

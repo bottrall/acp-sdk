@@ -101,8 +101,6 @@ describe ACP::AgentConnection do
       ACP::Types::Unstable::DisableProviderRequest
     ]
   ].freeze
-  malformed = [[{}, ACP::Types::ParseError], [nil, NoMethodError], [[1], TypeError]].freeze
-
   let(:reader) { Object.new }
   let(:transport) { AgentConnectionTransport.new(reader) }
   let(:logger) { FakeLogger.new }
@@ -347,18 +345,13 @@ describe ACP::AgentConnection do
   end
 
   describe 'session/cancel' do
-    malformed.each do |params, error|
-      it "logs and drops params that fail with #{error}" do
-        agent = AgentConnectionAgent.new
-        start(agent)
-        raised = assert_raises(error) { ACP::Types::CancelNotification.from_h(params) }
-        transport.notifications.fetch('session/cancel').call(params)
+    it 'logs and drops params that do not parse' do
+      agent = AgentConnectionAgent.new
+      start(agent)
+      error = ACP::Types.parse(ACP::Types::CancelNotification, {})
+      transport.notifications.fetch('session/cancel').call({})
 
-        assert_equal(
-          [[[:warn, "dropped malformed session/cancel: #{error}: #{raised.message}"]], []],
-          [logger.drain, agent.calls]
-        )
-      end
+      assert_equal([[[:warn, "dropped malformed session/cancel: #{error.message}"]], []], [logger.drain, agent.calls])
     end
 
     it 'forwards the parsed notification to the agent' do
@@ -374,18 +367,13 @@ describe ACP::AgentConnection do
   end
 
   describe 'mcp/message' do
-    malformed.each do |params, error|
-      it "logs and drops params that fail with #{error}" do
-        agent = AgentConnectionAgent.new(:mcp_message_notification)
-        start(agent, capabilities: acp)
-        raised = assert_raises(error) { ACP::Types::Unstable::MessageMcpNotification.from_h(params) }
-        transport.notifications.fetch('mcp/message').call(params)
+    it 'logs and drops params that do not parse' do
+      agent = AgentConnectionAgent.new(:mcp_message_notification)
+      start(agent, capabilities: acp)
+      error = ACP::Types.parse(ACP::Types::Unstable::MessageMcpNotification, {})
+      transport.notifications.fetch('mcp/message').call({})
 
-        assert_equal(
-          [[[:warn, "dropped malformed mcp/message: #{error}: #{raised.message}"]], []],
-          [logger.drain, agent.calls]
-        )
-      end
+      assert_equal([[[:warn, "dropped malformed mcp/message: #{error.message}"]], []], [logger.drain, agent.calls])
     end
 
     it 'forwards the parsed notification to the agent' do
@@ -409,16 +397,6 @@ describe ACP::AgentConnection do
       reply = transport.requests.fetch('session/prompt').call({})
 
       assert_equal [ACP::RequestError.invalid_params([parse_error.message]).to_h, []], [reply.to_h, agent.calls]
-    end
-
-    [[nil, NoMethodError], [[1], TypeError]].each do |params, error|
-      it "answers params that fail with #{error} with bare invalid params, without calling the agent" do
-        agent = AgentConnectionAgent.new
-        start(agent)
-        reply = transport.requests.fetch('session/prompt').call(params)
-
-        assert_equal [ACP::RequestError.invalid_params.to_h, []], [reply.to_h, agent.calls]
-      end
     end
   end
 

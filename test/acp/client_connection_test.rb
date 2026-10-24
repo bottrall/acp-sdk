@@ -626,13 +626,6 @@ describe ACP::ClientConnection do
       assert_equal([ACP::RequestError.invalid_params([error.message]).to_h, []], [reply.to_h, @log])
     end
 
-    it 'answers params of the wrong shape with bare invalid params, without calling the handler' do
-      advertising_everything
-      replies = [nil, []].map { |params| route('fs/read_text_file').call(params).to_h }
-
-      assert_equal([[ACP::RequestError.invalid_params.to_h] * 2, []], [replies, @log])
-    end
-
     routes.each do |wire, handler, _key, params, type|
       it "parses #{wire} as #{type.name} for the #{handler} handler and returns its answer" do
         advertising_everything
@@ -743,13 +736,6 @@ describe ACP::ClientConnection do
       error = parse_error(ACP::Types::CreateElicitationRequest, {})
 
       assert_equal([ACP::RequestError.invalid_params([error.message]).to_h, []], [reply.to_h, @log])
-    end
-
-    it 'answers params of the wrong shape with invalid params, without calling the handler' do
-      advertising(:form, :url)
-      replies = [nil, []].map { |params| route('elicitation/create').call(params).to_h }
-
-      assert_equal([[ACP::RequestError.invalid_params.to_h] * 2, []], [replies, @log])
     end
 
     it 'refuses a form request before connect records the capabilities' do

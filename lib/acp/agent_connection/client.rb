@@ -153,9 +153,8 @@ class ACP::AgentConnection::Client
     result = @peer.request(rpc_method, request.to_h)
     return result if result.is_a?(ACP::RequestError)
 
-    type.from_h(result)
-  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError
-    ACP::RequestError.invalid_response(result)
+    response = ACP::Types.parse(type, result)
+    response.is_a?(ACP::Types::ParseError) ? ACP::RequestError.invalid_response(result) : response
   end
 
   # @rbs rpc_method: String

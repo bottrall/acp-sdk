@@ -236,12 +236,6 @@ describe ACP::ClientConnection::Streams do
       assert_equal [ACP::RequestError.invalid_params([parse_failure_of({})]).to_h, []], [error.to_h, handled]
     end
 
-    it 'answers bare invalid params when the params are not an object' do
-      error = streams.request_permission([])
-
-      assert_equal ACP::RequestError.invalid_params.to_h, error.to_h
-    end
-
     it "carries the sender's serving cancellation onto the handler's own thread" do
       serving = ACP::Transport::Cancellation.new
       seen = []

@@ -144,11 +144,12 @@ class ACP::AgentConnection
   # @rbs params: untyped
   # @rbs return: void
   def cancel(agent, params)
-    notification = ACP::Types::CancelNotification.from_h(params)
-  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError => e
-    @logger.warn("dropped malformed session/cancel: #{e.class}: #{e.message}")
-  else
-    agent.cancel(notification)
+    notification = ACP::Types.parse(ACP::Types::CancelNotification, params)
+    if notification.is_a?(ACP::Types::ParseError)
+      @logger.warn("dropped malformed session/cancel: #{notification.message}")
+    else
+      agent.cancel(notification)
+    end
   end
 
   # @rbs return: bool
@@ -162,27 +163,23 @@ class ACP::AgentConnection
   # @rbs params: untyped
   # @rbs return: void
   def mcp_message_notification(agent, params)
-    notification = ACP::Types::Unstable::MessageMcpNotification.from_h(params)
-  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError => e
-    @logger.warn("dropped malformed mcp/message: #{e.class}: #{e.message}")
-  else
-    hook = agent #: ACP::AgentConnection::_Agent & ACP::AgentConnection::_McpMessageNotification
-    hook.mcp_message_notification(notification)
+    notification = ACP::Types.parse(ACP::Types::Unstable::MessageMcpNotification, params)
+    if notification.is_a?(ACP::Types::ParseError)
+      @logger.warn("dropped malformed mcp/message: #{notification.message}")
+    else
+      hook = agent #: ACP::AgentConnection::_Agent & ACP::AgentConnection::_McpMessageNotification
+      hook.mcp_message_notification(notification)
+    end
   end
 
-  # Generated from_h raises on a missing key or a value of the wrong shape.
-  #
   # @rbs type: ACP::Transport::_Parser
   # @rbs &handle: (untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
   # @rbs return: ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
   def route(type, &)
     lambda do |params|
-      request = type.from_h(params)
-    rescue ACP::Types::ParseError => e
-      ACP::RequestError.invalid_params([e.message])
-    rescue KeyError, TypeError, NoMethodError
-      ACP::RequestError.invalid_params
-    else
+      request = ACP::Types.parse(type, params)
+      next ACP::RequestError.invalid_params([request.message]) if request.is_a?(ACP::Types::ParseError)
+
       yield(request)
     end
   end

@@ -21,13 +21,10 @@ module ACP::Protocol
         # mcpCapabilities is re-parsed from the raw hash with the unstable
         # type. Only that sub-object: the other unstable fields arrive
         # unvalidated and must not decide whether MCP is advertised.
-        raw = capabilities['mcpCapabilities']
-        ACP::Types::Unstable::McpCapabilities.from_h(raw) if raw.is_a?(Hash)
+        ACP::Types.parse(ACP::Types::Unstable::McpCapabilities, capabilities['mcpCapabilities'])
       end
     return false unless mcp.is_a?(ACP::Types::Unstable::McpCapabilities)
 
     mcp.acp ? true : false
-  rescue ACP::Types::ParseError
-    false
   end
 end
