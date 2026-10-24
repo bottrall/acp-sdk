@@ -78,12 +78,15 @@ module TypeGenerator::Plan
       if !schema.generated?(name) then []
       elsif status == :normal then TypeGenerator::Resolve.definition_files(defs, name)
       else
-        kept = TypeGenerator::Resolve.definition_files(defs, name).reject { |path, _| path == path(schema.const(name)) }
+        own = TypeGenerator::Naming.path(schema.const(name))
+        kept = TypeGenerator::Resolve.definition_files(defs, name).reject { |path, _| path == own }
         kept.push(alias_file(schema, name, subsumed[name])) if subsumed[name]
         kept
       end
     end.sort.to_h
-    aliases = subsumed.filter_map { |name, _| path(schema.const(name)) if schema.generated?(name) }.sort
+    aliases = subsumed.filter_map do |name, _|
+      TypeGenerator::Naming.path(schema.const(name)) if schema.generated?(name)
+    end.sort
     [files, aliases]
   end
 
@@ -126,7 +129,7 @@ module TypeGenerator::Plan
     case node
     when Hash
       node = node.except('allOf') if TypeGenerator::Unions.subsumes_ref?(node)
-      node.flat_map { |key, value| key == '$ref' ? [ref_name(value)] : plain_refs(value) }
+      node.flat_map { |key, value| key == '$ref' ? [TypeGenerator::Naming.ref_name(value)] : plain_refs(value) }
     when Array then node.flat_map { |value| plain_refs(value) }
     else []
     end
@@ -140,30 +143,12 @@ module TypeGenerator::Plan
     union ? TypeGenerator::Unions.variant_refs(defs, union, defs.fetch(name)) : []
   end
 
-  # @rbs ref: String
-  # @rbs return: String
-  def ref_name(ref) = ref.delete_prefix('#/$defs/')
-
-  # @rbs const: String
-  # @rbs return: String
-  def path(const)
-    "#{const.delete_prefix("#{TypeGenerator::NAMESPACE}::").split('::').map { |part| snake(part) }.join('/')}.rb"
-  end
-
-  # @rbs name: String
-  # @rbs return: String
-  def snake(name) = name.delete_prefix('_').gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
-
-  # @rbs name: String
-  # @rbs return: String
-  def camel(name) = name.split(/[^a-zA-Z\d]/).map(&:capitalize).join
-
   # @rbs schema: TypeGenerator::Schema
   # @rbs name: String
   # @rbs target: String
   # @rbs return: TypeGenerator::file
   def alias_file(schema, name, target)
     rbs = "# @rbs!\n#   class #{schema.const(name)} = #{target}\n"
-    [path(schema.const(name)), "#{schema.header}\n#{rbs}\n#{schema.const(name)} = #{target}\n"]
+    [TypeGenerator::Naming.path(schema.const(name)), "#{schema.header}\n#{rbs}\n#{schema.const(name)} = #{target}\n"]
   end
 end

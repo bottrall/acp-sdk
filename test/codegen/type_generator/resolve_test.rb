@@ -535,11 +535,11 @@ describe TypeGenerator::Resolve do
     it 'names the attr after the snake-cased JSON key, which it keeps as spelled' do
       field = field_for({ 'type' => 'string' }, json: 'updatedAt')
 
-      assert_equal ['updatedAt', TypeGenerator::Plan.snake('updatedAt')], [field.json, field.attr]
+      assert_equal ['updatedAt', TypeGenerator::Naming.snake('updatedAt')], [field.json, field.attr]
     end
 
     it 'suffixes an attr that would be a Ruby keyword with an underscore' do
-      assert_equal "#{TypeGenerator::Plan.snake('class')}_", field_for({ 'type' => 'string' }, json: 'class').attr
+      assert_equal "#{TypeGenerator::Naming.snake('class')}_", field_for({ 'type' => 'string' }, json: 'class').attr
     end
 
     it 'marks the properties the schema lists as required' do
@@ -648,7 +648,7 @@ describe TypeGenerator::Resolve do
   end
 
   describe '.flattened_union' do
-    let(:nested) { TypeGenerator::Plan.camel(TypeGenerator::FLATTENED_UNION_ATTRS.fetch('SessionConfigOption')) }
+    let(:nested) { TypeGenerator::Naming.camel(TypeGenerator::FLATTENED_UNION_ATTRS.fetch('SessionConfigOption')) }
 
     it "nests the camel-cased flattened attr under the def's own constant" do
       assert_equal "#{defs.const('SessionConfigOption')}::#{nested}",

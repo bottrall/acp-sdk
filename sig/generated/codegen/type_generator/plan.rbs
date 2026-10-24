@@ -57,22 +57,6 @@ module TypeGenerator::Plan
   # @rbs return: Array[[String, String]]
   def subsumed_edges: (TypeGenerator::Schema defs, String name) -> Array[[ String, String ]]
 
-  # @rbs ref: String
-  # @rbs return: String
-  def ref_name: (String ref) -> String
-
-  # @rbs const: String
-  # @rbs return: String
-  def path: (String const) -> String
-
-  # @rbs name: String
-  # @rbs return: String
-  def snake: (String name) -> String
-
-  # @rbs name: String
-  # @rbs return: String
-  def camel: (String name) -> String
-
   # @rbs schema: TypeGenerator::Schema
   # @rbs name: String
   # @rbs target: String

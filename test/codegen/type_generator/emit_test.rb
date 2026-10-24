@@ -26,7 +26,7 @@ describe TypeGenerator::Emit do
 
       file = emit.class_file(defs, 'ACP::Types::Note', [field('text')])
 
-      assert_equal [TypeGenerator::Plan.path('ACP::Types::Note'), <<~RUBY], file
+      assert_equal [TypeGenerator::Naming.path('ACP::Types::Note'), <<~RUBY], file
         # header
 
         class ACP::Types::Note
@@ -274,9 +274,32 @@ describe TypeGenerator::Emit do
     end
   end
 
-  describe '.arg_comma' do
-    it 'separates every argument but the last' do
-      assert_equal([',', ',', ''], [0, 1, 2].map { |index| emit.arg_comma(3, index) })
+  describe '.wrap' do
+    it 'is the single line, without building the items, when it fits' do
+      assert_equal ['f(a)'], emit.wrap('f(a)', 4, 'f(', ')') { flunk 'built the items' }
+    end
+
+    it 'indents every line of every item between the opening and closing once the single line does not fit' do
+      single = "#{filling(4, '')}x"
+
+      assert_equal ['f(', '  a,', '  g(', '    b', '  )', ')'],
+                   emit.wrap(single, 4, 'f(', ')') { [['a,'], ['g(', '  b', ')']] }
+    end
+  end
+
+  describe '.fits?' do
+    it 'is true for a line that ends exactly at the line limit' do
+      assert emit.fits?(filling(4, ''), 4)
+    end
+
+    it 'is false for a line that passes the line limit' do
+      refute emit.fits?("#{filling(4, '')}x", 4)
+    end
+  end
+
+  describe '.commas' do
+    it 'pairs every item but the last with a comma' do
+      assert_equal [['a', ','], ['b', ','], ['c', '']], emit.commas(%w[a b c])
     end
   end
 

@@ -49,10 +49,22 @@ module TypeGenerator::Emit
   # @rbs return: String
   def new_arg: (String name, TypeGenerator::expression? expr) -> String
 
-  # @rbs size: Integer
-  # @rbs index: Integer
-  # @rbs return: String
-  def arg_comma: (Integer size, Integer index) -> String
+  # @rbs single: String
+  # @rbs column: Integer
+  # @rbs opening: String
+  # @rbs closing: String
+  # @rbs &items: () -> Array[Array[String]]
+  # @rbs return: Array[String]
+  def wrap: (String single, Integer column, String opening, String closing) { () -> Array[Array[String]] } -> Array[String]
+
+  # @rbs line: String
+  # @rbs column: Integer
+  # @rbs return: bool
+  def fits?: (String line, Integer column) -> bool
+
+  # @rbs items: Array[untyped]
+  # @rbs return: Array[[untyped, String]]
+  def commas: (Array[untyped] items) -> Array[[ untyped, String ]]
 
   # @rbs field: TypeGenerator::Field
   # @rbs return: TypeGenerator::expression

@@ -1,0 +1,19 @@
+# Generated from codegen/type_generator/naming.rb with RBS::Inline
+
+module TypeGenerator::Naming
+  # @rbs ref: String
+  # @rbs return: String
+  def ref_name: (String ref) -> String
+
+  # @rbs const: String
+  # @rbs return: String
+  def path: (String const) -> String
+
+  # @rbs name: String
+  # @rbs return: String
+  def snake: (String name) -> String
+
+  # @rbs name: String
+  # @rbs return: String
+  def camel: (String name) -> String
+end

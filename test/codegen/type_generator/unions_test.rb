@@ -6,7 +6,7 @@ require_relative '../../../codegen/type_generator'
 describe TypeGenerator::Unions do
   unions = TypeGenerator::Unions
   emit = TypeGenerator::Emit
-  plan = TypeGenerator::Plan
+  naming = TypeGenerator::Naming
   ref = ->(name) { { '$ref' => "#/$defs/#{name}" } }
   const = ->(value) { { 'type' => 'string', 'const' => value } }
   object = lambda do |key|
@@ -49,7 +49,7 @@ describe TypeGenerator::Unions do
   describe '.union_files' do
     it 'emits the union module, then each tagged class stamped with its tag, then each untagged class' do
       union = 'ACP::Types::Blend'
-      tagged_const = "#{union}::#{plan.camel('tagged')}"
+      tagged_const = "#{union}::#{naming.camel('tagged')}"
       tagged = { 'title' => 'Tagged', 'properties' => { 'type' => const.call('tagged') }, 'required' => ['type'] }
       plain = { 'title' => 'Plain', 'properties' => { 'note' => { 'type' => 'string' } }, 'required' => ['note'] }
       dispatch = TypeGenerator::Dispatch.new(
@@ -88,12 +88,14 @@ describe TypeGenerator::Unions do
   end
 
   describe '.variant_consts' do
+    variants = ->(value) { [value.tag, value.tagged, value.untagged] }
+
     it 'drops the not options' do
       tagged = { 'properties' => { 'type' => const.call('tagged') } }
 
       assert_equal(
-        ['type', [[tagged, "ACP::Types::Blend::#{plan.camel('tagged')}"]], []],
-        unions.variant_consts(schema, 'ACP::Types::Blend', { 'oneOf' => [tagged, { 'not' => {} }] })
+        ['type', [[tagged, "ACP::Types::Blend::#{naming.camel('tagged')}"]], []],
+        variants.call(unions.variant_consts(schema, 'ACP::Types::Blend', { 'oneOf' => [tagged, { 'not' => {} }] }))
       )
     end
 
@@ -102,8 +104,8 @@ describe TypeGenerator::Unions do
       plain = { 'title' => 'Plain', 'properties' => { 'note' => { 'type' => 'string' } } }
 
       assert_equal(
-        ['type', [[tagged, "ACP::Types::Blend::#{plan.camel('tagged')}"]], [[plain, 'ACP::Types::Blend::Plain']]],
-        unions.variant_consts(schema, 'ACP::Types::Blend', { 'oneOf' => [tagged, plain] })
+        ['type', [[tagged, "ACP::Types::Blend::#{naming.camel('tagged')}"]], [[plain, 'ACP::Types::Blend::Plain']]],
+        variants.call(unions.variant_consts(schema, 'ACP::Types::Blend', { 'oneOf' => [tagged, plain] }))
       )
     end
 
@@ -113,7 +115,7 @@ describe TypeGenerator::Unions do
 
       assert_equal(
         [nil, [], [[first, 'ACP::Types::Pick::First'], [second, 'ACP::Types::Pick::Second']]],
-        unions.variant_consts(schema, 'ACP::Types::Pick', { 'anyOf' => [first, second] })
+        variants.call(unions.variant_consts(schema, 'ACP::Types::Pick', { 'anyOf' => [first, second] }))
       )
     end
   end
@@ -140,7 +142,7 @@ describe TypeGenerator::Unions do
     it 'pairs each subsumed def with the variant class that absorbs it' do
       cup = { 'properties' => { 'type' => const.call('cup') }, 'allOf' => [ref.call('Mug')] }
 
-      assert_equal [['Mug', "ACP::Types::Vessel::#{plan.camel('cup')}"]],
+      assert_equal [['Mug', "ACP::Types::Vessel::#{naming.camel('cup')}"]],
                    unions.variant_refs(schema, 'ACP::Types::Vessel', { 'oneOf' => [cup] })
     end
 
@@ -156,7 +158,7 @@ describe TypeGenerator::Unions do
     it 'names each option after its tag value' do
       options = %w[read write].map { |value| { 'properties' => { 'type' => const.call(value) } } }
 
-      assert_equal %w[read write].map { |value| plan.camel(value) }, unions.variant_names(options, 'type')
+      assert_equal %w[read write].map { |value| naming.camel(value) }, unions.variant_names(options, 'type')
     end
 
     it 'names every option after its ref when one tag value would shadow a core class' do
@@ -210,7 +212,7 @@ describe TypeGenerator::Unions do
     end
 
     it 'is a class under the union, named after the title, for an option with no ref' do
-      assert_equal "ACP::Types::Pick::#{plan.camel('inline item')}",
+      assert_equal "ACP::Types::Pick::#{naming.camel('inline item')}",
                    unions.untagged_const(schema, 'ACP::Types::Pick', { 'title' => 'inline item' })
     end
 
@@ -263,7 +265,7 @@ describe TypeGenerator::Unions do
 
       assert_equal(
         [
-          plan.path('ACP::Types::Choice'),
+          naming.path('ACP::Types::Choice'),
           emit.source(
             'module ACP::Types::Choice',
             [
@@ -391,7 +393,7 @@ describe TypeGenerator::Unions do
 
       assert_equal(
         [
-          plan.path('ACP::Types::AnyList'),
+          naming.path('ACP::Types::AnyList'),
           emit.source(
             'module ACP::Types::AnyList',
             [
@@ -430,7 +432,7 @@ describe TypeGenerator::Unions do
 
   describe '.enum_file' do
     enum_source = lambda do |constants|
-      [plan.path('ACP::Types::Mode'), emit.source('module ACP::Types::Mode', [constants], "# header\n")]
+      [naming.path('ACP::Types::Mode'), emit.source('module ACP::Types::Mode', [constants], "# header\n")]
     end
 
     it 'skips the open variant that carries no const' do

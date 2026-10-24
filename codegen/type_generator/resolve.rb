@@ -46,7 +46,7 @@ module TypeGenerator::Resolve
   # @rbs schema: Hash[String, untyped]
   # @rbs return: TypeGenerator::Type
   def resolve(defs, schema)
-    if (ref = schema['$ref']) then resolve_ref(defs, TypeGenerator::Plan.ref_name(ref))
+    if (ref = schema['$ref']) then resolve_ref(defs, TypeGenerator::Naming.ref_name(ref))
     elsif (options = schema['allOf'] || schema['anyOf'])
       resolve(defs, options.find { |option| option['type'] != 'null' })
     else
@@ -178,7 +178,7 @@ module TypeGenerator::Resolve
     ref = schema['$ref']
     return schema unless ref
 
-    definition = defs.fetch(TypeGenerator::Plan.ref_name(ref))
+    definition = defs.fetch(TypeGenerator::Naming.ref_name(ref))
     # A non-primitive def has no type for primitive_union to accept, so its
     # ref is left for the caller to reject.
     kind(definition) == :primitive ? dereference(defs, definition) : schema
@@ -205,7 +205,7 @@ module TypeGenerator::Resolve
       any_of = Array(property['anyOf']) #: Array[Hash[String, untyped]]
       nullable = untyped || type.nullable? || Array(property['type']).include?('null') ||
                  any_of.any? { |option| option['type'] == 'null' }
-      name = TypeGenerator::Plan.snake(json)
+      name = TypeGenerator::Naming.snake(json)
       attr = TypeGenerator::RUBY_KEYWORDS.include?(name) ? "#{name}_" : name
       TypeGenerator::Field.new(
         json:,
@@ -263,6 +263,6 @@ module TypeGenerator::Resolve
   # @rbs name: String
   # @rbs return: String
   def flattened_union(defs, name)
-    "#{defs.nested_const(name)}::#{TypeGenerator::Plan.camel(TypeGenerator::FLATTENED_UNION_ATTRS.fetch(name))}"
+    "#{defs.nested_const(name)}::#{TypeGenerator::Naming.camel(TypeGenerator::FLATTENED_UNION_ATTRS.fetch(name))}"
   end
 end
