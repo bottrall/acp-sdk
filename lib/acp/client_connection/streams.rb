@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-# It holds no send facade of its own — requests go through the sender and
-# answers to the agent ride the connection's routes — so it is unit-testable
-# without a transport.
 class ACP::ClientConnection::Streams
   CANCELLED = ACP::Types::RequestPermissionResponse.new(
     outcome: ACP::Types::RequestPermissionOutcome::Cancelled.new
@@ -106,22 +103,22 @@ class ACP::ClientConnection::Streams
     serving = @sender.cancellation
     Thread.new do
       ACP::Transport::Cancellation.current = serving
-      # A raised StandardError is not a returned ACP::RequestError, so the two
-      # need distinct shapes on the queue.
       replies << begin
-        [:value, @permission.call(request)]
+        @permission.call(request)
       rescue StandardError => e
-        [:raised, e]
+        e
       end
     ensure
       unregister_permission(request.session_id, replies)
     end
     settled = replies.pop
-    # Re-raised so the transport's invoke turns it into an error reply, as it
-    # would if the handler ran on the serve thread itself.
-    raise settled[1] if settled[0] == :raised
+    # A handler answers with a response or an ACP::RequestError, neither of
+    # them an exception, so one on the queue was raised. Re-raised so the
+    # transport's invoke turns it into an error reply, as it would if the
+    # handler ran on the serve thread itself.
+    raise settled if settled.is_a?(StandardError)
 
-    settled[1]
+    settled
   end
 
   # The spec requires a pending session/request_permission to be answered with
@@ -132,7 +129,7 @@ class ACP::ClientConnection::Streams
   # @rbs return: void
   def cancel(session_id)
     pending = @lock.synchronize { @pending_permissions.delete(session_id) }
-    pending&.each { |replies| replies << [:value, CANCELLED] }
+    pending&.each { |replies| replies << CANCELLED }
   end
 
   # @rbs elicitation_id: String

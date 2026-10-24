@@ -275,6 +275,15 @@ describe ACP::ClientConnection::Streams do
 
       assert_same failure, raised
     end
+
+    it 'answers with an ACP::RequestError the handler returns rather than raising it' do
+      refusal = ACP::RequestError.internal_error
+      engine = streams(permission: ->(_request) { refusal })
+
+      reply = within { engine.request_permission(permission_request) }
+
+      assert_same refusal, reply
+    end
   end
 
   describe 'cancel' do

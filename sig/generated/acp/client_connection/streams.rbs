@@ -1,8 +1,5 @@
 # Generated from lib/acp/client_connection/streams.rb with RBS::Inline
 
-# It holds no send facade of its own — requests go through the sender and
-# answers to the agent ride the connection's routes — so it is unit-testable
-# without a transport.
 class ACP::ClientConnection::Streams
   CANCELLED: ACP::Types::RequestPermissionResponse
 
