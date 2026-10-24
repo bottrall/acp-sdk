@@ -10,13 +10,62 @@ class ACP::AgentConnection
   # @rbs @extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs @logger: ACP::Transport::_Logger
 
-  # The schema has no initialize capability for modes or config options: an
-  # agent offers them per session, in its session responses, so they are
-  # routed whenever the agent defines them.
-  PER_SESSION = {
-    'session/set_mode' => :change_session_mode,
-    'session/set_config_option' => :change_session_config_option
-  }.freeze #: Hash[String, Symbol]
+  OPTIONAL_ROUTES = [
+    OptionalRoute.new(
+      rpc_method: 'authenticate',
+      type: ACP::Types::AuthenticateRequest,
+      agent_method: :authenticate,
+      path: %i[auth_methods any?]
+    ) { |agent, request| agent.authenticate(request) },
+    OptionalRoute.new(
+      rpc_method: 'session/load',
+      type: ACP::Types::LoadSessionRequest,
+      agent_method: :load_session,
+      path: %i[agent_capabilities load_session]
+    ) { |agent, request| agent.load_session(request) },
+    OptionalRoute.new(
+      rpc_method: 'session/list',
+      type: ACP::Types::ListSessionsRequest,
+      agent_method: :list_sessions,
+      path: %i[agent_capabilities session_capabilities list]
+    ) { |agent, request| agent.list_sessions(request) },
+    OptionalRoute.new(
+      rpc_method: 'session/resume',
+      type: ACP::Types::ResumeSessionRequest,
+      agent_method: :resume_session,
+      path: %i[agent_capabilities session_capabilities resume]
+    ) { |agent, request| agent.resume_session(request) },
+    OptionalRoute.new(
+      rpc_method: 'session/close',
+      type: ACP::Types::CloseSessionRequest,
+      agent_method: :close_session,
+      path: %i[agent_capabilities session_capabilities close]
+    ) { |agent, request| agent.close_session(request) },
+    OptionalRoute.new(
+      rpc_method: 'session/delete',
+      type: ACP::Types::DeleteSessionRequest,
+      agent_method: :delete_session,
+      path: %i[agent_capabilities session_capabilities delete]
+    ) { |agent, request| agent.delete_session(request) },
+    OptionalRoute.new(
+      rpc_method: 'logout',
+      type: ACP::Types::LogoutRequest,
+      agent_method: :logout,
+      path: %i[agent_capabilities auth logout]
+    ) { |agent, request| agent.logout(request) },
+    OptionalRoute.new(
+      rpc_method: 'session/set_mode',
+      type: ACP::Types::SetSessionModeRequest,
+      agent_method: :change_session_mode,
+      path: nil
+    ) { |agent, request| agent.change_session_mode(request) },
+    OptionalRoute.new(
+      rpc_method: 'session/set_config_option',
+      type: ACP::Types::SetSessionConfigOptionRequest,
+      agent_method: :change_session_config_option,
+      path: nil
+    ) { |agent, request| agent.change_session_config_option(request) }
+  ].freeze #: Array[ACP::AgentConnection::OptionalRoute]
 
   # @rbs transport: ACP::Transport::Stdio
   # @rbs capabilities: ACP::Types::AgentCapabilities
@@ -44,8 +93,7 @@ class ACP::AgentConnection
     @auth_methods = auth_methods
     @extension_requests = extension_requests
     @extension_notifications = extension_notifications
-    extension_requests.each_key { |name| ACP::Extensions.validate_name(name) }
-    extension_notifications.each_key { |name| ACP::Extensions.validate_name(name) }
+    ACP::Extensions.validate_names(extension_requests.keys + extension_notifications.keys)
     @factory = factory
   end
 
@@ -53,22 +101,23 @@ class ACP::AgentConnection
   def start
     client = ACP::AgentConnection::Client.new(peer: @transport, mcp_advertised: mcp_acp_advertised?)
     agent = @factory.call(client)
+    routes = OPTIONAL_ROUTES + unstable_routes
     # Routes are fixed before a client connects, so the check sees the
     # unfiltered auth methods: a terminal-capable client still needs
     # authenticate routed.
-    advertised, unadvertised = optional_methods.partition do |method|
-      method.advertised?(initialize_response(@auth_methods))
+    response = initialize_response(@auth_methods)
+    missing = routes.select { |route| route.advertised?(response) && !agent.respond_to?(route.agent_method) }
+    unless missing.empty?
+      raise ArgumentError, "initialize advertises methods the agent lacks: #{missing.map(&:agent_method).join(', ')}"
     end
-    missing = advertised.map(&:agent_method).reject { |name| agent.respond_to?(name) }
-    raise ArgumentError, "initialize advertises methods the agent lacks: #{missing.join(', ')}" unless missing.empty?
 
     if mcp_acp_advertised? && !agent.respond_to?(:mcp_message_notification)
       raise ArgumentError, 'initialize advertises mcpCapabilities.acp but the agent lacks mcp_message_notification'
     end
 
-    unrouted = unadvertised.map(&:rpc_method) + PER_SESSION.reject { |_, name| agent.respond_to?(name) }.keys
+    routed = routes.select { |route| route.routed?(response, agent) }
     @transport.start(
-      requests: requests(agent, client).except(*unrouted).merge(@extension_requests),
+      requests: requests(agent, client, routed).merge(@extension_requests),
       notifications: notifications(agent).merge(@extension_notifications)
     )
   end
@@ -77,56 +126,54 @@ class ACP::AgentConnection
 
   # @rbs agent: ACP::AgentConnection::_Agent
   # @rbs client: ACP::AgentConnection::Client
+  # @rbs optional: Array[ACP::AgentConnection::OptionalRoute]
   # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
-  def requests(agent, client)
-    # Safe: start drops the optional handlers initialize does not advertise
-    # or the agent does not define, and checks the agent defines the rest.
+  def requests(agent, client, optional)
+    # Safe: start passes only the optional routes the agent defines.
     full = agent #: ACP::AgentConnection::_FullAgent
+    optional_requests = optional.to_h do |entry|
+      [entry.rpc_method, route(entry.type) { |request| entry.handle.call(full, request) }]
+    end
     {
       'initialize' => route(ACP::Types::InitializeRequest) { |request| connect(client, request) },
-      'authenticate' => route(ACP::Types::AuthenticateRequest) { |request| full.authenticate(request) },
       'session/new' => route(ACP::Types::NewSessionRequest) { |request| new_session(agent, request) },
-      'session/prompt' => route(ACP::Types::PromptRequest) { |request| agent.prompt(request) },
-      'session/load' => route(ACP::Types::LoadSessionRequest) { |request| full.load_session(request) },
-      'session/list' => route(ACP::Types::ListSessionsRequest) { |request| full.list_sessions(request) },
-      'session/resume' => route(ACP::Types::ResumeSessionRequest) { |request| full.resume_session(request) },
-      'session/close' => route(ACP::Types::CloseSessionRequest) { |request| full.close_session(request) },
-      'session/delete' => route(ACP::Types::DeleteSessionRequest) { |request| full.delete_session(request) },
-      'logout' => route(ACP::Types::LogoutRequest) { |request| full.logout(request) },
-      'session/set_mode' => route(ACP::Types::SetSessionModeRequest) { |request| full.change_session_mode(request) },
-      'session/set_config_option' => route(ACP::Types::SetSessionConfigOptionRequest) do |request|
-        full.change_session_config_option(request)
-      end
-    }.merge(unstable_requests(full))
+      'session/prompt' => route(ACP::Types::PromptRequest) { |request| agent.prompt(request) }
+    }.merge(optional_requests)
   end
 
-  # The unstable request types are referenced while the hash is built, so
-  # without the guard start would raise NameError even for an agent that never
-  # advertises fork or providers.
-  #
-  # @rbs full: ACP::AgentConnection::_FullAgent
-  # @rbs return: Hash[String, ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)]
-  def unstable_requests(full)
-    return {} unless ACP::Types.unstable_enabled?
+  # @rbs return: Array[ACP::AgentConnection::OptionalRoute]
+  def unstable_routes
+    # The rows reference the unstable request types, so without the guard start
+    # would raise NameError even for an agent that never advertises fork or
+    # providers.
+    return [] unless ACP::Types.unstable_enabled?
 
-    {
-      'session/fork' => route(ACP::Types::Unstable::ForkSessionRequest) { |request| full.fork_session(request) },
-      'providers/list' => route(ACP::Types::Unstable::ListProvidersRequest) { |request| full.list_providers(request) },
-      'providers/set' => route(ACP::Types::Unstable::SetProviderRequest) { |request| full.set_provider(request) },
-      'providers/disable' => route(ACP::Types::Unstable::DisableProviderRequest) { |request| full.disable_provider(request) }
-    }
-  end
-
-  # The unstable specs pair with the unstable request routes, which reference
-  # the unstable request classes, so both are only probed after the caller
-  # opted in with `require 'acp/types/unstable'`.
-  #
-  # @rbs return: Array[ACP::AgentConnection::OptionalMethod::Spec]
-  def optional_methods
-    specs = ACP::AgentConnection::OptionalMethod::SPECS
-    return specs unless ACP::Types.unstable_enabled?
-
-    specs + ACP::AgentConnection::OptionalMethod::UNSTABLE_SPECS
+    [
+      OptionalRoute.new(
+        rpc_method: 'session/fork',
+        type: ACP::Types::Unstable::ForkSessionRequest,
+        agent_method: :fork_session,
+        path: %i[agent_capabilities session_capabilities fork]
+      ) { |agent, request| agent.fork_session(request) },
+      OptionalRoute.new(
+        rpc_method: 'providers/list',
+        type: ACP::Types::Unstable::ListProvidersRequest,
+        agent_method: :list_providers,
+        path: %i[agent_capabilities providers]
+      ) { |agent, request| agent.list_providers(request) },
+      OptionalRoute.new(
+        rpc_method: 'providers/set',
+        type: ACP::Types::Unstable::SetProviderRequest,
+        agent_method: :set_provider,
+        path: %i[agent_capabilities providers]
+      ) { |agent, request| agent.set_provider(request) },
+      OptionalRoute.new(
+        rpc_method: 'providers/disable',
+        type: ACP::Types::Unstable::DisableProviderRequest,
+        agent_method: :disable_provider,
+        path: %i[agent_capabilities providers]
+      ) { |agent, request| agent.disable_provider(request) }
+    ]
   end
 
   # @rbs agent: ACP::AgentConnection::_Agent

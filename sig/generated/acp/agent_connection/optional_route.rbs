@@ -1,0 +1,45 @@
+# Generated from lib/acp/agent_connection/optional_route.rb with RBS::Inline
+
+class ACP::AgentConnection::OptionalRoute
+  # @dynamic rpc_method
+  attr_reader rpc_method: String
+
+  # @dynamic type
+  attr_reader type: ACP::Transport::_Parser
+
+  # @dynamic agent_method
+  attr_reader agent_method: Symbol
+
+  # @dynamic path
+  attr_reader path: Array[Symbol]?
+
+  # @dynamic handle
+  attr_reader handle: ^(ACP::AgentConnection::_FullAgent, untyped) -> (ACP::Transport::_Response | ACP::RequestError)
+
+  # @rbs rpc_method: String
+  # @rbs type: ACP::Transport::_Parser
+  # @rbs agent_method: Symbol
+  # @rbs path: Array[Symbol]?
+  # @rbs &handle: (ACP::AgentConnection::_FullAgent, untyped) -> (ACP::Transport::_Response | ACP::RequestError)
+  # @rbs return: void
+  def initialize: (rpc_method: String, type: ACP::Transport::_Parser, agent_method: Symbol, path: Array[Symbol]?) { (ACP::AgentConnection::_FullAgent, untyped) -> (ACP::Transport::_Response | ACP::RequestError) } -> void
+
+  # Readers missing along the chain count as unadvertised, so the stable
+  # capabilities answer false for the unstable-only paths (fork, providers).
+  #
+  # @rbs initialize_response: ACP::Types::InitializeResponse
+  # @rbs return: bool
+  def advertised?: (ACP::Types::InitializeResponse initialize_response) -> bool
+
+  # @rbs initialize_response: ACP::Types::InitializeResponse
+  # @rbs agent: ACP::AgentConnection::_Agent
+  # @rbs return: bool
+  def routed?: (ACP::Types::InitializeResponse initialize_response, ACP::AgentConnection::_Agent agent) -> bool
+
+  private
+
+  # @rbs node: untyped
+  # @rbs name: Symbol
+  # @rbs return: untyped
+  def follow: (untyped node, Symbol name) -> untyped
+end

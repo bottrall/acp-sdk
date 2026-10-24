@@ -12,4 +12,10 @@ module ACP::Extensions
 
     raise ArgumentError, "extension method names must start with '_' (got #{name.inspect})"
   end
+
+  # @rbs names: Array[String]
+  # @rbs return: void
+  def validate_names(names)
+    names.each { |name| validate_name(name) }
+  end
 end

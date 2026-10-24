@@ -1,7 +1,0 @@
-# Generated from lib/acp/agent_connection/optional_method.rb with RBS::Inline
-
-module ACP::AgentConnection::OptionalMethod
-  SPECS: Array[Spec]
-
-  UNSTABLE_SPECS: Array[Spec]
-end
