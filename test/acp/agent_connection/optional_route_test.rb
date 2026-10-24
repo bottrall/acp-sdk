@@ -41,34 +41,12 @@ describe ACP::AgentConnection::OptionalRoute do
       assert_same false, build.call(nil).advertised?(response)
     end
 
-    it 'is true when the path leads to a truthy value' do
-      response = response_class.new(capabilities_class.new(Object.new))
+    it 'follows its path through the initialize response' do
+      answers = [true, false].map do |flag|
+        build.call(%i[capabilities flag]).advertised?(response_class.new(capabilities_class.new(flag)))
+      end
 
-      assert_same true, build.call(%i[capabilities flag]).advertised?(response)
-    end
-
-    it 'is false when the path leads to nil' do
-      response = response_class.new(capabilities_class.new(nil))
-
-      assert_same false, build.call(%i[capabilities flag]).advertised?(response)
-    end
-
-    it 'is false when the path leads to false' do
-      response = response_class.new(capabilities_class.new(false))
-
-      assert_same false, build.call(%i[capabilities flag]).advertised?(response)
-    end
-
-    it 'is false when a node along the path lacks the reader' do
-      response = response_class.new(Object.new)
-
-      assert_same false, build.call(%i[capabilities flag]).advertised?(response)
-    end
-
-    it 'is false when a node along the path is nil' do
-      response = response_class.new(nil)
-
-      assert_same false, build.call(%i[capabilities flag]).advertised?(response)
+      assert_equal [true, false], answers
     end
   end
 

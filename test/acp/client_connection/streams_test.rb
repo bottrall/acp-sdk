@@ -66,10 +66,9 @@ describe ACP::ClientConnection::Streams do
     sender = StreamsFakeSender.new,
     permission: ->(_request) { choose('allow') },
     updates: ->(_notification) {},
-    complete_elicitation: nil,
     logger: FakeLogger.new
   )
-    ACP::ClientConnection::Streams.new(sender:, permission:, updates:, logger:, complete_elicitation:)
+    ACP::ClientConnection::Streams.new(sender:, permission:, updates:, logger:)
   end
 
   describe 'stream' do
@@ -347,49 +346,6 @@ describe ACP::ClientConnection::Streams do
       assert_equal choose('c1').to_h, within { asking.value }.to_h
     ensure
       gates['c1'] << true
-    end
-  end
-
-  describe 'register_elicitation and complete_elicitation' do
-    it 'logs and drops a malformed completion' do
-      logger = FakeLogger.new
-      completions = []
-      engine = streams(complete_elicitation: ->(n) { completions << n }, logger:)
-      logged = [{}, nil].map do |params|
-        engine.complete_elicitation(params)
-        level, message = logger.pop
-        [level, message.start_with?('dropped malformed elicitation/complete: ')]
-      end
-
-      assert_equal [[[:warn, true]] * 2, []], [logged, completions]
-    end
-
-    it 'delivers the completion of a registered id to the handler once' do
-      completions = []
-      engine = streams(complete_elicitation: ->(n) { completions << n })
-      engine.register_elicitation('e1')
-      engine.complete_elicitation('elicitationId' => 'e1')
-      engine.complete_elicitation('elicitationId' => 'e1')
-
-      assert_equal %w[e1], completions.map(&:elicitation_id)
-    end
-
-    it 'ignores the completion of an unregistered id' do
-      completions = []
-      engine = streams(complete_elicitation: ->(n) { completions << n })
-      engine.register_elicitation('e1')
-      engine.complete_elicitation('elicitationId' => 'e2')
-
-      assert_equal [], completions
-    end
-
-    it 'drops the completion of a registered id when no handler was given' do
-      logger = FakeLogger.new
-      engine = streams(logger:)
-      engine.register_elicitation('e1')
-      engine.complete_elicitation('elicitationId' => 'e1')
-
-      assert_empty logger.drain
     end
   end
 end

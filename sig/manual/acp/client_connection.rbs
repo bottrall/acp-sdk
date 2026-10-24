@@ -8,4 +8,31 @@ class ACP::ClientConnection
     # Runs on the transport's reader thread, so it must return quickly.
     def call: (ACP::Types::SessionNotification) -> void
   end
+
+  # Each handler object needs only the methods of the capabilities initialize
+  # advertises; ClientConnection probes for the rest.
+  interface _FileSystem
+    def read_text_file: (ACP::Types::ReadTextFileRequest) -> (ACP::Types::ReadTextFileResponse | ACP::RequestError)
+    def write_text_file: (ACP::Types::WriteTextFileRequest) -> (ACP::Types::WriteTextFileResponse | ACP::RequestError)
+    def respond_to?: (Symbol) -> bool
+  end
+
+  # Each method runs on its own thread and may block for as long as the
+  # command runs.
+  interface _Terminal
+    def create_terminal: (ACP::Types::CreateTerminalRequest) -> (ACP::Types::CreateTerminalResponse | ACP::RequestError)
+    def terminal_output: (ACP::Types::TerminalOutputRequest) -> (ACP::Types::TerminalOutputResponse | ACP::RequestError)
+    def wait_for_terminal_exit: (ACP::Types::WaitForTerminalExitRequest) -> (ACP::Types::WaitForTerminalExitResponse | ACP::RequestError)
+    def kill_terminal: (ACP::Types::KillTerminalRequest) -> (ACP::Types::KillTerminalResponse | ACP::RequestError)
+    def release_terminal: (ACP::Types::ReleaseTerminalRequest) -> (ACP::Types::ReleaseTerminalResponse | ACP::RequestError)
+    def respond_to?: (Symbol) -> bool
+  end
+
+  interface _Elicitation
+    def create_elicitation: (ACP::Types::CreateElicitationRequest) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError)
+    # Optional, for url mode. Runs on the transport's reader thread, so it
+    # must return quickly.
+    def complete_elicitation: (ACP::Types::CompleteElicitationNotification) -> void
+    def respond_to?: (Symbol) -> bool
+  end
 end

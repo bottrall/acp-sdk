@@ -125,17 +125,24 @@ end
 
 ### Serving files, terminals and elicitation
 
-To let the agent use files, terminals or elicitation, build an `ACP::ClientConnection` with the matching handlers and advertise the capability when you connect:
+To let the agent use files, terminals or elicitation, build an `ACP::ClientConnection` with a handler object for each capability and advertise the capability when you connect:
 
 ```ruby
-connection = ACP::ClientConnection.new(
-  transport: ACP::Transport::Stdio.new(input: agent_stdout, output: agent_stdin),
-  permission: ->(request) { ask_the_user(request) },
-  read_text_file: ->(request) { ACP::Types::ReadTextFileResponse.new(content: File.read(request.path)) },
-  write_text_file: lambda { |request|
+class Files
+  def read_text_file(request)
+    ACP::Types::ReadTextFileResponse.new(content: File.read(request.path))
+  end
+
+  def write_text_file(request)
     File.write(request.path, request.content)
     ACP::Types::WriteTextFileResponse.new
-  }
+  end
+end
+
+connection = ACP::ClientConnection.build(
+  transport: ACP::Transport::Stdio.new(input: agent_stdout, output: agent_stdin),
+  permission: ->(request) { ask_the_user(request) },
+  fs: Files.new
 )
 connection.start
 connection.connect(
@@ -148,16 +155,16 @@ connection.connect(
 )
 ```
 
-| Handlers | Capability |
-| --- | --- |
-| `permission` | Always required |
-| `read_text_file`, `write_text_file` | `fs.read_text_file`, `fs.write_text_file` |
-| `create_terminal`, `terminal_output`, `wait_for_terminal_exit`, `kill_terminal`, `release_terminal` | `terminal` |
-| `elicitation`, `complete_elicitation` | `elicitation.form` or `elicitation.url` |
+| Keyword | Methods | Capability |
+| --- | --- | --- |
+| `permission` | a callable | Always required |
+| `fs` | `read_text_file`, `write_text_file` | `fs.read_text_file`, `fs.write_text_file` |
+| `terminal` | `create_terminal`, `terminal_output`, `wait_for_terminal_exit`, `kill_terminal`, `release_terminal` | `terminal` |
+| `elicitation` | `create_elicitation`, and optionally `complete_elicitation` for url mode | `elicitation.form` or `elicitation.url` |
 
-Each handler returns the response type or an `ACP::RequestError`. `connect` raises `ArgumentError` if you advertise a capability without its handlers.
+A handler object needs only the methods of the capabilities you advertise. Each method returns the response type or an `ACP::RequestError`. `connect` raises `ArgumentError` if you advertise a capability whose method the handler doesn't define.
 
-`permission` and the request handlers each run on their own thread, so they can block while the user decides. `updates` and `complete_elicitation` must return quickly.
+`permission` and the request methods each run on their own thread, so they can block while the user decides. `updates` and `complete_elicitation` must return quickly.
 
 ## Errors
 

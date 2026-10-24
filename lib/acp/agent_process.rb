@@ -48,7 +48,7 @@ class ACP::AgentProcess
     spawner = Open3.method(:popen2) #: _Spawner
     stdin, stdout, waiter = spawner.call(*(env ? [env, command, *args] : [command, *args]), **opts)
     err_w&.close
-    connection = ACP::ClientConnection.new(
+    connection = ACP::ClientConnection.build(
       transport: ACP::Transport::Stdio.new(input: stdout, output: stdin),
       permission:,
       updates:

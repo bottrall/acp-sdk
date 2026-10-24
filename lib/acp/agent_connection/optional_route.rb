@@ -27,19 +27,11 @@ class ACP::AgentConnection::OptionalRoute
     freeze
   end
 
-  # Readers missing along the chain count as unadvertised, so the stable
-  # capabilities answer false for the unstable-only paths (fork, providers).
-  #
   # @rbs initialize_response: ACP::Types::InitializeResponse
   # @rbs return: bool
   def advertised?(initialize_response)
     steps = path
-    return false unless steps
-
-    # reduce's U pins to the InitializeResponse argument, but the chain walks
-    # through unrelated capability types.
-    value = steps.reduce(initialize_response) { |node, name| follow(node, name) } #: untyped
-    value ? true : false
+    steps ? ACP::Protocol.advertised?(initialize_response, steps) : false
   end
 
   # @rbs initialize_response: ACP::Types::InitializeResponse
@@ -49,14 +41,5 @@ class ACP::AgentConnection::OptionalRoute
     # The schema gives a per-session method no initialize capability, since an
     # agent offers it in its session responses.
     path ? advertised?(initialize_response) : agent.respond_to?(agent_method)
-  end
-
-  private
-
-  # @rbs node: untyped
-  # @rbs name: Symbol
-  # @rbs return: untyped
-  def follow(node, name)
-    node.respond_to?(name) ? node.public_send(name) : nil
   end
 end

@@ -5,6 +5,32 @@ require 'acp/types/unstable'
 require 'open3'
 
 describe ACP::Protocol do
+  describe '#advertised?' do
+    response_class = Struct.new(:capabilities)
+    capabilities_class = Struct.new(:flag)
+    path = %i[capabilities flag].freeze
+
+    it 'is true when the path leads to a truthy value' do
+      assert_same true, ACP::Protocol.advertised?(response_class.new(capabilities_class.new(Object.new)), path)
+    end
+
+    it 'is false when the path leads to nil or false' do
+      answers = [nil, false].map do |flag|
+        ACP::Protocol.advertised?(response_class.new(capabilities_class.new(flag)), path)
+      end
+
+      assert_equal [false, false], answers
+    end
+
+    it 'is false when a node along the path lacks the reader' do
+      assert_same false, ACP::Protocol.advertised?(response_class.new(Object.new), path)
+    end
+
+    it 'is false when a node along the path is nil' do
+      assert_same false, ACP::Protocol.advertised?(response_class.new(nil), path)
+    end
+  end
+
   describe '#mcp_acp_advertised?' do
     it 'is false when the unstable types are not loaded' do
       out, _err = Open3.capture3('bundle', 'exec', 'ruby', '-I', 'lib', '-e', <<~RUBY)

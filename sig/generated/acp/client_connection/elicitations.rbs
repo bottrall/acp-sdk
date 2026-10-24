@@ -1,0 +1,29 @@
+# Generated from lib/acp/client_connection/elicitations.rb with RBS::Inline
+
+class ACP::ClientConnection::Elicitations
+  @handler: ACP::ClientConnection::_Elicitation?
+
+  @logger: ACP::Transport::_Logger
+
+  @lock: Thread::Mutex
+
+  @outstanding: Hash[String, bool]
+
+  # @rbs handler: ACP::ClientConnection::_Elicitation?
+  # @rbs logger: ACP::Transport::_Logger
+  # @rbs return: void
+  def initialize: (handler: ACP::ClientConnection::_Elicitation?, logger: ACP::Transport::_Logger) -> void
+
+  # @rbs elicitation_id: String
+  # @rbs return: void
+  def register: (String elicitation_id) -> void
+
+  # The spec requires a completion for an unknown or already-completed
+  # elicitation id to be ignored, so only an id registered by a served
+  # url-mode request reaches the handler. It runs on the transport's reader
+  # thread, so it must return quickly.
+  #
+  # @rbs params: untyped
+  # @rbs return: void
+  def complete: (untyped params) -> void
+end

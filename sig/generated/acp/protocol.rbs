@@ -3,6 +3,14 @@
 module ACP::Protocol
   PROTOCOL_VERSION: Integer
 
+  # Readers missing along the chain count as unadvertised, so the stable
+  # capabilities answer false for the unstable-only paths (fork, providers).
+  #
+  # @rbs capabilities: untyped
+  # @rbs path: Array[Symbol]
+  # @rbs return: bool
+  def advertised?: (untyped capabilities, Array[Symbol] path) -> bool
+
   # @rbs capabilities: (ACP::Types::AgentCapabilities | ACP::Types::Unstable::AgentCapabilities | Hash[String, untyped])
   # @rbs return: bool
   def mcp_acp_advertised?: (ACP::Types::AgentCapabilities | ACP::Types::Unstable::AgentCapabilities | Hash[String, untyped] capabilities) -> bool

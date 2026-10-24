@@ -8,29 +8,24 @@ class ACP::ClientConnection::Streams
   # @rbs @sender: ACP::Transport::Stdio
   # @rbs @permission: ACP::ClientConnection::_PermissionHandler
   # @rbs @updates: ACP::ClientConnection::_UpdateHandler
-  # @rbs @complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
   # @rbs @logger: ACP::Transport::_Logger
   # @rbs @lock: Thread::Mutex
   # @rbs @streams: Hash[String, Thread::Queue]
   # @rbs @pending_permissions: Hash[String, Array[Thread::Queue]]
-  # @rbs @outstanding_elicitations: Hash[String, bool]
 
   # @rbs sender: ACP::Transport::Stdio
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
   # @rbs updates: ACP::ClientConnection::_UpdateHandler
   # @rbs logger: ACP::Transport::_Logger
-  # @rbs complete_elicitation: (^(ACP::Types::CompleteElicitationNotification) -> void)?
   # @rbs return: void
-  def initialize(sender:, permission:, updates:, logger:, complete_elicitation: nil)
+  def initialize(sender:, permission:, updates:, logger:)
     @sender = sender
     @permission = permission
     @updates = updates
-    @complete_elicitation = complete_elicitation
     @logger = logger
     @lock = Mutex.new
     @streams = {}
     @pending_permissions = {}
-    @outstanding_elicitations = {}
   end
 
   # The request waits on its own thread so the caller's thread can yield each
@@ -130,29 +125,6 @@ class ACP::ClientConnection::Streams
   def cancel(session_id)
     pending = @lock.synchronize { @pending_permissions.delete(session_id) }
     pending&.each { |replies| replies << CANCELLED }
-  end
-
-  # @rbs elicitation_id: String
-  # @rbs return: void
-  def register_elicitation(elicitation_id)
-    @lock.synchronize { @outstanding_elicitations[elicitation_id] = true }
-  end
-
-  # The spec requires a completion for an unknown or already-completed
-  # elicitation id to be ignored, so only an id registered by a served
-  # url-mode request reaches the handler. It runs on the transport's reader
-  # thread, so it must return quickly.
-  #
-  # @rbs params: untyped
-  # @rbs return: void
-  def complete_elicitation(params)
-    notification = ACP::Types.parse(ACP::Types::CompleteElicitationNotification, params)
-    if notification.is_a?(ACP::Types::ParseError)
-      @logger.warn("dropped malformed elicitation/complete: #{notification.message}")
-    else
-      known = @lock.synchronize { @outstanding_elicitations.delete(notification.elicitation_id) }
-      @complete_elicitation&.call(notification) if known
-    end
   end
 
   private
