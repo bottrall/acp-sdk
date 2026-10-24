@@ -412,12 +412,9 @@ class ACP::ClientConnection
     lambda do |params|
       next refuse(route) unless route.advertised.call(instance_variable_get(route.family))
 
-      request = route.type.from_h(params)
-    rescue ACP::Types::ParseError => e
-      ACP::RequestError.invalid_params([e.message])
-    rescue KeyError, TypeError, NoMethodError
-      ACP::RequestError.invalid_params
-    else
+      request = ACP::Types.parse(route.type, params)
+      next ACP::RequestError.invalid_params([request.message]) if request.is_a?(ACP::Types::ParseError)
+
       # Safe: connect refuses an advertised capability no handler serves, and
       # the mcp route is only registered when one is injected.
       instance_variable_get(route.handler).call(request)
@@ -475,9 +472,8 @@ class ACP::ClientConnection
   def parse(type, result)
     return result if result.is_a?(ACP::RequestError)
 
-    type.from_h(result)
-  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError
-    ACP::RequestError.invalid_response(result)
+    response = ACP::Types.parse(type, result)
+    response.is_a?(ACP::Types::ParseError) ? ACP::RequestError.invalid_response(result) : response
   end
 
   # The route is registered at start, before connect records the advertised
@@ -486,12 +482,9 @@ class ACP::ClientConnection
   # @rbs params: untyped
   # @rbs return: (ACP::Types::CreateElicitationResponse | ACP::RequestError)
   def create_elicitation(params)
-    request = ACP::Types::CreateElicitationRequest.from_h(params)
-  rescue ACP::Types::ParseError => e
-    ACP::RequestError.invalid_params([e.message])
-  rescue KeyError, TypeError, NoMethodError
-    ACP::RequestError.invalid_params
-  else
+    request = ACP::Types.parse(ACP::Types::CreateElicitationRequest, params)
+    return ACP::RequestError.invalid_params([request.message]) if request.is_a?(ACP::Types::ParseError)
+
     case request.mode
     when ACP::Types::CreateElicitationRequest::Mode::Form
       return ACP::RequestError.unadvertised_mode('elicitation.form') unless @elicitation_capabilities&.form

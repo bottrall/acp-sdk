@@ -80,12 +80,13 @@ class ACP::ClientConnection::Streams
   # @rbs params: untyped
   # @rbs return: void
   def dispatch(params)
-    notification = ACP::Types::SessionNotification.from_h(params)
-  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError => e
-    @logger.warn("dropped malformed session/update: #{e.class}: #{e.message}")
-  else
-    queue = @lock.synchronize { @streams[notification.session_id]&.push(notification.update) }
-    @updates.call(notification) unless queue
+    notification = ACP::Types.parse(ACP::Types::SessionNotification, params)
+    if notification.is_a?(ACP::Types::ParseError)
+      @logger.warn("dropped malformed session/update: #{notification.message}")
+    else
+      queue = @lock.synchronize { @streams[notification.session_id]&.push(notification.update) }
+      @updates.call(notification) unless queue
+    end
   end
 
   # The handler runs on its own thread so a cancelled request is answered
@@ -95,12 +96,9 @@ class ACP::ClientConnection::Streams
   # @rbs params: untyped
   # @rbs return: (ACP::Types::RequestPermissionResponse | ACP::RequestError)
   def request_permission(params)
-    request = ACP::Types::RequestPermissionRequest.from_h(params)
-  rescue ACP::Types::ParseError => e
-    ACP::RequestError.invalid_params([e.message])
-  rescue KeyError, TypeError, NoMethodError
-    ACP::RequestError.invalid_params
-  else
+    request = ACP::Types.parse(ACP::Types::RequestPermissionRequest, params)
+    return ACP::RequestError.invalid_params([request.message]) if request.is_a?(ACP::Types::ParseError)
+
     replies = Thread::Queue.new
     register_permission(request.session_id, replies)
     # The handler runs on the transport's serve thread, so the serving
@@ -151,12 +149,13 @@ class ACP::ClientConnection::Streams
   # @rbs params: untyped
   # @rbs return: void
   def complete_elicitation(params)
-    notification = ACP::Types::CompleteElicitationNotification.from_h(params)
-  rescue ACP::Types::ParseError, KeyError, TypeError, NoMethodError => e
-    @logger.warn("dropped malformed elicitation/complete: #{e.class}: #{e.message}")
-  else
-    known = @lock.synchronize { @outstanding_elicitations.delete(notification.elicitation_id) }
-    @complete_elicitation&.call(notification) if known
+    notification = ACP::Types.parse(ACP::Types::CompleteElicitationNotification, params)
+    if notification.is_a?(ACP::Types::ParseError)
+      @logger.warn("dropped malformed elicitation/complete: #{notification.message}")
+    else
+      known = @lock.synchronize { @outstanding_elicitations.delete(notification.elicitation_id) }
+      @complete_elicitation&.call(notification) if known
+    end
   end
 
   private

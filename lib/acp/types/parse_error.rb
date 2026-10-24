@@ -13,7 +13,7 @@ class ACP::Types::ParseError < StandardError
   def initialize(segments, detail)
     @segments = segments.freeze
     @detail = detail
-    super("#{path}: #{detail}")
+    super(segments.empty? ? detail : "#{path}: #{detail}")
   end
 
   # @dynamic segments

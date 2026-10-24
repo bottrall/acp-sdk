@@ -7,4 +7,13 @@ module ACP::Types
   #
   # @rbs return: bool
   def self.unstable_enabled?: () -> bool
+
+  # Generated from_h checks only nested values, so a payload that is not an
+  # object is rejected here: a String would answer nil for every key and parse
+  # as an empty object.
+  #
+  # @rbs type: ACP::Transport::_Parser
+  # @rbs payload: untyped
+  # @rbs return: untyped
+  def self.parse: (ACP::Transport::_Parser type, untyped payload) -> untyped
 end
