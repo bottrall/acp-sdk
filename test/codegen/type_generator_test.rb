@@ -104,6 +104,20 @@ describe TypeGenerator do
     end
   end
 
+  describe TypeGenerator::Variants do
+    variants = TypeGenerator::Variants.new(tag: 'type', tagged: [[{}, 'A']], untagged: [[{}, 'B']])
+
+    it 'is frozen' do
+      assert_predicate variants, :frozen?
+    end
+
+    describe '#all' do
+      it 'lists the tagged variants before the untagged ones' do
+        assert_equal [[{}, 'A'], [{}, 'B']], variants.all
+      end
+    end
+  end
+
   describe TypeGenerator::Dispatch do
     it 'is frozen' do
       assert_predicate TypeGenerator::Dispatch.new(tag: 'type', tagged: [], untagged: []), :frozen?

@@ -31,7 +31,7 @@ describe TypeGenerator::Plan do
 
   def requires(source) = source.scan(/^require_relative '(.+)'$/).flatten
 
-  let(:alias_paths) { TypeGenerator::ALIASES.keys.map { |name| "#{plan.snake(name)}.rb" } }
+  let(:alias_paths) { TypeGenerator::ALIASES.keys.map { |name| "#{TypeGenerator::Naming.snake(name)}.rb" } }
   let(:stable) { { '$defs' => { 'Widget' => root('Step'), 'Step' => object, 'Orphan' => object } } }
   let(:unstable) do
     {
@@ -253,30 +253,6 @@ describe TypeGenerator::Plan do
 
     it 'finds none in a def that is not a union' do
       assert_empty plan.subsumed_edges(schema({ 'Step' => object }), 'Step')
-    end
-  end
-
-  describe '.ref_name' do
-    it 'strips the $defs pointer prefix' do
-      assert_equal 'Step', plan.ref_name('#/$defs/Step')
-    end
-  end
-
-  describe '.path' do
-    it 'maps a constant to its snake-cased path below the types namespace' do
-      assert_equal 'unstable/tool_call/in_progress.rb', plan.path('ACP::Types::Unstable::ToolCall::InProgress')
-    end
-  end
-
-  describe '.snake' do
-    it 'snake-cases camel case, splitting after digits and dropping a leading underscore' do
-      assert_equal(%w[mcp_servers http2_stream meta], %w[mcpServers Http2Stream _meta].map { |name| plan.snake(name) })
-    end
-  end
-
-  describe '.camel' do
-    it 'capitalizes the parts between non-alphanumeric separators' do
-      assert_equal(%w[ToolCallUpdate Http2Stream], %w[tool_call_update http2-stream].map { |name| plan.camel(name) })
     end
   end
 

@@ -16,8 +16,10 @@ module TypeGenerator::Unions
   # @rbs definition: Hash[String, untyped]
   # @rbs return: Array[TypeGenerator::file]
   def union_files(defs, union, definition)
-    tag, tagged, untagged = variant_consts(defs, union, definition)
-    tagged_classes = tagged.map do |option, variant|
+    variants = variant_consts(defs, union, definition)
+    tag = variants.tag
+    untagged = variants.untagged
+    tagged_classes = variants.tagged.map do |option, variant|
       value = option.dig('properties', tag, 'const')
       TypeGenerator::Emit.class_file(defs, variant, variant_fields(defs, option, tag), tag: tag && [tag, value])
     end
@@ -32,7 +34,7 @@ module TypeGenerator::Unions
     untagged_keys = untagged.map(&:last).zip(keys) #: Array[[String, String]]
     dispatch = TypeGenerator::Dispatch.new(
       tag:,
-      tagged: tagged.map { |option, variant| [option.dig('properties', tag, 'const'), variant] },
+      tagged: variants.tagged.map { |option, variant| [option.dig('properties', tag, 'const'), variant] },
       untagged: untagged_keys
     )
     [union_file(defs, union, dispatch), *tagged_classes, *untagged_classes]
@@ -41,14 +43,14 @@ module TypeGenerator::Unions
   # @rbs defs: TypeGenerator::Schema
   # @rbs union: String
   # @rbs definition: Hash[String, untyped]
-  # @rbs return: [String?, Array[[Hash[String, untyped], String]], Array[[Hash[String, untyped], String]]]
+  # @rbs return: TypeGenerator::Variants
   def variant_consts(defs, union, definition)
     options = TypeGenerator::Resolve.variants(definition).reject { |option| option.key?('not') }
     tag = discriminator(options)
     tagged, untagged = options.partition { |option| tag && option.dig('properties', tag, 'const') }
     tagged_pairs = tagged.zip(variant_names(tagged, tag)).map { |option, name| [option, "#{union}::#{name}"] }
     untagged_pairs = untagged.map { |option| [option, untagged_const(defs, union, option)] }
-    [tag, tagged_pairs, untagged_pairs]
+    TypeGenerator::Variants.new(tag:, tagged: tagged_pairs, untagged: untagged_pairs)
   end
 
   # A def reached only through an option like this is subsumed by the variant
@@ -65,8 +67,7 @@ module TypeGenerator::Unions
   # @rbs definition: Hash[String, untyped]
   # @rbs return: Array[[String, String]]
   def variant_refs(defs, union, definition)
-    _, tagged, untagged = variant_consts(defs, union, definition)
-    [*tagged, *untagged].filter_map do |option, variant|
+    variant_consts(defs, union, definition).all.filter_map do |option, variant|
       ref = variant_ref(option)
       [ref, variant] if ref && subsumes_ref?(option)
     end
@@ -76,7 +77,7 @@ module TypeGenerator::Unions
   # @rbs tag: String?
   # @rbs return: Array[String?]
   def variant_names(options, tag)
-    names = options.map { |option| TypeGenerator::Plan.camel(option.dig('properties', tag, 'const')) }
+    names = options.map { |option| TypeGenerator::Naming.camel(option.dig('properties', tag, 'const')) }
     return names unless names.intersect?(TypeGenerator::CORE_CLASSES)
 
     options.map { |option| variant_ref(option) }
@@ -84,7 +85,9 @@ module TypeGenerator::Unions
 
   # @rbs option: Hash[String, untyped]
   # @rbs return: String?
-  def variant_ref(option) = option['allOf']&.first&.then { |schema| TypeGenerator::Plan.ref_name(schema.fetch('$ref')) }
+  def variant_ref(option)
+    option['allOf']&.first&.then { |schema| TypeGenerator::Naming.ref_name(schema.fetch('$ref')) }
+  end
 
   # @rbs defs: TypeGenerator::Schema
   # @rbs option: Hash[String, untyped]
@@ -105,7 +108,7 @@ module TypeGenerator::Unions
     return defs.const(ref) if ref && !option.key?('properties') &&
                               TypeGenerator::Resolve.kind(defs.fetch(ref)) == :object
 
-    "#{union}::#{TypeGenerator::Plan.camel(option.fetch('title'))}"
+    "#{union}::#{TypeGenerator::Naming.camel(option.fetch('title'))}"
   end
 
   # @rbs defs: TypeGenerator::Schema
@@ -140,7 +143,7 @@ module TypeGenerator::Unions
       'end'
     ]
     [
-      TypeGenerator::Plan.path(union),
+      TypeGenerator::Naming.path(union),
       TypeGenerator::Emit.source("module #{union}", [type_alias(variants), from_h], defs.header)
     ]
   end
@@ -192,7 +195,7 @@ module TypeGenerator::Unions
   # @rbs return: TypeGenerator::file
   def array_union_file(defs, union, definition)
     items = TypeGenerator::Resolve.variants(definition)
-                                  .map { |option| TypeGenerator::Plan.ref_name(option.fetch('items').fetch('$ref')) }
+                                  .map { |option| TypeGenerator::Naming.ref_name(option.fetch('items').fetch('$ref')) }
     keys = unique_keys(items.map { |name| defs.fetch(name).fetch('required', []) })
     branches = items.zip(keys).map do |name, key|
       [
@@ -217,7 +220,7 @@ module TypeGenerator::Unions
     ]
     types = [*items.map { |name| "Array[#{defs.const(name)}]" }, "Array[#{TypeGenerator::RAW_HASH}]"]
     [
-      TypeGenerator::Plan.path(union),
+      TypeGenerator::Naming.path(union),
       TypeGenerator::Emit.source("module #{union}", [type_alias(types), from_a], defs.header)
     ]
   end
@@ -232,6 +235,6 @@ module TypeGenerator::Unions
       name = (value.is_a?(String) ? value : option.fetch('title')).upcase.gsub(/[^A-Z\d]+/, '_')
       "#{name} = #{value.is_a?(String) ? "'#{value}'" : value}"
     end
-    [TypeGenerator::Plan.path(const), TypeGenerator::Emit.source("module #{const}", [constants], defs.header)]
+    [TypeGenerator::Naming.path(const), TypeGenerator::Emit.source("module #{const}", [constants], defs.header)]
   end
 end

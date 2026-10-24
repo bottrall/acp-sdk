@@ -159,6 +159,26 @@ module TypeGenerator
     def with_subsumed: (Hash[String, String] subsumed) -> TypeGenerator::Schema
   end
 
+  class Variants
+    # @dynamic tag
+    attr_reader tag: String?
+
+    # @dynamic tagged
+    attr_reader tagged: Array[[ Hash[String, untyped], String ]]
+
+    # @dynamic untagged
+    attr_reader untagged: Array[[ Hash[String, untyped], String ]]
+
+    # @rbs tag: String?
+    # @rbs tagged: Array[[Hash[String, untyped], String]]
+    # @rbs untagged: Array[[Hash[String, untyped], String]]
+    # @rbs return: void
+    def initialize: (tag: String?, tagged: Array[[ Hash[String, untyped], String ]], untagged: Array[[ Hash[String, untyped], String ]]) -> void
+
+    # @rbs return: Array[[Hash[String, untyped], String]]
+    def all: () -> Array[[ Hash[String, untyped], String ]]
+  end
+
   class Dispatch
     # @dynamic tag
     attr_reader tag: String?

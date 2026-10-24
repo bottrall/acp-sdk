@@ -14,8 +14,8 @@ module TypeGenerator::Unions
   # @rbs defs: TypeGenerator::Schema
   # @rbs union: String
   # @rbs definition: Hash[String, untyped]
-  # @rbs return: [String?, Array[[Hash[String, untyped], String]], Array[[Hash[String, untyped], String]]]
-  def variant_consts: (TypeGenerator::Schema defs, String union, Hash[String, untyped] definition) -> [ String?, Array[[ Hash[String, untyped], String ]], Array[[ Hash[String, untyped], String ]] ]
+  # @rbs return: TypeGenerator::Variants
+  def variant_consts: (TypeGenerator::Schema defs, String union, Hash[String, untyped] definition) -> TypeGenerator::Variants
 
   # A def reached only through an option like this is subsumed by the variant
   # class: the option carries its own properties, which inline the refed def's

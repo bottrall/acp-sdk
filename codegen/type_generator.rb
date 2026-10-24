@@ -205,6 +205,29 @@ module TypeGenerator
     def with_subsumed(subsumed) = Schema.new(@defs, header: @header, twins: @twins, subsumed:)
   end
 
+  class Variants
+    # @dynamic tag
+    attr_reader :tag #: String?
+    # @dynamic tagged
+    attr_reader :tagged #: Array[[Hash[String, untyped], String]]
+    # @dynamic untagged
+    attr_reader :untagged #: Array[[Hash[String, untyped], String]]
+
+    # @rbs tag: String?
+    # @rbs tagged: Array[[Hash[String, untyped], String]]
+    # @rbs untagged: Array[[Hash[String, untyped], String]]
+    # @rbs return: void
+    def initialize(tag:, tagged:, untagged:)
+      @tag = tag
+      @tagged = tagged
+      @untagged = untagged
+      freeze
+    end
+
+    # @rbs return: Array[[Hash[String, untyped], String]]
+    def all = [*tagged, *untagged]
+  end
+
   class Dispatch
     # @dynamic tag
     attr_reader :tag #: String?
@@ -234,6 +257,7 @@ end
 # The stages open `TypeGenerator::Plan`-style namespaces, so the hub module
 # above must exist before they load.
 require_relative 'type_generator/emit'
+require_relative 'type_generator/naming'
 require_relative 'type_generator/plan'
 require_relative 'type_generator/resolve'
 require_relative 'type_generator/unions'

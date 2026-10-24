@@ -15,7 +15,7 @@ module TypeGenerator::Emit
       from_h_method(const, fields),
       to_h_method(fields, tag)
     ]
-    [TypeGenerator::Plan.path(const), source("class #{const}", sections, defs.header)]
+    [TypeGenerator::Naming.path(const), source("class #{const}", sections, defs.header)]
   end
 
   # @rbs opening: String
@@ -71,7 +71,7 @@ module TypeGenerator::Emit
   def from_h_method(const, fields)
     param = fields.empty? ? '_hash' : 'hash'
     expressions = fields.to_h { |field| [field, from_expression(field)] }
-    blocky, _plain = fields.partition { |field| piece_block(expressions.fetch(field)) }
+    blocky = fields.select { |field| piece_block(expressions.fetch(field)) }
     args = fields.map do |field|
       expression = expressions.fetch(field)
       [field.attr, piece_block(expression) ? nil : expression]
@@ -94,17 +94,11 @@ module TypeGenerator::Emit
     return ['new'] if args.empty?
 
     single = "new(#{args.map { |name, expr| new_arg(name, expr) }.join(', ')})"
-    return [single] if column + single.length <= TypeGenerator::MAX_LINE_LENGTH
-
-    lines = args.each_with_index.flat_map do |(name, expr), index|
-      comma = index == args.size - 1 ? '' : ','
-      if expr.nil?
-        indent(["#{name}:"], 2).tap { |arg_lines| arg_lines[-1] += comma }
-      else
-        indent(render(expr, column + 2, "#{name}: ", comma), 2)
+    wrap(single, column, 'new(', ')') do
+      commas(args).map do |(name, expr), comma|
+        expr.nil? ? ["#{name}:#{comma}"] : render(expr, column + 2, "#{name}: ", comma)
       end
     end
-    ['new(', *lines, ')']
   end
 
   # @rbs name: String
@@ -114,12 +108,26 @@ module TypeGenerator::Emit
     expr.nil? ? "#{name}:" : "#{name}: #{inline(expr)}"
   end
 
-  # @rbs size: Integer
-  # @rbs index: Integer
-  # @rbs return: String
-  def arg_comma(size, index)
-    index == size - 1 ? '' : ','
+  # @rbs single: String
+  # @rbs column: Integer
+  # @rbs opening: String
+  # @rbs closing: String
+  # @rbs &items: () -> Array[Array[String]]
+  # @rbs return: Array[String]
+  def wrap(single, column, opening, closing)
+    return [single] if fits?(single, column)
+
+    [opening, *yield.flat_map { |lines| indent(lines, 2) }, closing]
   end
+
+  # @rbs line: String
+  # @rbs column: Integer
+  # @rbs return: bool
+  def fits?(line, column) = column + line.length <= TypeGenerator::MAX_LINE_LENGTH
+
+  # @rbs items: Array[untyped]
+  # @rbs return: Array[[untyped, String]]
+  def commas(items) = items.each_with_index.map { |item, index| [item, index == items.size - 1 ? '' : ','] }
 
   # @rbs field: TypeGenerator::Field
   # @rbs return: TypeGenerator::expression
@@ -232,19 +240,17 @@ module TypeGenerator::Emit
   # @rbs return: Array[String]
   def render(piece, column, prefix = '', suffix = '')
     line = "#{prefix}#{inline(piece)}#{suffix}"
-    return [line] if column + line.length <= TypeGenerator::MAX_LINE_LENGTH || piece.is_a?(String)
+    return [line] if fits?(line, column) || piece.is_a?(String)
 
     callee, args, block, cast = piece
     tail = cast ? " #{cast}" : ''
     rendered_args = args.map { |arg| inline(arg) }.join(', ')
     head = args.empty? ? "#{prefix}#{callee}" : "#{prefix}#{callee}(#{rendered_args})"
-    if block && column + "#{head} do |#{block[0]}|".length <= TypeGenerator::MAX_LINE_LENGTH
+    if block && fits?("#{head} do |#{block[0]}|", column)
       return ["#{head} do |#{block[0]}|", *indent(render(block[1], column + 2), 2), "end#{tail}#{suffix}"]
     end
 
-    lines = args.each_with_index.flat_map do |arg, index|
-      indent(render(arg, column + 2, '', arg_comma(args.size, index)), 2)
-    end
+    lines = commas(args).flat_map { |arg, comma| indent(render(arg, column + 2, '', comma), 2) }
     return ["#{prefix}#{callee}(", *lines, ")#{tail}#{suffix}"] unless block
 
     body = indent(render(block[1], column + 2), 2)
@@ -291,13 +297,9 @@ module TypeGenerator::Emit
   def call(prefix, args, column)
     return [prefix] if args.empty?
 
-    single = "#{prefix}(#{args.join(', ')})"
-    return [single] if column + single.length <= TypeGenerator::MAX_LINE_LENGTH
-
-    lines = args.each_with_index.map do |arg, index|
-      "#{arg}#{',' unless index == args.size - 1}"
+    wrap("#{prefix}(#{args.join(', ')})", column, "#{prefix}(", ')') do
+      commas(args).map { |arg, comma| ["#{arg}#{comma}"] }
     end
-    ["#{prefix}(", *indent(lines, 2), ')']
   end
 
   # @rbs entries: Array[String]
@@ -307,10 +309,9 @@ module TypeGenerator::Emit
   def hash_literal(entries, suffix, column)
     return ["{}#{suffix}"] if entries.empty?
 
-    single = "{ #{entries.join(', ')} }#{suffix}"
-    return [single] if column + single.length <= TypeGenerator::MAX_LINE_LENGTH
-
-    ['{', *entries.map { |entry| "  #{entry}," }.tap { |lines| lines[-1] = lines[-1].chomp(',') }, "}#{suffix}"]
+    wrap("{ #{entries.join(', ')} }#{suffix}", column, '{', "}#{suffix}") do
+      commas(entries).map { |entry, comma| ["#{entry}#{comma}"] }
+    end
   end
 
   # Conversions stay tagged arrays rather than POROs: they only exist to be pattern-matched here, and array patterns
