@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-# Serves the requests and notifications the agent sends the client. The routes
-# are registered at start, before connect records the advertisement, so each
-# one answers its refusal until then.
 class ACP::ClientConnection::Inbound
   # @rbs @fs: ACP::ClientConnection::_FileSystem?
   # @rbs @terminal: ACP::ClientConnection::_Terminal?
@@ -122,9 +119,6 @@ class ACP::ClientConnection::Inbound
     { 'elicitation/complete' => @elicitations.method(:complete), **@extension_notifications }
   end
 
-  # Refuses, before anything is recorded, a capability whose handler is
-  # missing: the agent would otherwise call a method nothing serves.
-  #
   # @rbs capabilities: ACP::Types::ClientCapabilities?
   # @rbs return: void
   def advertise(capabilities)
@@ -141,6 +135,8 @@ class ACP::ClientConnection::Inbound
   # @rbs return: ^(untyped) -> untyped
   def serve(route, handler)
     lambda do |params|
+      # The routes are registered at start, before connect advertises the
+      # capabilities, so each one refuses until then.
       next ACP::RequestError.unadvertised(route.capability) unless ACP::Protocol.advertised?(@capabilities, route.path)
 
       # Safe: advertise refuses an advertised capability no handler serves.
@@ -186,15 +182,13 @@ class ACP::ClientConnection::Inbound
     raise ArgumentError, "initialize advertises #{what} no handler serves: #{unserved.join(', ')}"
   end
 
-  # The unstable types are referenced while the route is built, so it can only
-  # be served when the caller opted in with `require 'acp/types/unstable'`. It
-  # is registered only when a handler serves it: unlike the fs and terminal
-  # gates, the mcp gate reads the agent's advertisement, so nothing forces an
-  # advertised request to have a handler.
-  #
   # @rbs return: Hash[String, ^(untyped) -> untyped]
   def mcp_requests
     handler = @mcp_message
+    # Registered only when a handler serves it: unlike the fs and terminal gates,
+    # the mcp gate reads the agent's advertisement, so nothing forces an
+    # advertised request to have a handler. The route references the unstable
+    # types, so it needs the caller's `require 'acp/types/unstable'` too.
     return {} unless handler && ACP::Types.unstable_enabled?
 
     route = lambda do |params|
@@ -205,9 +199,6 @@ class ACP::ClientConnection::Inbound
     { 'mcp/message' => route }
   end
 
-  # A request for an unadvertised mode answers -32602: the spec gives
-  # elicitation its mode in the params.
-  #
   # @rbs params: untyped
   # @rbs return: (ACP::Types::CreateElicitationResponse | ACP::RequestError)
   def create_elicitation(params)
@@ -227,6 +218,8 @@ class ACP::ClientConnection::Inbound
   # @rbs return: ACP::RequestError?
   def elicitation_refusal(request)
     modes = @capabilities&.elicitation
+    # An unadvertised mode answers -32602 rather than -32601: the spec gives
+    # elicitation its mode in the params.
     case request.mode
     when ACP::Types::CreateElicitationRequest::Mode::Form
       ACP::RequestError.unadvertised_mode('elicitation.form') unless modes&.form

@@ -7,10 +7,6 @@ class ACP::ClientConnection
 
   IGNORE = ->(_notification) {} #: ^(ACP::Types::SessionNotification) -> void
 
-  # Wires a connection from its handlers. The fs, terminal and elicitation
-  # handlers are objects grouped by capability; each needs only the methods of
-  # the capabilities initialize advertises.
-  #
   # @rbs transport: ACP::Transport::Stdio
   # @rbs permission: ACP::ClientConnection::_PermissionHandler
   # @rbs updates: ACP::ClientConnection::_UpdateHandler

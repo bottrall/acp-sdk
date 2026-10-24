@@ -197,8 +197,15 @@ describe ACP::ClientConnection do
     end
 
     it 'wires the fs and terminal handler objects to their routes' do
-      client = built(fs: handler(read_text_file: :read), terminal: handler(kill_terminal: :killed))
-      client.connect(initialize_request(fs: fs(read_text_file: true), terminal: false))
+      terminal = handler(
+        create_terminal: nil,
+        terminal_output: nil,
+        wait_for_terminal_exit: nil,
+        kill_terminal: :killed,
+        release_terminal: nil
+      )
+      client = built(fs: handler(read_text_file: :read), terminal:)
+      client.connect(initialize_request(fs: fs(read_text_file: true), terminal: true))
       @log.clear
       replies = [
         route('fs/read_text_file').call({ 'sessionId' => 's', 'path' => '/a.txt' }),
@@ -206,8 +213,8 @@ describe ACP::ClientConnection do
       ]
 
       assert_equal(
-        [[:read, ACP::RequestError.unadvertised('terminal').to_h], [[:read_text_file, ACP::Types::ReadTextFileRequest]]],
-        [[replies[0], replies[1].to_h], @log]
+        [%i[read killed], [[:read_text_file, ACP::Types::ReadTextFileRequest], [:kill_terminal, ACP::Types::KillTerminalRequest]]],
+        [replies, @log]
       )
     end
 

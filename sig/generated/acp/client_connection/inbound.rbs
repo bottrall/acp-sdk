@@ -1,8 +1,5 @@
 # Generated from lib/acp/client_connection/inbound.rb with RBS::Inline
 
-# Serves the requests and notifications the agent sends the client. The routes
-# are registered at start, before connect records the advertisement, so each
-# one answers its refusal until then.
 class ACP::ClientConnection::Inbound
   @capabilities: ACP::Types::ClientCapabilities?
 
@@ -48,9 +45,6 @@ class ACP::ClientConnection::Inbound
   # @rbs return: Hash[String, ACP::Transport::Stdio::_NotificationHandler]
   def notifications: () -> Hash[String, ACP::Transport::Stdio::_NotificationHandler]
 
-  # Refuses, before anything is recorded, a capability whose handler is
-  # missing: the agent would otherwise call a method nothing serves.
-  #
   # @rbs capabilities: ACP::Types::ClientCapabilities?
   # @rbs return: void
   def advertise: (ACP::Types::ClientCapabilities? capabilities) -> void
@@ -83,18 +77,9 @@ class ACP::ClientConnection::Inbound
   # @rbs return: void
   def check_served: (String what, Array[String] unserved) -> void
 
-  # The unstable types are referenced while the route is built, so it can only
-  # be served when the caller opted in with `require 'acp/types/unstable'`. It
-  # is registered only when a handler serves it: unlike the fs and terminal
-  # gates, the mcp gate reads the agent's advertisement, so nothing forces an
-  # advertised request to have a handler.
-  #
   # @rbs return: Hash[String, ^(untyped) -> untyped]
   def mcp_requests: () -> Hash[String, ^(untyped) -> untyped]
 
-  # A request for an unadvertised mode answers -32602: the spec gives
-  # elicitation its mode in the params.
-  #
   # @rbs params: untyped
   # @rbs return: (ACP::Types::CreateElicitationResponse | ACP::RequestError)
   def create_elicitation: (untyped params) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError)
