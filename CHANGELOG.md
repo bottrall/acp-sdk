@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.14.0](https://github.com/bottrall/acp-sdk/compare/v0.13.0...v0.14.0) (2026-10-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* build a client with ACP::ClientConnection.build instead of ClientConnection.new, which now takes only its collaborators (transport:, streams:, inbound:). The seven fs and terminal handler keywords become two handler objects, fs: and terminal:, and the elicitation: and complete_elicitation: callables become one elicitation: object responding to create_elicitation and optionally complete_elicitation. The unserved-capability ArgumentError from connect now names handler methods (write_text_file) rather than capability keys (fs.writeTextFile).
+
+### Features
+
+* split ClientConnection into outbound, inbound and elicitations ([#159](https://github.com/bottrall/acp-sdk/issues/159)) ([3bdd4b1](https://github.com/bottrall/acp-sdk/commit/3bdd4b17f5f3b8aaf95c48d0e39b68710ab04cce))
+
+
+### Bug Fixes
+
+* reject non-object payloads through one shared parse ([#156](https://github.com/bottrall/acp-sdk/issues/156)) ([930ea26](https://github.com/bottrall/acp-sdk/commit/930ea26d12c67bf72d6638f836eb790c91f05642))
+
 ## [0.13.0](https://github.com/bottrall/acp-sdk/compare/v0.12.0...v0.13.0) (2026-10-13)
 
 
