@@ -1,0 +1,20 @@
+# Fixes and merges Renovate's branches when CI finishes on them; the logic
+# lives in bottrall/deps.
+
+name: deps
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: ["renovate/**"]
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+
+jobs:
+  deps:
+    uses: bottrall/deps/.github/workflows/fix.yml@main
+    secrets: inherit
