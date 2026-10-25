@@ -1,7 +1,11 @@
 name: ci
 
 on:
-  - pull_request
+  pull_request:
+  # Renovate merges green branches without a PR, so it needs CI on the push.
+  push:
+    branches:
+      - "renovate/**"
 
 jobs:
   check:
