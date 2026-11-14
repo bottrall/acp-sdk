@@ -1,3 +1,54 @@
 #!/usr/bin/env bash
-set -e
-exec bundle exec rake rubocop RUBOCOP_OPTS="$*"
+# Lints and checks formatting (RuboCop; oxlint and oxfmt), fixing what it can with --fix.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=lib/stack.sh
+source bin/lib/stack.sh
+
+# RuboCop flags that take the next argument as their value.
+VALUE_FLAGS=(-f --format -o --out -c --config --except)
+
+stack_of() {
+  case $1 in
+    *.ts | *.tsx | *.js | *.jsx | *.mts | *.cts | *.mjs | *.cjs) echo ts ;;
+    *.rb | *.rake | *.gemspec | *.ru | Gemfile | */Gemfile | Rakefile | */Rakefile) echo ruby ;;
+    *) return 1 ;;
+  esac
+}
+
+fix=false
+args=()
+for arg in "$@"; do
+  case $arg in
+    --fix) fix=true ;;
+    *) args+=("$arg") ;;
+  esac
+done
+
+parse_args paths "${VALUE_FLAGS[@]}" -- ${args[@]+"${args[@]}"}
+select_stacks stack_of
+
+run_ruby() {
+  local opts=()
+  if $fix; then opts+=(-a); fi
+  opts+=(${FLAGS[@]+"${FLAGS[@]}"} ${RUBY_PATHS[@]+"${RUBY_PATHS[@]}"})
+
+  local cmd=(bundle exec rake lint)
+  if ((${#opts[@]})); then cmd+=("RUBOCOP_OPTS=${opts[*]}"); fi
+  "${cmd[@]}"
+}
+
+# Runner flags go to oxlint; paths go to both. oxfmt runs even when oxlint
+# fails, so one run reports both.
+run_ts() {
+  local status=0 lint=(pnpm exec oxlint) format=(pnpm exec oxfmt --check)
+  if $fix; then
+    lint+=(--fix)
+    format=(pnpm exec oxfmt --write)
+  fi
+  "${lint[@]}" ${FLAGS[@]+"${FLAGS[@]}"} ${TS_PATHS[@]+"${TS_PATHS[@]}"} || status=$?
+  "${format[@]}" ${TS_PATHS[@]+"${TS_PATHS[@]}"} || status=$?
+  return "$status"
+}
+
+run_stacks "${STACKS[@]}"

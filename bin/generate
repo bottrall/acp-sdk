@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Regenerates generated files (such as sig/generated) through `rake generate`, or keeps them current with --watch.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=lib/stack.sh
+source bin/lib/stack.sh
+
+# Generation is Rake's alone, so --watch picks `generate:watch` here rather
+# than the TS side it picks in bin/test.
+task=generate
+for arg in "$@"; do
+  case $arg in
+    --watch) task=generate:watch ;;
+    --only=ruby) ;;
+    --only=ts) not_applicable "generation runs through Rake, and --only=ts excludes it" ;;
+    *) fail "unknown argument $arg; takes only --watch" ;;
+  esac
+done
+
+if ! has_ruby; then not_applicable "no Gemfile, so no rake $task task"; fi
+if ! has_rake_task "$task"; then not_applicable "no rake $task task"; fi
+
+exec bundle exec rake "$task"

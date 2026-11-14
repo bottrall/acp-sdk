@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Fixes what it can, then type-checks and tests: bin/lint --fix, bin/typecheck, bin/test.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=lib/stack.sh
+source bin/lib/stack.sh
+
+only=()
+for arg in "$@"; do
+  case $arg in
+    --only=*) only=("$arg") ;;
+    *) fail "unknown argument $arg; takes only --only=ruby or --only=ts" ;;
+  esac
+done
+
+# Each step runs even when one before it failed, so one run reports them all.
+status=0
+bin/lint --fix ${only[@]+"${only[@]}"} || status=$?
+bin/typecheck ${only[@]+"${only[@]}"} || status=$?
+bin/test ${only[@]+"${only[@]}"} || status=$?
+exit "$status"

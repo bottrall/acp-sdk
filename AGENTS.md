@@ -2,10 +2,24 @@
 
 Ruby SDK for the Agent Client Protocol. The gem is `acp-sdk`; the namespace is `ACP`.
 
+## Commands
+
+Everything runs through its `bin/` script, never a tool directly (`rake`, `rubocop`, `steep`, `vitest`, `oxlint`, `tsc`, `vite`, `playwright`).
+
+| Script                        | What it does                                                                  |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| `bin/setup`                   | Install dependencies on a fresh checkout                                      |
+| `bin/test [paths]`            | Run the tests; pass files to run only those                                   |
+| `bin/lint [--fix] [paths]`    | Check lint and formatting; `--fix` fixes what it can                          |
+| `bin/typecheck`               | Type-check the code                                                           |
+| `bin/generate [--watch]`      | Regenerate the generated files; `--watch` keeps them current                  |
+| `bin/build`                   | Build what the repo ships                                                     |
+| `bin/check`                   | `bin/lint --fix`, `bin/typecheck`, `bin/test`: run before calling a change done |
+| `bin/ci`                      | Run exactly what CI runs, without fixes: run before pushing                   |
+
 ## Workflow
 
-- Run every chore through its `bin/` script (`bin/test`, `bin/lint`, `bin/typecheck`, `bin/rbs`, `bin/ci`), never rake directly. Run `bin/ci` before pushing.
-- After any `lib/` or `codegen/` change, run `bin/rbs` and commit `sig/generated`. Never hand-edit `sig/generated`; `bin/typecheck` fails when it is stale.
+- After any `lib/` or `codegen/` change, or a new vendored schema in `schema/`, run `bin/generate` and commit `lib/acp/types` and `sig/generated` with it. `bin/generate` regenerates `lib/acp/types` from the schemas first, then `sig/generated` from the inline annotations. Never hand-edit either; `bin/typecheck` fails when they are stale.
 - PR titles are Conventional Commits and become the squash commit on `main`: `feat:` releases a minor, `fix:` a patch. release-please owns `lib/acp/version.rb` and `CHANGELOG.md`; never edit them by hand.
 
 ## Code layout
@@ -13,23 +27,53 @@ Ruby SDK for the Agent Client Protocol. The gem is `acp-sdk`; the namespace is `
 - Zeitwerk loads `lib/acp` as the root of `ACP`, so `lib/acp/foo_bar.rb` defines `ACP::FooBar`.
 - Tests are Minitest spec style (`describe`/`it`), and `test/acp/` mirrors `lib/acp/`.
 
+## Code style
+
+- Prefer functional style: enumerable / array methods (`map`, `filter`, `reduce`) over manual loops.
+- Favor immutability — return new values rather than mutating arguments.
+- Write pure functions where possible; isolate side effects (I/O, DB, network) behind clear boundaries.
+- Use a class only when an instance has identity, lifecycle, or mutable state. Otherwise use a module of pure functions. A class whose methods are all static (`self.foo`) is a module wearing pants.
+- Default to composition — pass collaborators ("has-a") rather than inheriting from a parent ("is-a"). For shared _shape_, use an interface, structural type, or duck typing. Reserve inheritance for genuine "is-a" with shared _implementation_, or framework-mandated parents (`ApplicationRecord`, `Sidekiq::Worker`, custom `Error` subclasses).
+- Don't use thrown exceptions for control flow — return an explicit result type, or follow the pattern this repo already uses. Reserve `throw` / `raise` for truly exceptional circumstances: programmer errors, unrecoverable state, framework-level boundaries.
+
+### Dependency injection
+
+Don't construct or reach for collaborators inside a function or class — accept them as constructor or function parameters, typed as the **smallest interface** that captures what the function actually uses (`Emailer` with a `send` method, not `SendgridEmailService` with its 40-method API). Wire concrete implementations at the **application edge** — `main`, the entry point, a composition root.
+
+**Smell:** a function or class taking 8+ dependencies is doing too much — split it.
+
+**Exempt:** framework globals that ship first-class test seams — Rails `ActiveRecord` (`User.find`, `user.save`), `ActionMailer` (`UserMailer.welcome(user).deliver_later`), `ActiveJob`. The test database, `ActionMailer::TestHelper`, and `perform_enqueued_jobs` already provide the seam DI exists to create, so calling them in place costs none of the testability or swappability the rule protects. The rule still binds collaborators that lack such a seam: third-party clients (`Stripe::Client`, an HTTP or S3 SDK) and this repo's own service objects — inject those.
+
 ## Testing
 
-- Every module of behaviour gets a test file, even if it's only a smoke test. A unit with no behaviour — pure constants, data definitions — needs no test file.
+- Every module of behaviour gets a test file, even if it's only a smoke test. A unit with no behaviour — pure constants, data definitions, types — needs no test file.
 - Only test what can change. Static code — generated files, constants, trivial accessors — gets at most a smoke test. Generated code is pinned at its generator: test the generator, not each generated output.
 - A test file tests only the concerns of the unit it's mapped to. If testing X requires driving Y's entry point, either the behaviour belongs in X's own file with collaborators injected, or Y's file is covering for a missing X test. A behaviour belongs to the unit whose contract it is, even when observing it means calling through an object that unit returns. A composer's tests assert the composer's outcomes only — never a collaborator's branches, which are pinned in the collaborator's own file.
 - Order tests the way the code is ordered: they follow the source's structure, and within a routine they follow execution order (validation behaviour first).
 - Test all branches in reason: every early return, conditional, and error path gets a test — unless the branch is dead or a programmer-error tripwire.
+- One assertion per test: each `it` makes exactly one `assert_*` or `expect`. A test that wants two is two tests.
+- Never mock code you own. Don't patch a module, method or import to change what it does (`vi.mock`, `vi.spyOn`, `Minitest::Mock`, `stub`); pass the unit a fake through the parameters it already takes its collaborators by.
 
-## Comments
-
-The default is no comment. Keep only a _why_ the code can't show (a non-local constraint, an external quirk, a deliberate tradeoff), at the line it explains. Never restate the code, repeat types the signatures state, or record history.
-
-## Typing
+## Ruby typing
 
 - Steep runs `D::Ruby.all_error`: every diagnostic is an error. Fix the annotation or the code; never disable a diagnostic in the Steepfile. The only escape is a targeted inline suppression with a comment saying why.
-- Annotate every method in `lib/` and `codegen/` with rbs-inline doc style: one `# @rbs name: Type` per param plus `# @rbs return: Type`, never the one-line method-type form. Constants and `attr_reader`s rbs-inline can't infer take a trailing `#: Type` on the same line (0.14 ignores one on the line above).
+- Annotate every method in `lib/` with rbs-inline doc style: one `# @rbs name: Type` per param plus `# @rbs return: Type`, never the one-line method-type or `#:` method form. Constants and `attr_reader`s rbs-inline can't infer take a trailing `#: Type` on the same line; one on the line above is ignored.
 - An `attr_reader`/`attr_writer` needs a `# @dynamic name` line directly above it, or Steep reports `MethodDefinitionMissing`.
-- Value objects are frozen POROs, never `Data.define`/`Struct.new` (Steep can't see methods defined on the generated class), and never fixed-key hashes passed between methods. An RBS record type such as `{ cwd: String, history: Array[...] }`, inline or aliased, or a hash read back with `[:key]`/`fetch(:key)` elsewhere, is the tell. JSON-RPC payloads stay `Hash[String, untyped]` only at the wire boundary: the transport and the generated `from_h`/`to_h`.
 - Declare an interface only when different objects satisfy it — two or more implementers, or a contract a consumer implements — or when a boundary forbids naming the one class. When only one class is ever passed, annotate that class; a test fake is not a second implementer.
-- `sig/manual/` mirrors `lib/` (as `sig/manual/acp/`) and `codegen/` (as `sig/manual/codegen/`) for hand-written signatures: interfaces, type aliases and `extend self` re-declarations (rbs-inline drops `extend self`). Namespace modules are defined in `lib/`, not declared in `sig/manual/`. `sig/_private/` holds stubs for dependencies with no RBS anywhere (e.g. `zeitwerk.rbs`); check gem_rbs_collection before writing one, and delete a stub once real signatures exist.
+- `sig/generated/` is written by `bin/generate` from the inline annotations: never hand-edit it, and commit it with the `lib/` change that moved it.
+- `sig/manual/` mirrors `lib/` for hand-written signatures rbs-inline can't generate: interfaces, and the `extend self` re-declaration every `extend self` module needs (rbs-inline drops `extend self`). A type alias may instead be declared inline with `# @rbs!` beside the code that uses it.
+- `sig/_private/` holds stubs for gaps in stdlib and third-party signatures, one file per gem or library (`open3.rbs`). Check the gem's own RBS and gem_rbs_collection before writing one, and delete the stub once real signatures exist. RBS skips `_`-prefixed directories in library mode, so the stubs never reach projects that install this one.
+
+### Typing in this repo
+
+- `codegen/` is typed like `lib/`: annotate every method in it with rbs-inline doc style, and `sig/manual/` mirrors it as `sig/manual/codegen/` (and `lib/` as `sig/manual/acp/`).
+- Value objects are frozen POROs, never `Data.define`/`Struct.new` (Steep can't see methods defined on the generated class), and never fixed-key hashes passed between methods. An RBS record type such as `{ cwd: String, history: Array[...] }`, inline or aliased, or a hash read back with `[:key]`/`fetch(:key)` elsewhere, is the tell. JSON-RPC payloads stay `Hash[String, untyped]` only at the wire boundary: the transport and the generated `from_h`/`to_h`.
+- Namespace modules are defined in `lib/`, not declared in `sig/manual/`.
+
+## Comments and documentation
+
+**The default is no comment.** Names, types, and structure carry the meaning; when they don't, fix them rather than explain them. Delete the comment and read the code cold: if the intent is still recoverable, it stays deleted. Keep only a _why_ the code can't show — a non-local constraint, an external quirk, a deliberate tradeoff, a safety invariant — and put it at the line it explains, not in a header.
+
+Never: a restatement of the code (appending "so that…" doesn't rescue it), types the type system already states, or history ("was X, now Y").
+
+Documentation lives in the guides, not in comments. What a signature can't express — what a method raises, ordering guarantees, what an implementer must honour — is documented there.

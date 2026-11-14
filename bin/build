@@ -1,3 +1,27 @@
 #!/usr/bin/env bash
-set -e
-exec bundle exec rake build "$@"
+# Builds what the repo ships: the gem through `rake build`, and the Vite production bundle.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=lib/stack.sh
+source bin/lib/stack.sh
+
+parse_args no-paths -- "$@"
+select_stacks "" # no paths, so no router
+
+run_ruby() {
+  if ! has_rake_task build; then
+    skip_stack "no rake build task"
+    return 0
+  fi
+  bundle exec rake build ${FLAGS[@]+"${FLAGS[@]}"}
+}
+
+run_ts() {
+  if ! has_vite_config; then
+    skip_stack "no vite.config, so no bundle to build"
+    return 0
+  fi
+  pnpm exec vite build ${FLAGS[@]+"${FLAGS[@]}"}
+}
+
+run_stacks "${STACKS[@]}"

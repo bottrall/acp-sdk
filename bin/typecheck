@@ -1,3 +1,29 @@
 #!/usr/bin/env bash
-set -e
-exec bundle exec rake typecheck STEEP_OPTS="$*"
+# Type-checks the code: Steep through `rake typecheck`, and tsc.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=lib/stack.sh
+source bin/lib/stack.sh
+
+parse_args no-paths -- "$@"
+select_stacks "" # no paths, so no router
+
+run_ruby() {
+  if [[ ! -f Steepfile ]]; then
+    skip_stack "no Steepfile, so no Ruby to type-check"
+    return 0
+  fi
+  local cmd=(bundle exec rake typecheck)
+  if ((${#FLAGS[@]})); then cmd+=("STEEP_OPTS=${FLAGS[*]}"); fi
+  "${cmd[@]}"
+}
+
+run_ts() {
+  if [[ ! -f tsconfig.json ]]; then
+    skip_stack "no tsconfig.json, so no TypeScript to type-check"
+    return 0
+  fi
+  pnpm exec tsc --noEmit ${FLAGS[@]+"${FLAGS[@]}"}
+}
+
+run_stacks "${STACKS[@]}"

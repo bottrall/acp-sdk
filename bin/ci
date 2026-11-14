@@ -1,3 +1,46 @@
 #!/usr/bin/env bash
-set -e
-exec bundle exec rake ci
+# Runs exactly what CI runs: each `run: bin/...` in .github/workflows/ci.yml, in order, without fixes.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=lib/stack.sh
+source bin/lib/stack.sh
+
+WORKFLOW=.github/workflows/ci.yml
+
+if (($#)); then fail "takes no arguments; it runs what $WORKFLOW runs"; fi
+if [[ ! -f $WORKFLOW ]]; then
+  echo "$SCRIPT: no $WORKFLOW to run" >&2
+  exit 1
+fi
+
+# Each `run: bin/<script> [args]` line, a matrix entry or a step, once, in the
+# order CI lists them. bin/setup prepares a machine rather than checking code,
+# and this already is bin/ci.
+commands=()
+while IFS= read -r command; do
+  case $command in
+    bin/setup | bin/setup\ * | bin/ci | bin/ci\ *) ;;
+    *--fix*) fail "$WORKFLOW runs '$command'; CI must never fix" ;;
+    *) commands+=("$command") ;;
+  esac
+done < <(
+  sed -nE "s/^[[:space:]]*(-[[:space:]]+)?run:[[:space:]]*[\"']?(bin\/[^\"'#]*[^\"'#[:space:]])[\"']?[[:space:]]*(#.*)?$/\2/p" "$WORKFLOW" |
+    awk '!seen[$0]++'
+)
+
+if ! ((${#commands[@]})); then
+  echo "$SCRIPT: $WORKFLOW runs no bin/ scripts" >&2
+  exit 1
+fi
+
+failed=()
+for command in "${commands[@]}"; do
+  echo "$SCRIPT: $command" >&2
+  read -r -a words <<<"$command"
+  "${words[@]}" || failed+=("$command")
+done
+
+if ((${#failed[@]})); then
+  for command in "${failed[@]}"; do echo "$SCRIPT: $command failed" >&2; done
+  exit 1
+fi

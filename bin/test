@@ -1,35 +1,82 @@
 #!/usr/bin/env bash
-# Rake's test loader treats every argument that doesn't start with
-# `-` as a file, so a flag's value (`--seed 1`, `-n /pattern/`) is joined onto
-# the flag (`--seed=1`, `-n/pattern/`), which Minitest's option parser accepts.
-set -e
+# Runs the tests (Minitest through `rake test`, vitest), or only the given test files.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=lib/stack.sh
+source bin/lib/stack.sh
 
-files=()
-opts=()
-pending=""
+# Minitest and vitest flags that take the next argument as their value.
+VALUE_FLAGS=(-n --name -s --seed -e --exclude -S --skip -t --testNamePattern)
+
+stack_of() {
+  case $1 in
+    *.ts | *.tsx | *.js | *.jsx | *.mts | *.cts | *.mjs | *.cjs) echo ts ;;
+    *.ts:* | *.tsx:* | *.js:* | *.jsx:*) echo ts ;;
+    *.rb | *.rb:* | test | test/*) echo ruby ;;
+    *) return 1 ;;
+  esac
+}
+
+watch=false
+args=()
 for arg in "$@"; do
-  if [ -n "$pending" ]; then
-    case "$pending" in
-      --*) opts+=("$pending=$arg") ;;
-      *)   opts+=("$pending$arg") ;;
-    esac
-    pending=""
-  elif [[ "$arg" == -* ]]; then
-    case "$arg" in
-      --name|-n|--seed|-s|--exclude|-e|--skip|-S) pending="$arg" ;;
-      *) opts+=("$arg") ;;
-    esac
-  else
-    files+=("$arg")
-  fi
+  case $arg in
+    --watch) watch=true ;;
+    *) args+=("$arg") ;;
+  esac
 done
 
-args=()
-if [ ${#files[@]} -gt 0 ]; then
-  args+=("TEST=$(IFS=,; echo "${files[*]}")")
+parse_args paths "${VALUE_FLAGS[@]}" -- ${args[@]+"${args[@]}"}
+if $watch; then
+  if [[ $ONLY == ruby ]]; then fail "--watch runs vitest, so it can't go with --only=ruby"; fi
+  if ! has_ts; then fail "--watch runs vitest, and there's no package.json"; fi
+  ONLY=ts
 fi
-if [ ${#opts[@]} -gt 0 ]; then
-  args+=("TESTOPTS=${opts[*]}")
-fi
+select_stacks stack_of
 
-exec bundle exec rake test "${args[@]}"
+# Rake's test loader treats every argument that doesn't start with `-` as a
+# file, so a flag's value (`--seed 1`, `-n /pattern/`) is joined onto the flag
+# (`--seed=1`, `-n/pattern/`), which Minitest's option parser accepts. A
+# directory becomes a glob of its tests, since TEST only takes files and globs.
+run_ruby() {
+  local files=() opts=() pending="" arg path
+  for path in ${RUBY_PATHS[@]+"${RUBY_PATHS[@]}"}; do
+    if [[ -d $path ]]; then files+=("${path%/}/**/*_test.rb"); else files+=("$path"); fi
+  done
+  for arg in ${FLAGS[@]+"${FLAGS[@]}"}; do
+    if [[ -n $pending ]]; then
+      case $pending in
+        --*) opts+=("$pending=$arg") ;;
+        *) opts+=("$pending$arg") ;;
+      esac
+      pending=""
+    else
+      case $arg in
+        --name | -n | --seed | -s | --exclude | -e | --skip | -S) pending=$arg ;;
+        *) opts+=("$arg") ;;
+      esac
+    fi
+  done
+  if [[ -n $pending ]]; then opts+=("$pending"); fi
+
+  local cmd=(bundle exec rake test)
+  if ((${#files[@]})); then cmd+=("TEST=$(IFS=,; echo "${files[*]}")"); fi
+  if ((${#opts[@]})); then cmd+=("TESTOPTS=${opts[*]}"); fi
+  "${cmd[@]}"
+}
+
+# Coverage is enforced per file, so it's measured only on a whole, unfiltered
+# run: a run of some files would fail every file it didn't reach.
+run_ts() {
+  local cmd=(pnpm exec vitest)
+  if $watch; then
+    cmd+=(watch)
+  elif ((${#TS_PATHS[@]} + ${#FLAGS[@]})); then
+    cmd+=(run)
+  else
+    cmd+=(run --coverage)
+  fi
+  "${cmd[@]}" ${FLAGS[@]+"${FLAGS[@]}"} ${TS_PATHS[@]+"${TS_PATHS[@]}"}
+}
+
+run_stacks "${STACKS[@]}"

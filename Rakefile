@@ -13,8 +13,8 @@ Rake::TestTask.new(:test) do |t|
   t.warning = false
 end
 
-RuboCop::RakeTask.new do |t|
-  t.options = ENV.fetch('RUBOCOP_OPTS', '').split
+RuboCop::RakeTask.new(:lint) do |t|
+  t.options = ['--ignore-parent-exclusion', *ENV.fetch('RUBOCOP_OPTS', '').split]
 end
 
 def write_types(dir)
@@ -26,21 +26,39 @@ def write_types(dir)
   end
 end
 
-namespace :types do
+desc 'Generate lib/acp/types from the vendored schemas, then sig/generated from the inline annotations'
+task generate: %w[generate:types generate:rbs]
+
+namespace :generate do
   desc 'Generate lib/acp/types from schema/schema.json and schema/schema.unstable.json'
-  task :generate do
+  task :types do
     stale = Dir.children('lib/acp/types') - TypeGenerator::SUPPORT_FILES
     stale.each { |entry| rm_rf File.join('lib/acp/types', entry), verbose: false }
     write_types('lib/acp/types')
   end
 
+  desc 'Generate RBS signatures from inline annotations'
+  task :rbs do
+    sh 'rbs-inline --opt-out --output=sig/generated lib codegen'
+  end
+
+  desc 'Watch lib/ and codegen/ for changes and regenerate RBS files'
+  task :watch do
+    require 'guard'
+    require 'guard/commander'
+
+    Guard.start(no_interactions: true)
+  end
+end
+
+namespace :types do
   desc 'Fail if lib/acp/types is out of date with the vendored schemas'
   task :check do
     Dir.mktmpdir('types-check') do |dir|
       write_types(dir)
       TypeGenerator::SUPPORT_FILES.each { |f| FileUtils.cp("lib/acp/types/#{f}", dir) }
       sh "diff -ru lib/acp/types #{dir}" do |ok, _|
-        abort 'lib/acp/types is out of date; run bin/types and commit the result' unless ok
+        abort 'lib/acp/types is out of date; run bin/generate and commit the result' unless ok
       end
     end
   end
@@ -58,17 +76,12 @@ namespace :rbs do
     end
   end
 
-  desc 'Generate RBS signatures from inline annotations'
-  task :generate do
-    sh 'rbs-inline --opt-out --output=sig/generated lib codegen'
-  end
-
   desc 'Fail if sig/generated is out of date with lib/ or codegen/'
   task :check do
     Dir.mktmpdir('rbs-check') do |dir|
       sh "rbs-inline --opt-out --output=#{dir} lib codegen", verbose: false
       sh "diff -ru sig/generated #{dir}" do |ok, _|
-        abort 'sig/generated is out of date; run bin/rbs and commit the result' unless ok
+        abort 'sig/generated is out of date; run bin/generate and commit the result' unless ok
       end
     end
   end
@@ -81,14 +94,6 @@ namespace :rbs do
       File.exist?(source_path) || Dir.exist?(source_path.delete_suffix('.rb'))
     end
     abort "sig/manual files without a lib or codegen counterpart: #{stale.join(', ')}" unless stale.empty?
-  end
-
-  desc 'Watch lib/ and codegen/ for changes and regenerate RBS files'
-  task :watch do
-    require 'guard'
-    require 'guard/commander'
-
-    Guard.start(no_interactions: true)
   end
 end
 
@@ -105,7 +110,7 @@ end
 desc 'Check generated types and RBS signatures are current, then type-check'
 task typecheck: %w[types:check rbs:check rbs:collection_check rbs:lint_manual steep:check]
 
-desc 'Run everything CI runs'
-task ci: %i[test rubocop typecheck]
-
-task default: :ci
+desc 'Install the RBS collection'
+task :setup do
+  sh 'rbs collection install'
+end
