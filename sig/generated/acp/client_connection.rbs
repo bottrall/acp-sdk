@@ -82,7 +82,6 @@ class ACP::ClientConnection
 
   # @rbs request: ACP::Types::Unstable::SetProviderRequest
   # @rbs return: (ACP::Types::Unstable::SetProviderResponse | ACP::RequestError)
-  # The name is the wire-mandated providers/set, not an attribute writer.
   def set_provider: (ACP::Types::Unstable::SetProviderRequest request) -> (ACP::Types::Unstable::SetProviderResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::Unstable::DisableProviderRequest
@@ -99,7 +98,6 @@ class ACP::ClientConnection
 
   # @rbs request: ACP::Types::SetSessionModeRequest
   # @rbs return: ACP::Types::SetSessionModeResponse | ACP::RequestError
-  # The name is the wire-mandated session/set_mode, not an attribute writer.
   def set_session_mode: (ACP::Types::SetSessionModeRequest request) -> (ACP::Types::SetSessionModeResponse | ACP::RequestError)
 
   # The reply carries the session's complete option list, so it replaces any
@@ -107,7 +105,6 @@ class ACP::ClientConnection
   #
   # @rbs request: ACP::Types::SetSessionConfigOptionRequest
   # @rbs return: ACP::Types::SetSessionConfigOptionResponse | ACP::RequestError
-  # The name is the wire-mandated session/set_config_option, not an attribute writer.
   def set_session_config_option: (ACP::Types::SetSessionConfigOptionRequest request) -> (ACP::Types::SetSessionConfigOptionResponse | ACP::RequestError)
 
   # @rbs request: ACP::Types::AuthenticateRequest
