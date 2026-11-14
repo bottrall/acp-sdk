@@ -145,8 +145,7 @@ class ACP::ClientConnection
 
   # @rbs request: ACP::Types::Unstable::SetProviderRequest
   # @rbs return: (ACP::Types::Unstable::SetProviderResponse | ACP::RequestError)
-  # The name is the wire-mandated providers/set, not an attribute writer.
-  def set_provider(request) # rubocop:disable Naming/AccessorMethodName
+  def set_provider(request) # rubocop:disable Naming/AccessorMethodName -- wire-mandated providers/set, not a writer
     parse(ACP::Types::Unstable::SetProviderResponse, @transport.request('providers/set', request.to_h))
   end
 
@@ -169,8 +168,7 @@ class ACP::ClientConnection
 
   # @rbs request: ACP::Types::SetSessionModeRequest
   # @rbs return: ACP::Types::SetSessionModeResponse | ACP::RequestError
-  # The name is the wire-mandated session/set_mode, not an attribute writer.
-  def set_session_mode(request) # rubocop:disable Naming/AccessorMethodName
+  def set_session_mode(request) # rubocop:disable Naming/AccessorMethodName -- wire-mandated session/set_mode, not a writer
     parse(ACP::Types::SetSessionModeResponse, @transport.request('session/set_mode', request.to_h))
   end
 
@@ -179,8 +177,7 @@ class ACP::ClientConnection
   #
   # @rbs request: ACP::Types::SetSessionConfigOptionRequest
   # @rbs return: ACP::Types::SetSessionConfigOptionResponse | ACP::RequestError
-  # The name is the wire-mandated session/set_config_option, not an attribute writer.
-  def set_session_config_option(request) # rubocop:disable Naming/AccessorMethodName
+  def set_session_config_option(request) # rubocop:disable Naming/AccessorMethodName -- wire-mandated session/set_config_option, not a writer
     parse(ACP::Types::SetSessionConfigOptionResponse, @transport.request('session/set_config_option', request.to_h))
   end
 
