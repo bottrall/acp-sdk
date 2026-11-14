@@ -2,6 +2,6 @@
 
 guard :shell do
   watch(%r{^(lib|codegen)/.*\.rb$}) do
-    system('bin/rbs')
+    system('bundle exec rake generate:rbs')
   end
 end

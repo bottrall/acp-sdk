@@ -4,17 +4,16 @@
 
 Every project chore is a script in `bin/`. The Rakefile behind them is an implementation detail; you never need to call rake directly.
 
-| Script          | What it does                                                                                                   |
-| --------------- | -------------------------------------------------------------------------------------------------------------- |
-| `bin/setup`     | Install dependencies on a fresh checkout (gems + rbs collection)                                               |
-| `bin/test`      | Run the test suite. Pass files and/or Minitest flags: `bin/test test/foo_test.rb -n /pattern/`                 |
-| `bin/lint`      | Run RuboCop. Arguments are forwarded, e.g. `bin/lint -a`                                                       |
-| `bin/typecheck` | Check `lib/acp/types`, the rbs collection lockfile and `sig/generated` are current, then type-check with Steep |
-| `bin/rbs`       | Regenerate `sig/generated` from the inline annotations in `lib/` and `codegen/`                                |
-| `bin/types`     | Regenerate `lib/acp/types` from `schema/schema.json` and `schema/schema.unstable.json`, then `sig/generated`    |
-| `bin/rbs-watch` | Regenerate `sig/generated` whenever `lib/` or `codegen/` changes                                               |
-| `bin/ci`        | Run everything CI runs, serially. Use before pushing                                                           |
-| `bin/build`     | Build the gem into `pkg/`; the publish workflow runs this before `gem push`                                    |
+| Script                     | What it does                                                                                                                                                                                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bin/setup`                | Install dependencies on a fresh checkout (gems + rbs collection)                                                                                                                                                                               |
+| `bin/test [paths]`         | Run the test suite. Pass files and/or Minitest flags: `bin/test test/foo_test.rb -n /pattern/`                                                                                                                                                 |
+| `bin/lint [--fix] [paths]` | Run RuboCop; `--fix` autocorrects what it safely can. Pass files to lint only those                                                                                                                                                            |
+| `bin/typecheck`            | Check `lib/acp/types`, the rbs collection lockfile and `sig/generated` are current, then type-check with Steep                                                                                                                                 |
+| `bin/generate [--watch]`   | Regenerate `lib/acp/types` from `schema/schema.json` and `schema/schema.unstable.json`, then `sig/generated` from the inline annotations in `lib/` and `codegen/`; `--watch` regenerates `sig/generated` whenever `lib/` or `codegen/` changes |
+| `bin/build`                | Build the gem into `pkg/`; the publish workflow runs this before `gem push`                                                                                                                                                                    |
+| `bin/check`                | `bin/lint --fix`, then `bin/typecheck`, then `bin/test`. Run it before calling a change done                                                                                                                                                   |
+| `bin/ci`                   | Run exactly what CI runs, without fixing anything. Use before pushing                                                                                                                                                                          |
 
 `ruby examples/echo_agent.rb` serves the example agent on stdio, which is handy for trying changes against a real ACP client.
 

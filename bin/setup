@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
-# Doesn't delegate to rake like the other bin/ scripts: rake isn't installed
-# until this has run.
-set -e
-bundle install "$@"
-exec rbs collection install
+# Installs dependencies on a fresh checkout: the bundle then `rake setup`, and the pnpm packages.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=lib/stack.sh
+source bin/lib/stack.sh
+
+parse_args no-paths -- "$@"
+select_stacks "" # no paths, so no router
+
+# Runner flags go to `bundle install`; rake isn't installed until it has run.
+run_ruby() {
+  bundle install ${FLAGS[@]+"${FLAGS[@]}"}
+  bundle exec rake setup
+}
+
+run_ts() {
+  pnpm install ${FLAGS[@]+"${FLAGS[@]}"}
+}
+
+run_stacks "${STACKS[@]}"
