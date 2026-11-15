@@ -48,8 +48,10 @@ describe ACP::Types::ParseError do
       error = ACP::Types::ParseError.new(['audience', 1], 'expected String, got Integer')
       prefixed = error.prefix('annotations')
 
-      assert_equal 'annotations.audience[1]: expected String, got Integer', prefixed.message
-      assert_equal ['annotations', 'audience', 1], prefixed.segments
+      assert_equal(
+        ['annotations.audience[1]: expected String, got Integer', ['annotations', 'audience', 1]],
+        [prefixed.message, prefixed.segments]
+      )
     end
 
     it 'leaves the original error unchanged' do
@@ -57,8 +59,7 @@ describe ACP::Types::ParseError do
 
       error.prefix('annotations')
 
-      assert_equal 'audience[1]: expected String, got Integer', error.message
-      assert_equal ['audience', 1], error.segments
+      assert_equal ['audience[1]: expected String, got Integer', ['audience', 1]], [error.message, error.segments]
     end
   end
 end

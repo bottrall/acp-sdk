@@ -138,27 +138,35 @@ describe ACP::AgentProcess do
       end
     end
 
-    it 'yields the connection and the process, returns the block value and terminates the child' do
-      yielded = nil
+    it 'yields the connection and the running process and returns the block value' do
       result = spawn_ruby('STDIN.read') do |connection, process|
-        yielded = [connection.equal?(process.connection), Process.kill(0, process.pid), process.pid]
-        :result
+        [connection.equal?(process.connection), Process.kill(0, process.pid)]
       end
 
-      assert_equal [:result, true, 1], [result, *yielded.first(2)]
-      assert_raises(Errno::ESRCH) { Process.kill(0, yielded.last) }
+      assert_equal [true, 1], result
+    end
+
+    it 'terminates the child once the block returns' do
+      pid = spawn_ruby('STDIN.read') { |_connection, process| process.pid }
+
+      assert_raises(Errno::ESRCH) { Process.kill(0, pid) }
+    end
+
+    it "re-raises the block's error" do
+      error = raised(RuntimeError) { spawn_ruby('STDIN.read') { raise 'boom' } }
+
+      assert_equal 'boom', error&.message
     end
 
     it 'terminates the child when the block raises' do
       pid = nil
-      error = assert_raises(RuntimeError) do
+      raised(RuntimeError) do
         spawn_ruby('STDIN.read') do |_connection, process|
           pid = process.pid
           raise 'boom'
         end
       end
 
-      assert_equal 'boom', error.message
       assert_raises(Errno::ESRCH) { Process.kill(0, pid) }
     end
   end

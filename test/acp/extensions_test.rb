@@ -9,9 +9,9 @@ describe ACP::Extensions do
     end
 
     it 'rejects a name without the underscore prefix' do
-      error = assert_raises(ArgumentError) { ACP::Extensions.validate_name('session/prompt') }
+      error = raised(ArgumentError) { ACP::Extensions.validate_name('session/prompt') }
 
-      assert_equal %(extension method names must start with '_' (got "session/prompt")), error.message
+      assert_equal %(extension method names must start with '_' (got "session/prompt")), error&.message
     end
   end
 
@@ -21,9 +21,9 @@ describe ACP::Extensions do
     end
 
     it 'rejects the first name without the underscore prefix' do
-      error = assert_raises(ArgumentError) { ACP::Extensions.validate_names(%w[_a b c]) }
+      error = raised(ArgumentError) { ACP::Extensions.validate_names(%w[_a b c]) }
 
-      assert_equal %(extension method names must start with '_' (got "b")), error.message
+      assert_equal %(extension method names must start with '_' (got "b")), error&.message
     end
   end
 end

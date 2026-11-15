@@ -34,10 +34,12 @@ describe ACP::Transport::Cancellation do
     end
   end
 
-  it 'starts uncancelled and reports once cancelled' do
-    cancellation = ACP::Transport::Cancellation.new
+  it 'starts uncancelled' do
+    refute_predicate ACP::Transport::Cancellation.new, :cancelled?
+  end
 
-    refute_predicate cancellation, :cancelled?
+  it 'reports once cancelled' do
+    cancellation = ACP::Transport::Cancellation.new
     cancellation.cancel
 
     assert_predicate cancellation, :cancelled?

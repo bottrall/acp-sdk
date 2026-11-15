@@ -27,9 +27,9 @@ describe TypeGenerator::Unions do
     it 'raises when the options carry consts under different properties' do
       options = [{ 'properties' => { 'kind' => const.call('a') } }, { 'properties' => { 'type' => const.call('b') } }]
 
-      error = assert_raises(RuntimeError) { unions.discriminator(options) }
+      error = raised(RuntimeError) { unions.discriminator(options) }
 
-      assert_match(/\AAmbiguous discriminator/, error.message)
+      assert_match(/\AAmbiguous discriminator/, error&.message)
     end
 
     it 'returns the one property the options carry a const under' do
@@ -249,9 +249,9 @@ describe TypeGenerator::Unions do
 
   describe '.unique_keys' do
     it 'raises when a key set has no key of its own' do
-      error = assert_raises(RuntimeError) { unions.unique_keys([%w[a b], ['a']]) }
+      error = raised(RuntimeError) { unions.unique_keys([%w[a b], ['a']]) }
 
-      assert_match(/\ANo distinguishing key/, error.message)
+      assert_match(/\ANo distinguishing key/, error&.message)
     end
 
     it 'picks for each key set its first key that no other set has' do
@@ -322,9 +322,9 @@ describe TypeGenerator::Unions do
       untagged = [%w[First a], %w[Second b]]
       dispatch = TypeGenerator::Dispatch.new(tag: 'kind', tagged: [%w[read Read]], untagged:)
 
-      error = assert_raises(RuntimeError) { unions.dispatch_body(dispatch) }
+      error = raised(RuntimeError) { unions.dispatch_body(dispatch) }
 
-      assert_match(/\ASeveral untagged variants alongside kind/, error.message)
+      assert_match(/\ASeveral untagged variants alongside kind/, error&.message)
     end
 
     it 'dispatches a tagged union on each tag value, falling back to the hash' do
@@ -371,11 +371,11 @@ describe TypeGenerator::Unions do
     array_union = ->(names) { { 'anyOf' => names.map { |name| { 'type' => 'array', 'items' => ref.call(name) } } } }
 
     it 'raises when an item def requires no key to tell it apart by' do
-      error = assert_raises(RuntimeError) do
+      error = raised(RuntimeError) do
         unions.array_union_file(schema, 'ACP::Types::AnyList', array_union.call(%w[Step Bare]))
       end
 
-      assert_match(/\ANo distinguishing key/, error.message)
+      assert_match(/\ANo distinguishing key/, error&.message)
     end
 
     it 'writes a module aliasing t to each item array, with from_a dispatching on each item class required key' do

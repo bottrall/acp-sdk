@@ -295,9 +295,9 @@ describe ACP::ClientConnection do
     it 'sends nothing when the inbound side refuses the capabilities' do
       @inbound.refusal = ArgumentError.new('unserved')
       request = initialize_request(terminal: true)
-      error = assert_raises(ArgumentError) { connection.connect(request) }
+      error = raised(ArgumentError) { connection.connect(request) }
 
-      assert_equal ['unserved', [[:advertise, request.client_capabilities]]], [error.message, @log]
+      assert_equal ['unserved', [[:advertise, request.client_capabilities]]], [error&.message, @log]
     end
 
     it 'tells the inbound side the agent advertised mcpCapabilities.acp when its reply does' do
@@ -489,7 +489,7 @@ describe ACP::ClientConnection do
     it 'refuses a name without the underscore prefix, before sending anything' do
       assert_equal(
         [ArgumentError, []],
-        [assert_raises(ArgumentError) { connection.ext_request('myapp/double') }.class, @log]
+        [raised(ArgumentError) { connection.ext_request('myapp/double') }.class, @log]
       )
     end
 
@@ -525,10 +525,7 @@ describe ACP::ClientConnection do
 
   describe 'ext_notify' do
     it 'refuses a name without the underscore prefix, before sending anything' do
-      assert_equal(
-        [ArgumentError, []],
-        [assert_raises(ArgumentError) { connection.ext_notify('myapp/tick') }.class, @log]
-      )
+      assert_equal([ArgumentError, []], [raised(ArgumentError) { connection.ext_notify('myapp/tick') }.class, @log])
     end
 
     it 'notifies the method with its params' do

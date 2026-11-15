@@ -30,3 +30,16 @@ class FakeLogger
     events
   end
 end
+
+module RaisedError
+  # The `klass` error the block raises, or nil when it returns, so a test can
+  # check an error in the same one assertion as its other outcomes.
+  def raised(klass)
+    yield
+    nil
+  rescue klass => e
+    e
+  end
+end
+
+Minitest::Test.include(RaisedError)

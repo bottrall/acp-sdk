@@ -328,7 +328,7 @@ describe ACP::AgentConnection::Client do
 
       assert_equal(
         [ArgumentError, []],
-        [assert_raises(ArgumentError) { client.ext_request('session/prompt', {}) }.class, peer.requests]
+        [raised(ArgumentError) { client.ext_request('session/prompt', {}) }.class, peer.requests]
       )
     end
 
@@ -355,7 +355,7 @@ describe ACP::AgentConnection::Client do
 
       assert_equal(
         [ArgumentError, []],
-        [assert_raises(ArgumentError) { client.ext_notify('session/update', {}) }.class, peer.notifications]
+        [raised(ArgumentError) { client.ext_notify('session/update', {}) }.class, peer.notifications]
       )
     end
 
