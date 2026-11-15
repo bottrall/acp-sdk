@@ -67,7 +67,7 @@ Don't construct or reach for collaborators inside a function or class — accept
 ### Typing in this repo
 
 - `codegen/` is typed like `lib/`: annotate every method in it with rbs-inline doc style, and `sig/manual/` mirrors it as `sig/manual/codegen/` (and `lib/` as `sig/manual/acp/`).
-- A pure data object (fields, no behaviour) is a `Data.define`, assigned to a plain constant inside its owner's class or module body: rbs-inline skips the compact `Owner::Name = Data.define` form, and types `Struct` members as optional, mutable accessors. As soon as it needs a method or a default it becomes a frozen PORO, because Steep can't see methods defined on the generated class. Never pass fixed-key hashes between methods. An RBS record type such as `{ cwd: String, history: Array[...] }`, inline or aliased, or a hash read back with `[:key]`/`fetch(:key)` elsewhere, is the tell. JSON-RPC payloads stay `Hash[String, untyped]` only at the wire boundary: the transport and the generated `from_h`/`to_h`.
+- A pure data object (fields, no behaviour) may be a `Data.define` or `Struct`, declared bare inside its owning module so rbs-inline types it; as soon as it needs a method it becomes a frozen PORO, because Steep can't see methods defined on the generated class. Never pass fixed-key hashes between methods. An RBS record type such as `{ cwd: String, history: Array[...] }`, inline or aliased, or a hash read back with `[:key]`/`fetch(:key)` elsewhere, is the tell. JSON-RPC payloads stay `Hash[String, untyped]` only at the wire boundary: the transport and the generated `from_h`/`to_h`.
 - Namespace modules are defined in `lib/`, not declared in `sig/manual/`.
 
 ## Comments and documentation
