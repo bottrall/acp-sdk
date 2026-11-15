@@ -12,7 +12,7 @@ Every ACP message is a typed Ruby object, and the SDK takes care of the wire for
 
 ## Installation
 
-Requires Ruby 3.4 or later.
+Requires Ruby 3.3 or later.
 
 ```sh
 bundle add acp-sdk

@@ -42,12 +42,14 @@ jobs:
   test:
     runs-on: ubuntu-latest
     name: test ${{ matrix.ruby }}
+    # head is an early warning of the next Ruby's breakages, not a gate.
+    continue-on-error: ${{ matrix.ruby == 'head' }}
 
     strategy:
+      fail-fast: false
       matrix:
-        ruby:
-          - "3.4"
-          - "4.0"
+        # Every Ruby that isn't end-of-life.
+        ruby: ["3.3", "3.4", "4.0", head]
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

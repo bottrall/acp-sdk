@@ -11,7 +11,8 @@ inherit_mode:
     - Exclude
 
 AllCops:
-  TargetRubyVersion: 3.4
+  # The oldest Ruby the gemspec supports.
+  TargetRubyVersion: 3.3
 
 Naming/MethodParameterName:
   Exclude:
