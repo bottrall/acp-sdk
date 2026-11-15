@@ -39,6 +39,7 @@ namespace :generate do
 
   desc 'Generate RBS signatures from inline annotations'
   task :rbs do
+    rm_rf 'sig/generated', verbose: false
     sh 'rbs-inline --opt-out --output=sig/generated lib codegen'
   end
 
