@@ -1,24 +1,36 @@
 # Contributing
 
-## Development
+[`AGENTS.md`](AGENTS.md) holds the conventions for the code, for people and agents alike. By taking part you agree to follow the [code of conduct](CODE_OF_CONDUCT.md).
 
-Every project chore is a script in `bin/`. The Rakefile behind them is an implementation detail; you never need to call rake directly.
+## Setup
 
-| Script                     | What it does                                                                                                                                                                                                                                   |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bin/setup`                | Install dependencies on a fresh checkout (gems + rbs collection)                                                                                                                                                                               |
-| `bin/test [paths]`         | Run the test suite. Pass files and/or Minitest flags: `bin/test test/foo_test.rb -n /pattern/`                                                                                                                                                 |
-| `bin/lint [--fix] [paths]` | Run RuboCop; `--fix` autocorrects what it safely can. Pass files to lint only those                                                                                                                                                            |
-| `bin/typecheck`            | Check `lib/acp/types`, the rbs collection lockfile and `sig/generated` are current, then type-check with Steep                                                                                                                                 |
-| `bin/generate [--watch]`   | Regenerate `lib/acp/types` from `schema/schema.json` and `schema/schema.unstable.json`, then `sig/generated` from the inline annotations in `lib/` and `codegen/`; `--watch` regenerates `sig/generated` whenever `lib/` or `codegen/` changes |
-| `bin/build`                | Build the gem into `pkg/`; the publish workflow runs this before `gem push`                                                                                                                                                                    |
-| `bin/check`                | `bin/lint --fix`, then `bin/typecheck`, then `bin/test`. Run it before calling a change done                                                                                                                                                   |
-| `bin/ci`                   | Run exactly what CI runs, without fixing anything. Use before pushing                                                                                                                                                                          |
+You need the Ruby in `.ruby-version` and the Node in `.nvmrc` (with pnpm through `corepack enable`), for whichever of the two the repo has. Then, on a fresh checkout:
 
-`ruby examples/echo_agent.rb` serves the example agent on stdio, which is handy for trying changes against a real ACP client.
+```sh
+bin/setup
+```
+
+## Day to day
+
+Everything runs through `bin/`, never a tool directly.
+
+| Script                        | Does                                                                                         |
+| ----------------------------- | -------------------------------------------------------------------------------------------- |
+| `bin/setup`                   | installs dependencies on a fresh checkout                                                    |
+| `bin/test [paths]`            | runs the tests; pass files to run only those                                                 |
+| `bin/lint [--fix] [paths]`    | checks lint and formatting; `--fix` fixes what it can                                        |
+| `bin/typecheck`               | type-checks the code                                                                         |
+| `bin/generate [--watch]`      | regenerates the generated files; `--watch` keeps them current                                |
+| `bin/build`                   | builds what the repo ships                                                                   |
+| `bin/check`                   | `bin/lint --fix`, then `bin/typecheck`, then `bin/test`: run it before calling a change done |
+| `bin/ci`                      | runs exactly what CI runs, without fixing anything: run it before you push                   |
+
+In a repo with both Ruby and TypeScript, each script runs the Ruby side then the TypeScript side; `--only=ruby` or `--only=ts` picks one.
+
+## Pull requests
+
+PR titles are [Conventional Commits](https://www.conventionalcommits.org/) (`feat: add X`, `fix: handle Y`), because each becomes the squash commit on `main` and the changelog is built from them; CI checks the title. `feat:` releases a minor version and `fix:` a patch. Fill in the PR template: the problem, the solution, and the proof that it works.
 
 ## Releasing
 
-PR titles are [conventional commits](https://www.conventionalcommits.org/) and are linted in CI: `feat:` bumps the minor version, `fix:` bumps the patch, and `feat!:` marks a breaking change (also a minor bump while we are on 0.x). `chore:`, `docs:`, `ci:`, `refactor:` and `test:` never release. Squash-merging makes the title the commit on `main`.
-
-[release-please](https://github.com/googleapis/release-please) keeps a release PR open that bumps `lib/acp/version.rb` and writes `CHANGELOG.md`. Merging that PR tags `vX.Y.Z`, creates the GitHub Release and publishes the gem to RubyGems.org through Trusted Publishing; nothing is pushed by hand.
+If the repo publishes releases (it has a `release-please-config.json`), they go through [release-please](https://github.com/googleapis/release-please). Every push to `main` updates its release PR, which bumps the version and writes the changelog section; merging that PR tags the release and publishes it. Never edit the version or `CHANGELOG.md` by hand.

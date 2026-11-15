@@ -217,4 +217,4 @@ Bug reports and pull requests are welcome on [GitHub](https://github.com/bottral
 
 ## License
 
-Released under the [MIT License](LICENSE.txt).
+Released under the [MIT License](LICENSE).
