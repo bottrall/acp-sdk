@@ -40,10 +40,10 @@ Everything runs through its `bin/` script, never a tool directly (`rake`, `ruboc
 ## Releasing
 
 - release-please opens the release PR, which bumps `lib/acp/version.rb` and writes `CHANGELOG.md`; never edit either by hand. `feat:` releases a minor version and `fix:` a patch (a breaking change is also a minor while the gem is 0.x).
-- Merging the release PR tags `vX.Y.Z`; `.github/workflows/publish.yml` then builds the gem with `bin/build` in an unprivileged job and pushes that exact file to RubyGems.org from the `release` environment through trusted publishing. It doesn't re-run CI.
+- Merging the release PR tags `vX.Y.Z`; `.github/workflows/release.yml` then builds the gem with `bin/build` in an unprivileged job and pushes that exact file to RubyGems.org from the `release` environment through trusted publishing. It doesn't re-run CI.
 - release-please bumps the gem's entry in `Gemfile.lock` but not its checksums, so the workflow's `lockfile` job runs `bundle lock` on the release PR and commits the result.
 - The release PR is opened by GitHub Actions, so CI doesn't run on it: close and reopen it to run its checks before merging.
-- The workflow is `publish.yml`, not blueprint's `release.yml`: the RubyGems trusted publisher is tied to that file name and the `release` environment, so renaming either stops publishing.
+- The RubyGems trusted publisher is tied to `release.yml` and the `release` environment, so renaming either stops publishing.
 
 ## Code style
 

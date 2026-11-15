@@ -6,7 +6,7 @@
 # publisher is pinned to this file name and the `release` environment; change
 # either and publishing stops.
 
-name: publish
+name: release
 
 on:
   push:
