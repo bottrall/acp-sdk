@@ -25,6 +25,19 @@ class ACP::Transport::Stdio
 
   CONNECTION_CLOSED: ACP::RequestError
 
+  class Serving < Data
+    attr_reader id(): untyped
+
+    attr_reader cancellation(): ACP::Transport::Cancellation
+
+    def self.new: (untyped id, ACP::Transport::Cancellation cancellation) -> instance
+                | (id: untyped, cancellation: ACP::Transport::Cancellation) -> instance
+
+    def self.members: () -> [ :id, :cancellation ]
+
+    def members: () -> [ :id, :cancellation ]
+  end
+
   # @rbs input: _Reader
   # @rbs output: _Writer
   # @rbs logger: ACP::Transport::_Logger

@@ -541,7 +541,7 @@ describe ACP::Transport::Stdio do
 
     it 'answers with a Reply\'s result, then runs its after callback' do
       after = -> { @transport.notify('session/update', { 'after' => true }) }
-      start(requests: { 'echo' => ->(params) { ACP::Transport::Reply.new(params, after:) } })
+      start(requests: { 'echo' => ->(params) { ACP::Transport::Reply.new(result: params, after:) } })
       send_message(echo_request(1))
 
       assert_equal(
@@ -552,7 +552,7 @@ describe ACP::Transport::Stdio do
 
     it 'logs an error when a Reply\'s after callback raises, having already answered' do
       after = -> { raise 'kaboom' }
-      start(requests: { 'echo' => ->(params) { ACP::Transport::Reply.new(params, after:) } })
+      start(requests: { 'echo' => ->(params) { ACP::Transport::Reply.new(result: params, after:) } })
       send_message(echo_request(1))
 
       assert_equal(

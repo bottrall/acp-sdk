@@ -1,14 +1,16 @@
 # Generated from lib/acp/transport/reply.rb with RBS::Inline
 
-class ACP::Transport::Reply
-  # @dynamic result
-  attr_reader result: ACP::Transport::_Response
+module ACP::Transport
+  class Reply < Data
+    attr_reader result(): ACP::Transport::_Response
 
-  # @dynamic after
-  attr_reader after: ^() -> void
+    attr_reader after(): ^() -> void
 
-  # @rbs result: ACP::Transport::_Response
-  # @rbs after: ^() -> void
-  # @rbs return: void
-  def initialize: (ACP::Transport::_Response result, after: ^() -> void) -> void
+    def self.new: (ACP::Transport::_Response result, ^() -> void after) -> instance
+                | (result: ACP::Transport::_Response, after: ^() -> void) -> instance
+
+    def self.members: () -> [ :result, :after ]
+
+    def members: () -> [ :result, :after ]
+  end
 end

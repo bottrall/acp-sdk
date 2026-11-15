@@ -11,19 +11,27 @@ class ACP::ClientConnection::Inbound
   # @rbs @extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs @capabilities: ACP::Types::ClientCapabilities?
 
+  Route = Data.define(
+    :rpc_method, #: String
+    :type, #: ACP::Transport::_Parser
+    :handler_method, #: Symbol
+    :path, #: Array[Symbol]
+    :capability #: String
+  )
+
   FS_ROUTES = [
     Route.new(
       rpc_method: 'fs/read_text_file',
       type: ACP::Types::ReadTextFileRequest,
       handler_method: :read_text_file,
-      path: %i[fs read_text_file],
+      path: %i[fs read_text_file].freeze,
       capability: 'fs.readTextFile'
     ),
     Route.new(
       rpc_method: 'fs/write_text_file',
       type: ACP::Types::WriteTextFileRequest,
       handler_method: :write_text_file,
-      path: %i[fs write_text_file],
+      path: %i[fs write_text_file].freeze,
       capability: 'fs.writeTextFile'
     )
   ].freeze #: Array[ACP::ClientConnection::Inbound::Route]
@@ -37,35 +45,35 @@ class ACP::ClientConnection::Inbound
       rpc_method: 'terminal/create',
       type: ACP::Types::CreateTerminalRequest,
       handler_method: :create_terminal,
-      path: %i[terminal],
+      path: %i[terminal].freeze,
       capability: 'terminal'
     ),
     Route.new(
       rpc_method: 'terminal/output',
       type: ACP::Types::TerminalOutputRequest,
       handler_method: :terminal_output,
-      path: %i[terminal],
+      path: %i[terminal].freeze,
       capability: 'terminal'
     ),
     Route.new(
       rpc_method: 'terminal/wait_for_exit',
       type: ACP::Types::WaitForTerminalExitRequest,
       handler_method: :wait_for_terminal_exit,
-      path: %i[terminal],
+      path: %i[terminal].freeze,
       capability: 'terminal'
     ),
     Route.new(
       rpc_method: 'terminal/kill',
       type: ACP::Types::KillTerminalRequest,
       handler_method: :kill_terminal,
-      path: %i[terminal],
+      path: %i[terminal].freeze,
       capability: 'terminal'
     ),
     Route.new(
       rpc_method: 'terminal/release',
       type: ACP::Types::ReleaseTerminalRequest,
       handler_method: :release_terminal,
-      path: %i[terminal],
+      path: %i[terminal].freeze,
       capability: 'terminal'
     )
   ].freeze #: Array[ACP::ClientConnection::Inbound::Route]
