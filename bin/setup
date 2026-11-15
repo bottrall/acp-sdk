@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Installs dependencies on a fresh checkout: the bundle then `rake setup`, and the pnpm packages.
+# Installs dependencies on a fresh checkout: the bundle then `rake setup`, and the pnpm packages
+# plus Playwright's browser when the repo has e2e tests.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 # shellcheck source=lib/stack.sh
@@ -16,6 +17,9 @@ run_ruby() {
 
 run_ts() {
   pnpm install ${FLAGS[@]+"${FLAGS[@]}"}
+  if [[ -f e2e/playwright.config.ts ]]; then
+    pnpm exec playwright install chromium
+  fi
 }
 
 run_stacks "${STACKS[@]}"

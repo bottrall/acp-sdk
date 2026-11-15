@@ -16,12 +16,24 @@ run_ruby() {
   bundle exec rake build ${FLAGS[@]+"${FLAGS[@]}"}
 }
 
+# One vite.config builds the app; a repo with several bundles names one
+# vite.<name>.config per bundle instead, and each is built in turn.
 run_ts() {
-  if ! has_vite_config; then
+  local config configs=()
+  if has_vite_config; then
+    pnpm exec vite build ${FLAGS[@]+"${FLAGS[@]}"}
+    return
+  fi
+  for config in vite.*.config.*; do
+    if [[ -f $config ]]; then configs+=("$config"); fi
+  done
+  if ((${#configs[@]} == 0)); then
     skip_stack "no vite.config, so no bundle to build"
     return 0
   fi
-  pnpm exec vite build ${FLAGS[@]+"${FLAGS[@]}"}
+  for config in "${configs[@]}"; do
+    pnpm exec vite build --config "$config" ${FLAGS[@]+"${FLAGS[@]}"} || return
+  done
 }
 
 run_stacks "${STACKS[@]}"

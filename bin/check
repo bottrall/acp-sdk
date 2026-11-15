@@ -14,8 +14,9 @@ for arg in "$@"; do
 done
 
 # Each step runs even when one before it failed, so one run reports them all.
+# A repo that has no use for a step (no types to check, say) can delete it.
 status=0
-bin/lint --fix ${only[@]+"${only[@]}"} || status=$?
-bin/typecheck ${only[@]+"${only[@]}"} || status=$?
-bin/test ${only[@]+"${only[@]}"} || status=$?
+if [[ -x bin/lint ]]; then bin/lint --fix ${only[@]+"${only[@]}"} || status=$?; fi
+if [[ -x bin/typecheck ]]; then bin/typecheck ${only[@]+"${only[@]}"} || status=$?; fi
+if [[ -x bin/test ]]; then bin/test ${only[@]+"${only[@]}"} || status=$?; fi
 exit "$status"
