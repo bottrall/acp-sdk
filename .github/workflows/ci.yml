@@ -23,14 +23,20 @@ jobs:
             run: bin/lint
           - name: typecheck
             run: bin/typecheck
+          # Builds the gem, checks it ships every file in lib/ and sig/ (bar
+          # the codegen/ signatures), then installs it into an empty GEM_HOME
+          # and loads it.
+          - name: build
+            run: bin/build
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
           bundler-cache: true
+      - run: bin/setup
       - run: ${{ matrix.run }}
 
   test:
@@ -44,11 +50,11 @@ jobs:
           - "4.0"
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
