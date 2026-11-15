@@ -179,21 +179,19 @@ module TypeGenerator
     def all: () -> Array[[ Hash[String, untyped], String ]]
   end
 
-  class Dispatch
-    # @dynamic tag
-    attr_reader tag: String?
+  class Dispatch < Data
+    attr_reader tag(): String?
 
-    # @dynamic tagged
-    attr_reader tagged: Array[[ String, String ]]
+    attr_reader tagged(): Array[[ String, String ]]
 
-    # @dynamic untagged
-    attr_reader untagged: Array[[ String, String ]]
+    attr_reader untagged(): Array[[ String, String ]]
 
-    # @rbs tag: String?
-    # @rbs tagged: Array[[String, String]]
-    # @rbs untagged: Array[[String, String]]
-    # @rbs return: void
-    def initialize: (tag: String?, tagged: Array[[ String, String ]], untagged: Array[[ String, String ]]) -> void
+    def self.new: (String? tag, Array[[ String, String ]] tagged, Array[[ String, String ]] untagged) -> instance
+                | (tag: String?, tagged: Array[[ String, String ]], untagged: Array[[ String, String ]]) -> instance
+
+    def self.members: () -> [ :tag, :tagged, :untagged ]
+
+    def members: () -> [ :tag, :tagged, :untagged ]
   end
 
   # @rbs schema: Hash[String, untyped]

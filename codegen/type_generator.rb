@@ -228,25 +228,11 @@ module TypeGenerator
     def all = [*tagged, *untagged]
   end
 
-  class Dispatch
-    # @dynamic tag
-    attr_reader :tag #: String?
-    # @dynamic tagged
-    attr_reader :tagged #: Array[[String, String]]
-    # @dynamic untagged
-    attr_reader :untagged #: Array[[String, String]]
-
-    # @rbs tag: String?
-    # @rbs tagged: Array[[String, String]]
-    # @rbs untagged: Array[[String, String]]
-    # @rbs return: void
-    def initialize(tag:, tagged:, untagged:)
-      @tag = tag
-      @tagged = tagged
-      @untagged = untagged
-      freeze
-    end
-  end
+  Dispatch = Data.define(
+    :tag, #: String?
+    :tagged, #: Array[[String, String]]
+    :untagged #: Array[[String, String]]
+  )
 
   # @rbs schema: Hash[String, untyped]
   # @rbs unstable_schema: Hash[String, untyped]?

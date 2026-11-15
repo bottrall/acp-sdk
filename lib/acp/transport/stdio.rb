@@ -19,6 +19,11 @@ class ACP::Transport::Stdio
 
   CONNECTION_CLOSED = ACP::RequestError::CONNECTION_CLOSED #: ACP::RequestError
 
+  Serving = Data.define(
+    :id, #: untyped
+    :cancellation #: ACP::Transport::Cancellation
+  )
+
   # @rbs input: _Reader
   # @rbs output: _Writer
   # @rbs logger: ACP::Transport::_Logger

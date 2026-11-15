@@ -276,6 +276,6 @@ class ACP::AgentConnection
     return response unless response.is_a?(ACP::Types::NewSessionResponse) && agent.respond_to?(:session_created)
 
     hook = agent #: ACP::AgentConnection::_Agent & ACP::AgentConnection::_SessionCreated
-    ACP::Transport::Reply.new(response, after: -> { hook.session_created(response) })
+    ACP::Transport::Reply.new(result: response, after: -> { hook.session_created(response) })
   end
 end

@@ -1,4 +1,16 @@
 # Generated from lib/acp/transport.rb with RBS::Inline
 
 module ACP::Transport
+  class Reply < Data
+    attr_reader result(): ACP::Transport::_Response
+
+    attr_reader after(): ^() -> void
+
+    def self.new: (ACP::Transport::_Response result, ^() -> void after) -> instance
+                | (result: ACP::Transport::_Response, after: ^() -> void) -> instance
+
+    def self.members: () -> [ :result, :after ]
+
+    def members: () -> [ :result, :after ]
+  end
 end

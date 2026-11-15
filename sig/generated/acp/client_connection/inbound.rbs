@@ -17,6 +17,25 @@ class ACP::ClientConnection::Inbound
 
   @fs: ACP::ClientConnection::_FileSystem?
 
+  class Route < Data
+    attr_reader rpc_method(): String
+
+    attr_reader type(): ACP::Transport::_Parser
+
+    attr_reader handler_method(): Symbol
+
+    attr_reader path(): Array[Symbol]
+
+    attr_reader capability(): String
+
+    def self.new: (String rpc_method, ACP::Transport::_Parser type, Symbol handler_method, Array[Symbol] path, String capability) -> instance
+                | (rpc_method: String, type: ACP::Transport::_Parser, handler_method: Symbol, path: Array[Symbol], capability: String) -> instance
+
+    def self.members: () -> [ :rpc_method, :type, :handler_method, :path, :capability ]
+
+    def members: () -> [ :rpc_method, :type, :handler_method, :path, :capability ]
+  end
+
   FS_ROUTES: Array[ACP::ClientConnection::Inbound::Route]
 
   # The terminal capability is a single bool, so its five routes share one

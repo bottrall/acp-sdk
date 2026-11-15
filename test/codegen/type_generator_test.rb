@@ -118,12 +118,6 @@ describe TypeGenerator do
     end
   end
 
-  describe TypeGenerator::Dispatch do
-    it 'is frozen' do
-      assert_predicate TypeGenerator::Dispatch.new(tag: 'type', tagged: [], untagged: []), :frozen?
-    end
-  end
-
   describe '.files' do
     stable = { '$defs' => { 'Step' => {} } }
     unstable = { '$defs' => { 'Mug' => {} } }
