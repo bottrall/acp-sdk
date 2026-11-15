@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 
-require 'bundler/gem_tasks'
-require 'rake/testtask'
-require 'rubocop/rake_task'
+require 'fileutils'
 require 'json'
+require 'rake/testtask'
+require 'rbconfig'
+require 'rubocop/rake_task'
 require 'tmpdir'
 require_relative 'codegen/type_generator'
+
+GEMSPEC = 'acp-sdk.gemspec'
 
 Rake::TestTask.new(:test) do |t|
   t.libs << 'test' << 'lib'
@@ -26,6 +29,13 @@ def write_types(dir)
   end
 end
 
+# Starting empty drops a deleted file's signatures.
+def write_signatures(output)
+  FileUtils.rm_rf(output)
+  FileUtils.mkdir_p(output)
+  sh 'rbs-inline', '--opt-out', "--output=#{output}", 'lib', 'codegen', verbose: false
+end
+
 desc 'Generate lib/acp/types from the vendored schemas, then sig/generated from the inline annotations'
 task generate: %w[generate:types generate:rbs]
 
@@ -39,8 +49,7 @@ namespace :generate do
 
   desc 'Generate RBS signatures from inline annotations'
   task :rbs do
-    rm_rf 'sig/generated', verbose: false
-    sh 'rbs-inline --opt-out --output=sig/generated lib codegen'
+    write_signatures('sig/generated')
   end
 
   desc 'Watch lib/ and codegen/ for changes and regenerate RBS files'
@@ -79,9 +88,10 @@ namespace :rbs do
 
   desc 'Fail if sig/generated is out of date with lib/ or codegen/'
   task :check do
-    Dir.mktmpdir('rbs-check') do |dir|
-      sh "rbs-inline --opt-out --output=#{dir} lib codegen", verbose: false
-      sh "diff -ru sig/generated #{dir}" do |ok, _|
+    FileUtils.mkdir_p(%w[tmp sig/generated])
+    Dir.mktmpdir('rbs-check', 'tmp') do |dir|
+      write_signatures(dir)
+      sh 'diff', '-ru', 'sig/generated', dir do |ok, _|
         abort 'sig/generated is out of date; run bin/generate and commit the result' unless ok
       end
     end
@@ -114,4 +124,38 @@ task typecheck: %w[types:check rbs:check rbs:collection_check rbs:lint_manual st
 desc 'Install the RBS collection'
 task :setup do
   sh 'rbs collection install'
+end
+
+desc 'Build the gem into pkg/, then install it into an empty GEM_HOME and check it loads'
+task :build do
+  spec = Gem::Specification.load(GEMSPEC)
+  # The gemspec leaves out the codegen/ signatures on purpose.
+  shippable = Dir['lib/**/*.rb', 'sig/**/*.rbs'].grep_v(%r{\Asig/[^/]+/codegen/})
+  missing = shippable - spec.files
+  abort "#{GEMSPEC} leaves out #{missing.join(', ')}" unless missing.empty?
+
+  gem_file = File.join('pkg', spec.file_name)
+  FileUtils.mkdir_p(%w[pkg tmp])
+  sh 'gem', 'build', GEMSPEC, '--output', gem_file
+
+  Dir.mktmpdir('install', 'tmp') do |dir|
+    gem_home = File.expand_path(dir)
+    # The empty GEM_HOME receives only the built gem; its dependencies resolve
+    # from the bundle's gem path, so --local never reaches the network.
+    env = { 'GEM_HOME' => gem_home, 'GEM_PATH' => [gem_home, *Gem.path].join(File::PATH_SEPARATOR) }
+    # Eager loading fails on a file that needs one the gem doesn't ship. The
+    # unstable types are outside Zeitwerk, so they're required on their own.
+    check = <<~RUBY
+      require 'acp/sdk'
+      spec = Gem.loaded_specs.fetch('acp-sdk')
+      abort "loaded \#{spec.full_gem_path}, not the built gem" unless spec.full_gem_path.start_with?(ENV['GEM_HOME'])
+      Zeitwerk::Loader.eager_load_all
+      require 'acp/types/unstable'
+      puts "loaded acp-sdk \#{ACP::VERSION} from the built gem"
+    RUBY
+    Bundler.with_unbundled_env do
+      sh env, 'gem', 'install', '--local', '--no-document', gem_file
+      sh env, RbConfig.ruby, '-e', check, verbose: false
+    end
+  end
 end

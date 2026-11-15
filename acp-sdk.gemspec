@@ -16,7 +16,11 @@ Gem::Specification.new do |spec|
   spec.metadata['changelog_uri'] = 'https://github.com/bottrall/acp-sdk/blob/main/CHANGELOG.md'
   spec.metadata['source_code_uri'] = spec.homepage
 
-  spec.files = Dir['lib/**/*.rb', 'sig/{generated,manual}/acp/**/*', 'README.md', 'CHANGELOG.md', 'LICENSE']
+  # sig/_private ships too: RBS skips `_`-prefixed directories when the gem's
+  # signatures are loaded as a library, so its stubs stay private. The codegen/
+  # signatures type-check the generator, which doesn't ship.
+  shippable = Dir['lib/**/*.rb', 'sig/**/*.rbs', 'README.md', 'CHANGELOG.md', 'LICENSE']
+  spec.files = shippable.grep_v(%r{\Asig/[^/]+/codegen/})
   spec.require_paths = ['lib']
 
   spec.add_dependency 'zeitwerk', '~> 2.8'
