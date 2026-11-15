@@ -276,7 +276,13 @@ describe TypeGenerator::Emit do
 
   describe '.wrap' do
     it 'is the single line, without building the items, when it fits' do
-      assert_equal ['f(a)'], emit.wrap('f(a)', 4, 'f(', ')') { flunk 'built the items' }
+      built = false
+      lines = emit.wrap('f(a)', 4, 'f(', ')') do
+        built = true
+        []
+      end
+
+      assert_equal [['f(a)'], false], [lines, built]
     end
 
     it 'indents every line of every item between the opening and closing once the single line does not fit' do

@@ -208,26 +208,26 @@ describe ACP::AgentConnection do
           fork: ACP::Types::Unstable::SessionForkCapabilities.new
         )
       )
-      error = assert_raises(ArgumentError) { start(AgentConnectionAgent.new(:list_sessions), capabilities:) }
+      error = raised(ArgumentError) { start(AgentConnectionAgent.new(:list_sessions), capabilities:) }
 
       assert_equal(
         ['initialize advertises methods the agent lacks: load_session, fork_session', nil],
-        [error.message, transport.requests]
+        [error&.message, transport.requests]
       )
     end
 
     it 'refuses to start without authenticate when only a terminal auth method is advertised' do
-      error = assert_raises(ArgumentError) { start(auth_methods: [terminal_method]) }
+      error = raised(ArgumentError) { start(auth_methods: [terminal_method]) }
 
-      assert_equal 'initialize advertises methods the agent lacks: authenticate', error.message
+      assert_equal 'initialize advertises methods the agent lacks: authenticate', error&.message
     end
 
     it 'refuses to start when mcpCapabilities.acp is advertised without a notification handler' do
-      error = assert_raises(ArgumentError) { start(capabilities: acp) }
+      error = raised(ArgumentError) { start(capabilities: acp) }
 
       assert_equal(
         ['initialize advertises mcpCapabilities.acp but the agent lacks mcp_message_notification', nil],
-        [error.message, transport.requests]
+        [error&.message, transport.requests]
       )
     end
 
@@ -393,10 +393,10 @@ describe ACP::AgentConnection do
     it 'answers a parse error with invalid params carrying its message, without calling the agent' do
       agent = AgentConnectionAgent.new
       start(agent)
-      parse_error = assert_raises(ACP::Types::ParseError) { ACP::Types::PromptRequest.from_h({}) }
+      parse_error = raised(ACP::Types::ParseError) { ACP::Types::PromptRequest.from_h({}) }
       reply = transport.requests.fetch('session/prompt').call({})
 
-      assert_equal [ACP::RequestError.invalid_params([parse_error.message]).to_h, []], [reply.to_h, agent.calls]
+      assert_equal [ACP::RequestError.invalid_params([parse_error&.message]).to_h, []], [reply.to_h, agent.calls]
     end
   end
 

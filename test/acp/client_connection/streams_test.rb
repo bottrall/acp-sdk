@@ -161,14 +161,25 @@ describe ACP::ClientConnection::Streams do
       assert_equal({}, reply)
     end
 
-    it 'raises what the sender raises and frees the session' do
-      sender = StreamsFakeSender.new do
-        Thread.current.report_on_exception = false
-        raise IOError, 'closed'
-      end
-      engine = streams(sender)
+    def failing_streams
+      streams(
+        StreamsFakeSender.new do
+          Thread.current.report_on_exception = false
+          raise IOError, 'closed'
+        end
+      )
+    end
+
+    it 'raises what the sender raises' do
+      engine = failing_streams
 
       assert_raises(IOError) { within { engine.stream('s1', 'session/prompt', {}) { nil } } }
+    end
+
+    it 'frees the session when the sender raises' do
+      engine = failing_streams
+      raised(IOError) { within { engine.stream('s1', 'session/prompt', {}) { nil } } }
+
       # A session still held would return the already-open error instead.
       assert_raises(IOError) { within { engine.stream('s1', 'session/prompt', {}) { nil } } }
     end
@@ -237,42 +248,48 @@ describe ACP::ClientConnection::Streams do
 
     it "carries the sender's serving cancellation onto the handler's own thread" do
       serving = ACP::Transport::Cancellation.new
+      asking = Thread.current
       seen = []
       engine = streams(
         StreamsFakeSender.new(cancellation: serving),
         permission: lambda do |_request|
-          seen << [Thread.current, ACP::Transport::Cancellation.current]
+          seen << [Thread.current.equal?(asking), ACP::Transport::Cancellation.current]
           choose('allow')
         end
       )
       within { engine.request_permission(permission_request) }
-      thread, carried = seen.first
 
-      refute_same Thread.current, thread
-      assert_same serving, carried
+      assert_equal [[false, serving]], seen
     end
 
-    it 'calls the handler with the parsed request and answers with what it returns' do
-      answer = choose('allow')
+    it 'calls the handler with the parsed request' do
       handled = []
       engine = streams(
         permission: lambda do |request|
           handled << request
-          answer
+          choose('allow')
         end
       )
-      reply = within { engine.request_permission(permission_request('s1', 'c7')) }
+      within { engine.request_permission(permission_request('s1', 'c7')) }
+
+      assert_equal([%w[s1 c7]], handled.map { |request| [request.session_id, request.tool_call.tool_call_id] })
+    end
+
+    it 'answers with what the handler returns' do
+      answer = choose('allow')
+      engine = streams(permission: ->(_request) { answer })
+
+      reply = within { engine.request_permission(permission_request) }
 
       assert_same answer, reply
-      assert_equal([%w[s1 c7]], handled.map { |request| [request.session_id, request.tool_call.tool_call_id] })
     end
 
     it "re-raises the handler's error to its caller" do
       failure = RuntimeError.new('handler failed')
       engine = streams(permission: ->(_request) { raise failure })
-      raised = assert_raises(RuntimeError) { within { engine.request_permission(permission_request) } }
+      error = raised(RuntimeError) { within { engine.request_permission(permission_request) } }
 
-      assert_same failure, raised
+      assert_same failure, error
     end
 
     it 'answers with an ACP::RequestError the handler returns rather than raising it' do
@@ -296,8 +313,7 @@ describe ACP::ClientConnection::Streams do
       reply = within { asking.value }
       gates['c1'] << true
 
-      assert_equal cancelled.to_h, reply.to_h
-      assert_same handler, handler.join(2)
+      assert_equal [cancelled.to_h, handler], [reply.to_h, handler.join(2)]
     ensure
       gates['c1'] << true
     end

@@ -131,10 +131,12 @@ describe TypeGenerator::Plan do
     it 'resolves a normally reached def against the schema that knows what was subsumed' do
       cup = variant(nesting, 'Vessel')
       union = TypeGenerator::Resolve.definition_files(nesting.with_subsumed(flattened => cup), 'Vessel').to_h
+      plain = TypeGenerator::Resolve.definition_files(nesting, 'Vessel').to_h
       files, = plan.generate(nesting, %w[Vessel])
 
-      refute_equal union, TypeGenerator::Resolve.definition_files(nesting, 'Vessel').to_h
-      assert_equal union, files.slice(*union.keys)
+      # Unless subsuming changes the resolution, this passes whichever schema
+      # plan resolved against.
+      assert_equal [true, union], [union != plain, files.slice(*union.keys)]
     end
 
     it 'replaces only the class file of a subsumed def, keeping its nested union files' do
@@ -144,8 +146,8 @@ describe TypeGenerator::Plan do
       nested = resolved.to_h.except(own)
       files, = plan.generate(nesting, %w[Vessel])
 
-      refute_empty nested
-      assert_equal nested.merge(own => content), files.slice(own, *nested.keys)
+      # Without nested union files there is nothing for plan to keep.
+      assert_equal [true, nested.merge(own => content)], [nested.any?, files.slice(own, *nested.keys)]
     end
 
     it 'emits a def one variant class subsumes as an alias of that variant' do

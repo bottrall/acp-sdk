@@ -121,12 +121,23 @@ describe ACP::Transport::Stdio do
       assert_equal error_reply(1, ACP::Transport::Stdio::CONNECTION_CLOSED), receive_message
     end
 
-    it 'closes the transport when the reader thread dies reading' do
+    def start_failing_reader
       reader = @transport.start
       reader.report_on_exception = false
       @input.close
+      reader
+    end
+
+    it 'lets the reader thread die with the read error' do
+      reader = start_failing_reader
 
       assert_raises(IOError) { reader.join(2) }
+    end
+
+    it 'closes the transport when the reader thread dies reading' do
+      reader = start_failing_reader
+      raised(IOError) { reader.join(2) }
+
       assert_same ACP::RequestError::CONNECTION_CLOSED, @transport.request('session/request_permission')
     end
   end
@@ -213,15 +224,18 @@ describe ACP::Transport::Stdio do
       pending = Thread.new { @transport.request('session/request_permission') }
       id = receive_message.fetch('id')
       @transport.cancel(id)
-
-      assert_equal(
-        { 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => id } },
-        receive_message
-      )
-      assert_predicate pending, :alive?
+      sent = receive_message
+      waiting = pending.alive?
       send_message({ 'jsonrpc' => '2.0', 'id' => id, 'result' => { 'outcome' => 'cancelled' } })
 
-      assert_equal({ 'outcome' => 'cancelled' }, value_of(pending))
+      assert_equal(
+        [
+          { 'jsonrpc' => '2.0', 'method' => '$/cancel_request', 'params' => { 'requestId' => id } },
+          true,
+          { 'outcome' => 'cancelled' }
+        ],
+        [sent, waiting, value_of(pending)]
+      )
     end
 
     it 'sends nothing for an id that is not pending' do
@@ -420,8 +434,10 @@ describe ACP::Transport::Stdio do
         result = value_of(pending)
         @transport.notify('session/update')
 
-        assert_equal ACP::RequestError.invalid_response(response).to_h, result.to_h
-        assert_equal({ 'jsonrpc' => '2.0', 'method' => 'session/update' }, receive_message)
+        assert_equal(
+          [ACP::RequestError.invalid_response(response).to_h, { 'jsonrpc' => '2.0', 'method' => 'session/update' }],
+          [result.to_h, receive_message]
+        )
       end
     end
 

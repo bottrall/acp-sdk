@@ -19,8 +19,12 @@ end
 describe ACP::Types::Check do
   describe '.key' do
     it 'returns the value under a present key, even when it is nil' do
-      assert_equal 's1', ACP::Types::Check.key({ 'sessionId' => 's1' }, 'sessionId')
-      assert_nil ACP::Types::Check.key({ 'sessionId' => nil }, 'sessionId')
+      values = [
+        ACP::Types::Check.key({ 'sessionId' => 's1' }, 'sessionId'),
+        ACP::Types::Check.key({ 'sessionId' => nil }, 'sessionId')
+      ]
+
+      assert_equal ['s1', nil], values
     end
 
     it 'rejects a missing key as required' do
@@ -34,8 +38,12 @@ describe ACP::Types::Check do
     end
 
     it 'passes nil and the unset sentinel through when allowed' do
-      assert_nil ACP::Types::Check.string(nil, 'title', allow_nil: true)
-      assert_equal :unset, ACP::Types::Check.string(:unset, 'title', allow_unset: true)
+      passed = [
+        ACP::Types::Check.string(nil, 'title', allow_nil: true),
+        ACP::Types::Check.string(:unset, 'title', allow_unset: true)
+      ]
+
+      assert_equal [nil, :unset], passed
     end
 
     it 'rejects nil when only the unset sentinel is allowed' do
@@ -54,8 +62,11 @@ describe ACP::Types::Check do
       assert_rejected(['title'], 'expected String, got Integer') { ACP::Types::Check.string(42, 'title') }
     end
 
-    it 'names booleans by their JSON literal' do
+    it 'names true by its JSON literal' do
       assert_rejected(['title'], 'expected String, got true') { ACP::Types::Check.string(true, 'title') }
+    end
+
+    it 'names false by its JSON literal' do
       assert_rejected(['title'], 'expected String, got false') { ACP::Types::Check.string(false, 'title') }
     end
 
@@ -72,8 +83,12 @@ describe ACP::Types::Check do
     end
 
     it 'passes nil and the unset sentinel through when allowed' do
-      assert_nil ACP::Types::Check.boolean(nil, 'done', allow_nil: true)
-      assert_equal :unset, ACP::Types::Check.boolean(:unset, 'done', allow_unset: true)
+      passed = [
+        ACP::Types::Check.boolean(nil, 'done', allow_nil: true),
+        ACP::Types::Check.boolean(:unset, 'done', allow_unset: true)
+      ]
+
+      assert_equal [nil, :unset], passed
     end
 
     it 'rejects any other value' do
@@ -87,13 +102,16 @@ describe ACP::Types::Check do
     end
 
     it 'returns an Integer on either inclusive bound' do
-      assert_equal 0, ACP::Types::Check.integer(0, 'line', min: 0, max: 9)
-      assert_equal 9, ACP::Types::Check.integer(9, 'line', min: 0, max: 9)
+      assert_equal([0, 9], [0, 9].map { |line| ACP::Types::Check.integer(line, 'line', min: 0, max: 9) })
     end
 
     it 'passes nil and the unset sentinel through when allowed' do
-      assert_nil ACP::Types::Check.integer(nil, 'line', min: 0, allow_nil: true)
-      assert_equal :unset, ACP::Types::Check.integer(:unset, 'line', min: 0, allow_unset: true)
+      passed = [
+        ACP::Types::Check.integer(nil, 'line', min: 0, allow_nil: true),
+        ACP::Types::Check.integer(:unset, 'line', min: 0, allow_unset: true)
+      ]
+
+      assert_equal [nil, :unset], passed
     end
 
     it 'rejects a non-Integer' do
@@ -125,13 +143,16 @@ describe ACP::Types::Check do
     end
 
     it 'returns a number on either inclusive bound' do
-      assert_equal 0, ACP::Types::Check.number(0, 'priority', min: 0, max: 1)
-      assert_equal 1, ACP::Types::Check.number(1, 'priority', min: 0, max: 1)
+      assert_equal([0, 1], [0, 1].map { |priority| ACP::Types::Check.number(priority, 'priority', min: 0, max: 1) })
     end
 
     it 'passes nil and the unset sentinel through when allowed' do
-      assert_nil ACP::Types::Check.number(nil, 'priority', min: 0, allow_nil: true)
-      assert_equal :unset, ACP::Types::Check.number(:unset, 'priority', min: 0, allow_unset: true)
+      passed = [
+        ACP::Types::Check.number(nil, 'priority', min: 0, allow_nil: true),
+        ACP::Types::Check.number(:unset, 'priority', min: 0, allow_unset: true)
+      ]
+
+      assert_equal [nil, :unset], passed
     end
 
     it 'rejects a non-Numeric' do
@@ -163,8 +184,12 @@ describe ACP::Types::Check do
     end
 
     it 'passes nil and the unset sentinel through when allowed' do
-      assert_nil ACP::Types::Check.enum(nil, 'stopReason', %w[end_turn], allow_nil: true)
-      assert_equal :unset, ACP::Types::Check.enum(:unset, 'stopReason', %w[end_turn], allow_unset: true)
+      passed = [
+        ACP::Types::Check.enum(nil, 'stopReason', %w[end_turn], allow_nil: true),
+        ACP::Types::Check.enum(:unset, 'stopReason', %w[end_turn], allow_unset: true)
+      ]
+
+      assert_equal [nil, :unset], passed
     end
 
     it 'rejects an unlisted value, naming the alternatives' do
@@ -176,8 +201,12 @@ describe ACP::Types::Check do
 
   describe '.one_of' do
     it 'passes nil and the unset sentinel through when allowed, without checking items' do
-      assert_nil ACP::Types::Check.one_of(nil, 'id', [Array], allow_nil: true) { flunk }
-      assert_equal :unset, ACP::Types::Check.one_of(:unset, 'id', [Array], allow_unset: true) { flunk }
+      passed = [
+        ACP::Types::Check.one_of(nil, 'id', [Array], allow_nil: true, &unreachable),
+        ACP::Types::Check.one_of(:unset, 'id', [Array], allow_unset: true, &unreachable)
+      ]
+
+      assert_equal [nil, :unset], passed
     end
 
     it 'rejects a value of none of the classes, naming them' do
@@ -187,7 +216,7 @@ describe ACP::Types::Check do
     end
 
     it 'returns a non-Array value without checking items' do
-      assert_equal 42, ACP::Types::Check.one_of(42, 'id', [Integer, Array]) { flunk }
+      assert_equal 42, ACP::Types::Check.one_of(42, 'id', [Integer, Array], &unreachable)
     end
 
     it 'returns an Array as it is when no item check is given' do
@@ -215,12 +244,16 @@ describe ACP::Types::Check do
 
   describe '.hash' do
     it 'passes nil and the unset sentinel through when allowed, without checking values' do
-      assert_nil ACP::Types::Check.hash(nil, 'env', allow_nil: true) { flunk }
-      assert_equal :unset, ACP::Types::Check.hash(:unset, 'env', allow_unset: true) { flunk }
+      passed = [
+        ACP::Types::Check.hash(nil, 'env', allow_nil: true, &unreachable),
+        ACP::Types::Check.hash(:unset, 'env', allow_unset: true, &unreachable)
+      ]
+
+      assert_equal [nil, :unset], passed
     end
 
     it 'rejects a non-Hash' do
-      assert_rejected(['env'], 'expected object, got Array') { ACP::Types::Check.hash([], 'env') { flunk } }
+      assert_rejected(['env'], 'expected object, got Array') { ACP::Types::Check.hash([], 'env', &unreachable) }
     end
 
     it 'maps each value through the check, yielding its keyed path' do
@@ -238,12 +271,16 @@ describe ACP::Types::Check do
 
   describe '.array' do
     it 'passes nil and the unset sentinel through when allowed, without checking items' do
-      assert_nil ACP::Types::Check.array(nil, 'roles', allow_nil: true) { flunk }
-      assert_equal :unset, ACP::Types::Check.array(:unset, 'roles', allow_unset: true) { flunk }
+      passed = [
+        ACP::Types::Check.array(nil, 'roles', allow_nil: true, &unreachable),
+        ACP::Types::Check.array(:unset, 'roles', allow_unset: true, &unreachable)
+      ]
+
+      assert_equal [nil, :unset], passed
     end
 
     it 'rejects a non-Array' do
-      assert_rejected(['roles'], 'expected array, got Hash') { ACP::Types::Check.array({}, 'roles') { flunk } }
+      assert_rejected(['roles'], 'expected array, got Hash') { ACP::Types::Check.array({}, 'roles', &unreachable) }
     end
 
     it 'maps each item through the check, yielding its indexed path' do
@@ -261,14 +298,17 @@ describe ACP::Types::Check do
 
   describe '.object' do
     it 'passes nil and the unset sentinel through when allowed, without parsing' do
-      type = CheckFakeType.new { flunk }
+      type = CheckFakeType.new(&unreachable)
+      passed = [
+        ACP::Types::Check.object(nil, 'annotations', type, allow_nil: true),
+        ACP::Types::Check.object(:unset, 'annotations', type, allow_unset: true)
+      ]
 
-      assert_nil ACP::Types::Check.object(nil, 'annotations', type, allow_nil: true)
-      assert_equal :unset, ACP::Types::Check.object(:unset, 'annotations', type, allow_unset: true)
+      assert_equal [nil, :unset], passed
     end
 
     it 'rejects a non-Hash without parsing' do
-      type = CheckFakeType.new { flunk }
+      type = CheckFakeType.new(&unreachable)
 
       assert_rejected(['annotations'], 'expected object, got Array') do
         ACP::Types::Check.object([], 'annotations', type)
@@ -300,20 +340,23 @@ describe ACP::Types::Check do
 
   describe '.objects' do
     it 'passes nil and the unset sentinel through when allowed, without parsing' do
-      type = CheckFakeType.new { flunk }
+      type = CheckFakeType.new(&unreachable)
+      passed = [
+        ACP::Types::Check.objects(nil, 'options', type, allow_nil: true),
+        ACP::Types::Check.objects(:unset, 'options', type, allow_unset: true)
+      ]
 
-      assert_nil ACP::Types::Check.objects(nil, 'options', type, allow_nil: true)
-      assert_equal :unset, ACP::Types::Check.objects(:unset, 'options', type, allow_unset: true)
+      assert_equal [nil, :unset], passed
     end
 
     it 'rejects a non-Array without parsing' do
-      type = CheckFakeType.new { flunk }
+      type = CheckFakeType.new(&unreachable)
 
       assert_rejected(['options'], 'expected array, got Hash') { ACP::Types::Check.objects({}, 'options', type) }
     end
 
     it 'rejects a non-Hash item at its index without parsing' do
-      type = CheckFakeType.new { flunk }
+      type = CheckFakeType.new(&unreachable)
 
       assert_rejected(['options', 1], 'expected object, got Integer') do
         ACP::Types::Check.objects([{}, 2], 'options', type)
@@ -321,7 +364,7 @@ describe ACP::Types::Check do
     end
 
     it 'rejects a non-Hash item at its index under an Array path' do
-      type = CheckFakeType.new { flunk }
+      type = CheckFakeType.new(&unreachable)
 
       assert_rejected(['servers', 1, 1], 'expected object, got Integer') do
         ACP::Types::Check.objects([{}, 2], ['servers', 1], type)
@@ -350,6 +393,12 @@ describe ACP::Types::Check do
   end
 
   private
+
+  # Stands in for an item check or a parse the value under test should never
+  # reach. Its error isn't a ParseError, so it fails `assert_rejected` too.
+  def unreachable
+    ->(*) { raise 'checked or parsed a value it should have skipped or rejected first' }
+  end
 
   def assert_rejected(segments, detail, &)
     error = assert_raises(ACP::Types::ParseError, &)

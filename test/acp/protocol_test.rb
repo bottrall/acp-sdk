@@ -79,8 +79,11 @@ describe ACP::Protocol do
       refute ACP::Protocol.mcp_acp_advertised?({})
     end
 
-    it 'is false when the raw mcpCapabilities does not advertise acp' do
+    it 'is false when the raw mcpCapabilities leaves acp out' do
       refute ACP::Protocol.mcp_acp_advertised?('mcpCapabilities' => {})
+    end
+
+    it 'is false when the raw mcpCapabilities sets acp to false' do
       refute ACP::Protocol.mcp_acp_advertised?('mcpCapabilities' => { 'acp' => false })
     end
 

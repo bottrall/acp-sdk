@@ -89,7 +89,7 @@ GEM
     rubocop-ast (1.50.0)
       parser (>= 3.3.7.2)
       prism (~> 1.7)
-    rubocop-bottrall (0.1.0)
+    rubocop-bottrall (0.2.0)
       lint_roller (~> 1.1)
       rubocop (>= 1.72, < 2)
       rubocop-minitest (~> 0.37)
@@ -194,7 +194,7 @@ CHECKSUMS
   reline (0.7.0) sha256=5b012d8e55dbf9d450f12bde2cf7d15ff546ae80b3f8f3b30e570d431815583d
   rubocop (1.92.2) sha256=14fb31eed143a0dc6f78186c550c1715e81cd38f59d05d1165050e445c1f5382
   rubocop-ast (1.50.0) sha256=b9ca88300da0803ee222ad20cdb30494c0a784eed06fdc35d254b06d662788db
-  rubocop-bottrall (0.1.0) sha256=9d9d475253b93847c9f6f87c4648a05c98f65331711f88beb3c63ea29caf9b5b
+  rubocop-bottrall (0.2.0) sha256=902fb13624b9baf2d465c24dfe649a1ba72eb327ca3c7bad21ab22064bd94bf3
   rubocop-minitest (0.41.0) sha256=c15bfe00134a30c8a00ce670b07ecc80440455ba277b8682cf0d515c98ee7426
   rubocop-performance (1.27.0) sha256=eeeb1374d062a368ee1c787b70eb0b0cc4b184cb1f8565f424760946146d61ce
   rubocop-rake (0.7.1) sha256=3797f2b6810c3e9df7376c26d5f44f3475eda59eb1adc38e6f62ecf027cbae4d
