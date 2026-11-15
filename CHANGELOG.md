@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/bottrall/acp-sdk/compare/v0.14.0...v0.14.1) (2026-11-15)
+
+
+### Bug Fixes
+
+* support Ruby 3.3 ([#189](https://github.com/bottrall/acp-sdk/issues/189)) ([6f868cd](https://github.com/bottrall/acp-sdk/commit/6f868cdc8f1117681e8af746b7b51cd04367a253))
+
 ## [0.14.0](https://github.com/bottrall/acp-sdk/compare/v0.13.0...v0.14.0) (2026-10-24)
 
 
