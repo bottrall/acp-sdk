@@ -209,7 +209,18 @@ Draft protocol features, such as session forking, providers and usage reporting,
 require 'acp/types/unstable'
 ```
 
-Once loaded, the connections support `fork_session`, `list_providers`, `set_provider` and `disable_provider`. Unstable features aren't part of the spec yet. Peers may not support them, and they can change or disappear in any release.
+Once loaded, the connections support these methods. An agent implements each when its capabilities set the one listed:
+
+| Method | Capability |
+| --- | --- |
+| `fork_session` | `session_capabilities.fork` |
+| `archive_session`, `unarchive_session` | `session_capabilities.archive` |
+| `session_status` | `session_capabilities.status` |
+| `session_options` | `session_capabilities.options` |
+| `set_session_title` (the agent implements `change_session_title`) | `session_capabilities.title` |
+| `list_providers`, `set_provider`, `disable_provider` | `providers` |
+
+Unstable features aren't part of the spec yet. Peers may not support them, and they can change or disappear in any release.
 
 ## Contributing
 

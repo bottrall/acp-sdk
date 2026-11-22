@@ -137,6 +137,36 @@ class ACP::ClientConnection
     parse(ACP::Types::Unstable::ForkSessionResponse, @transport.request('session/fork', request.to_h))
   end
 
+  # @rbs request: ACP::Types::Unstable::ArchiveSessionRequest
+  # @rbs return: (ACP::Types::Unstable::ArchiveSessionResponse | ACP::RequestError)
+  def archive_session(request)
+    parse(ACP::Types::Unstable::ArchiveSessionResponse, @transport.request('session/archive', request.to_h))
+  end
+
+  # @rbs request: ACP::Types::Unstable::UnarchiveSessionRequest
+  # @rbs return: (ACP::Types::Unstable::UnarchiveSessionResponse | ACP::RequestError)
+  def unarchive_session(request)
+    parse(ACP::Types::Unstable::UnarchiveSessionResponse, @transport.request('session/unarchive', request.to_h))
+  end
+
+  # @rbs request: ACP::Types::Unstable::SessionStatusRequest
+  # @rbs return: (ACP::Types::Unstable::SessionStatusResponse | ACP::RequestError)
+  def session_status(request)
+    parse(ACP::Types::Unstable::SessionStatusResponse, @transport.request('session/status', request.to_h))
+  end
+
+  # @rbs request: ACP::Types::Unstable::SessionOptionsRequest
+  # @rbs return: (ACP::Types::Unstable::SessionOptionsResponse | ACP::RequestError)
+  def session_options(request)
+    parse(ACP::Types::Unstable::SessionOptionsResponse, @transport.request('session/options', request.to_h))
+  end
+
+  # @rbs request: ACP::Types::Unstable::SetSessionTitleRequest
+  # @rbs return: (ACP::Types::Unstable::SetSessionTitleResponse | ACP::RequestError)
+  def set_session_title(request) # rubocop:disable Naming/AccessorMethodName -- wire-mandated session/set_title, not a writer
+    parse(ACP::Types::Unstable::SetSessionTitleResponse, @transport.request('session/set_title', request.to_h))
+  end
+
   # @rbs request: ACP::Types::Unstable::ListProvidersRequest
   # @rbs return: (ACP::Types::Unstable::ListProvidersResponse | ACP::RequestError)
   def list_providers(request)

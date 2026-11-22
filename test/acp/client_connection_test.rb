@@ -421,6 +421,46 @@ describe ACP::ClientConnection do
   )
 
   it_sends(
+    :archive_session,
+    'session/archive',
+    ACP::Types::Unstable::ArchiveSessionRequest.new(session_id: 's1'),
+    {},
+    ACP::Types::Unstable::ArchiveSessionResponse
+  )
+
+  it_sends(
+    :unarchive_session,
+    'session/unarchive',
+    ACP::Types::Unstable::UnarchiveSessionRequest.new(session_id: 's1'),
+    {},
+    ACP::Types::Unstable::UnarchiveSessionResponse
+  )
+
+  it_sends(
+    :session_status,
+    'session/status',
+    ACP::Types::Unstable::SessionStatusRequest.new(session_id: 's1'),
+    { 'status' => 'open' },
+    ACP::Types::Unstable::SessionStatusResponse
+  )
+
+  it_sends(
+    :session_options,
+    'session/options',
+    ACP::Types::Unstable::SessionOptionsRequest.new(cwd: '/work'),
+    {},
+    ACP::Types::Unstable::SessionOptionsResponse
+  )
+
+  it_sends(
+    :set_session_title,
+    'session/set_title',
+    ACP::Types::Unstable::SetSessionTitleRequest.new(session_id: 's1', title: 'Refactor'),
+    { 'title' => 'Refactor' },
+    ACP::Types::Unstable::SetSessionTitleResponse
+  )
+
+  it_sends(
     :list_providers,
     'providers/list',
     ACP::Types::Unstable::ListProvidersRequest.new,
