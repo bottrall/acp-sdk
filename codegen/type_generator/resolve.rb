@@ -207,14 +207,29 @@ module TypeGenerator::Resolve
                  any_of.any? { |option| option['type'] == 'null' }
       name = TypeGenerator::Naming.snake(json)
       attr = TypeGenerator::RUBY_KEYWORDS.include?(name) ? "#{name}_" : name
+      is_required = required.include?(json)
       TypeGenerator::Field.new(
         json:,
         attr:,
         type:,
-        required: required.include?(json),
+        required: is_required,
         nullable:,
-        clearable: clearable.include?(json)
+        clearable: clearable.include?(json),
+        # An optional field already parses null to its default, nil.
+        null_default: (null_default(property) if is_required)
       )
+    end
+  end
+
+  # @rbs property: Hash[String, untyped]
+  # @rbs return: String?
+  def null_default(property)
+    return unless property['x-deserialize-default-on-null']
+
+    case Array(property['type'])
+    when ['array'] then '[]'
+    when ['object'] then '{}'
+    else raise "Unsupported x-deserialize-default-on-null shape: #{property}"
     end
   end
 

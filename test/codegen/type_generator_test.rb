@@ -16,10 +16,11 @@ describe TypeGenerator do
   describe TypeGenerator::Field do
     type = TypeGenerator::Type.new(rbs: 'String')
 
-    it 'defaults to a frozen field with no JSON key that is neither clearable nor flattened' do
+    it 'defaults to a frozen field with no JSON key or null default that is neither clearable nor flattened' do
       field = TypeGenerator::Field.new(attr: 'label', type:, required: true, nullable: false)
 
-      assert_equal [nil, false, false, true], [field.json, field.clearable?, field.flattened?, field.frozen?]
+      assert_equal [nil, false, false, nil, true],
+                   [field.json, field.clearable?, field.flattened?, field.null_default, field.frozen?]
     end
 
     it 'is not nilable when required and not nullable' do

@@ -142,11 +142,26 @@ module TypeGenerator::Emit
       else
         "hash['#{field.json}']"
       end #: TypeGenerator::expression
-    unless field.type.check
-      return convert(field.type.from, source.is_a?(String) ? source : inline(source), field.nilable?)
-    end
+    default = field.null_default
+    nilable = field.nilable? || !default.nil?
+    check = field.type.check
+    parsed =
+      if check.nil?
+        convert(field.type.from, source.is_a?(String) ? source : inline(source), nilable)
+      else
+        guard(check, source, "'#{field.json}'", nilable, field.clearable?)
+      end #: TypeGenerator::expression
+    default ? or_default(parsed, default) : parsed
+  end
 
-    guard(field.type.check, source, "'#{field.json}'", field.nilable?, field.clearable?)
+  # @rbs expression: TypeGenerator::expression
+  # @rbs default: String
+  # @rbs return: TypeGenerator::expression
+  def or_default(expression, default)
+    return "#{expression} || #{default}" if expression.is_a?(String)
+
+    callee, args, block, = expression
+    [callee, args, block, "|| #{default}"]
   end
 
   # Top-level guards take the field path as a string; guards nested in a
@@ -222,10 +237,10 @@ module TypeGenerator::Emit
   def inline(piece)
     return piece if piece.is_a?(String)
 
-    callee, args, block, cast = piece
+    callee, args, block, trailer = piece
     rendered = "#{callee}(#{args.map { |arg| inline(arg) }.join(', ')})"
     rendered += " { |#{block[0]}| #{inline(block[1])} }" if block
-    rendered += " #{cast}" if cast
+    rendered += " #{trailer}" if trailer
     rendered
   end
 
@@ -242,8 +257,8 @@ module TypeGenerator::Emit
     line = "#{prefix}#{inline(piece)}#{suffix}"
     return [line] if fits?(line, column) || piece.is_a?(String)
 
-    callee, args, block, cast = piece
-    tail = cast ? " #{cast}" : ''
+    callee, args, block, trailer = piece
+    tail = trailer ? " #{trailer}" : ''
     rendered_args = args.map { |arg| inline(arg) }.join(', ')
     head = args.empty? ? "#{prefix}#{callee}" : "#{prefix}#{callee}(#{rendered_args})"
     if block && fits?("#{head} do |#{block[0]}|", column)

@@ -32,9 +32,13 @@ class ACP::Types::Unstable::McpServer::Http
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Unstable::McpServer::Http
   def self.from_h(hash)
-    headers = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'headers'), 'headers') do |item, path|
+    headers = ACP::Types::Check.array(
+      ACP::Types::Check.key(hash, 'headers'),
+      'headers',
+      allow_nil: true
+    ) do |item, path|
       ACP::Types::Check.object(item, path, ACP::Types::Unstable::HttpHeader)
-    end
+    end || []
     new(
       name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),
       url: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'url'), 'url'),

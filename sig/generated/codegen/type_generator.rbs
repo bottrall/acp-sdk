@@ -92,6 +92,9 @@ module TypeGenerator
     # @dynamic type
     attr_reader type: TypeGenerator::Type
 
+    # @dynamic null_default
+    attr_reader null_default: String?
+
     # @rbs attr: String
     # @rbs type: TypeGenerator::Type
     # @rbs required: bool
@@ -99,8 +102,9 @@ module TypeGenerator
     # @rbs json: String?
     # @rbs clearable: bool
     # @rbs flattened: bool
+    # @rbs null_default: String?
     # @rbs return: void
-    def initialize: (attr: String, type: TypeGenerator::Type, required: bool, nullable: bool, ?json: String?, ?clearable: bool, ?flattened: bool) -> void
+    def initialize: (attr: String, type: TypeGenerator::Type, required: bool, nullable: bool, ?json: String?, ?clearable: bool, ?flattened: bool, ?null_default: String?) -> void
 
     # @rbs return: bool
     def required?: () -> bool
