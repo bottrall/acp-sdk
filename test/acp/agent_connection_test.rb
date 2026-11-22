@@ -56,6 +56,11 @@ describe ACP::AgentConnection do
     delete_session
     logout
     fork_session
+    archive_session
+    unarchive_session
+    session_status
+    session_options
+    change_session_title
     list_providers
     set_provider
     disable_provider
@@ -93,6 +98,16 @@ describe ACP::AgentConnection do
   ].freeze
   unstable_routes = [
     ['session/fork', { 'sessionId' => 's', 'cwd' => '/work' }, :fork_session, ACP::Types::Unstable::ForkSessionRequest],
+    ['session/archive', { 'sessionId' => 's' }, :archive_session, ACP::Types::Unstable::ArchiveSessionRequest],
+    ['session/unarchive', { 'sessionId' => 's' }, :unarchive_session, ACP::Types::Unstable::UnarchiveSessionRequest],
+    ['session/status', { 'sessionId' => 's' }, :session_status, ACP::Types::Unstable::SessionStatusRequest],
+    ['session/options', { 'cwd' => '/work' }, :session_options, ACP::Types::Unstable::SessionOptionsRequest],
+    [
+      'session/set_title',
+      { 'sessionId' => 's', 'title' => 'Refactor' },
+      :change_session_title,
+      ACP::Types::Unstable::SetSessionTitleRequest
+    ],
     ['providers/list', {}, :list_providers, ACP::Types::Unstable::ListProvidersRequest],
     ['providers/set', set_provider, :set_provider, ACP::Types::Unstable::SetProviderRequest],
     [
@@ -130,7 +145,11 @@ describe ACP::AgentConnection do
         resume: ACP::Types::SessionResumeCapabilities.new,
         close: ACP::Types::SessionCloseCapabilities.new,
         delete: ACP::Types::SessionDeleteCapabilities.new,
-        fork: ACP::Types::Unstable::SessionForkCapabilities.new
+        fork: ACP::Types::Unstable::SessionForkCapabilities.new,
+        archive: ACP::Types::Unstable::SessionArchiveCapabilities.new,
+        status: ACP::Types::Unstable::SessionStatusCapabilities.new,
+        options: ACP::Types::Unstable::SessionOptionsCapabilities.new,
+        title: ACP::Types::Unstable::SessionTitleCapabilities.new
       )
     )
   end
@@ -275,12 +294,17 @@ describe ACP::AgentConnection do
           providers/disable
           providers/list
           providers/set
+          session/archive
           session/close
           session/delete
           session/fork
           session/list
           session/load
+          session/options
           session/resume
+          session/set_title
+          session/status
+          session/unarchive
         ],
         (transport.requests.keys - %w[initialize session/new session/prompt]).sort
       )
@@ -332,6 +356,11 @@ describe ACP::AgentConnection do
     it 'starts without the unstable routes when the unstable types are not opted into' do
       keys = stable_only_routes(<<~RUBY)
         def agent.fork_session(_request); end
+        def agent.archive_session(_request); end
+        def agent.unarchive_session(_request); end
+        def agent.session_status(_request); end
+        def agent.session_options(_request); end
+        def agent.change_session_title(_request); end
         def agent.list_providers(_request); end
         def agent.set_provider(_request); end
         def agent.disable_provider(_request); end
@@ -429,6 +458,52 @@ describe ACP::AgentConnection do
 
       assert_equal [ACP::RequestError.invalid_params([parse_error&.message]).to_h, []], [reply.to_h, agent.calls]
     end
+  end
+
+  describe 'systemPrompt' do
+    system_prompt = { 'mode' => 'append', 'content' => [{ 'type' => 'text', 'text' => 'Be terse.' }] }
+    lifecycle = %w[session/new session/load session/resume session/fork]
+    let(:prompted) do
+      ACP::Types::Unstable::AgentCapabilities.new(
+        load_session: true,
+        session_capabilities: ACP::Types::Unstable::SessionCapabilities.new(
+          resume: ACP::Types::SessionResumeCapabilities.new,
+          fork: ACP::Types::Unstable::SessionForkCapabilities.new,
+          system_prompt: ACP::Types::Unstable::SessionSystemPromptCapabilities.new
+        )
+      )
+    end
+
+    define_method(:prompt_reply) do |rpc_method, params, capabilities|
+      agent = AgentConnectionAgent.new(*optional)
+      start(agent, capabilities:)
+      [transport.requests.fetch(rpc_method).call(params.merge('systemPrompt' => system_prompt)), agent.calls]
+    end
+
+    it 'refuses session/new carrying one when the agent advertised no session capabilities' do
+      reply, = prompt_reply('session/new', { 'cwd' => '/work', 'mcpServers' => [] }, ACP::Types::AgentCapabilities.new)
+
+      assert_equal ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt').to_h, reply.to_h
+    end
+
+    (routes + unstable_routes)
+      .select { |rpc_method, *| lifecycle.include?(rpc_method) }
+      .each do |rpc_method, params, agent_method|
+        it "refuses #{rpc_method} carrying one without calling the agent unless the agent advertised it" do
+          reply, calls = prompt_reply(rpc_method, params, everything)
+
+          assert_equal(
+            [ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt').to_h, []],
+            [reply.to_h, calls]
+          )
+        end
+
+        it "answers #{rpc_method} carrying one with the agent's #{agent_method} when the agent advertised it" do
+          _reply, calls = prompt_reply(rpc_method, params, prompted)
+
+          assert_equal [agent_method], calls.map(&:first)
+        end
+      end
   end
 
   describe 'initialize' do

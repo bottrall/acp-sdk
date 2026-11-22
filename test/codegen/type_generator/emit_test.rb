@@ -398,6 +398,36 @@ describe TypeGenerator::Emit do
         emit.from_expression(checked)
       )
     end
+
+    it 'converts a required unchecked field with a null default nil-safely, falling back to the default' do
+      converted = field(
+        'ids',
+        type: type_of('Array[ACP::Types::Id]', from: [:map, [:send, 'to_s']]),
+        null_default: '[]'
+      )
+
+      assert_equal "#{check}.key(hash, 'ids')&.map(&:to_s) || []", emit.from_expression(converted)
+    end
+
+    it 'guards a required checked field with a null default allowing nil, falling back to the default' do
+      checked = field('tags', type: type_of(check: [:string]), null_default: '[]')
+
+      assert_equal(
+        ["#{check}.string", [["#{check}.key", ['hash', "'tags'"], nil, nil], "'tags'", 'allow_nil: true'], nil,
+         '|| []'],
+        emit.from_expression(checked)
+      )
+    end
+  end
+
+  describe '.or_default' do
+    it 'appends the fallback to a plain expression' do
+      assert_equal "hash['tags'] || []", emit.or_default("hash['tags']", '[]')
+    end
+
+    it 'trails the fallback after a call, keeping its block' do
+      assert_equal ['f', %w[value], %w[item item], '|| {}'], emit.or_default(['f', %w[value], %w[item item], nil], '{}')
+    end
   end
 
   describe '.guard' do

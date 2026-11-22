@@ -43,9 +43,13 @@ class ACP::Types::NewSessionRequest
     ) do |item, path|
       ACP::Types::Check.string(item, path)
     end
-    mcp_servers = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'mcpServers'), 'mcpServers') do |item, path|
+    mcp_servers = ACP::Types::Check.array(
+      ACP::Types::Check.key(hash, 'mcpServers'),
+      'mcpServers',
+      allow_nil: true
+    ) do |item, path|
       ACP::Types::Check.object(item, path, ACP::Types::McpServer)
-    end
+    end || []
     new(
       cwd: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'cwd'), 'cwd'),
       additional_directories:,

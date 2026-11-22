@@ -71,7 +71,7 @@ Each request method returns its response type, or an [`ACP::RequestError`](#erro
 | `change_session_mode`, `change_session_config_option` | Your sessions offer modes or config options |
 | `session_created(response)` | You want a hook after `session/new` is answered, e.g. to send available commands |
 
-`start` raises `ArgumentError` if you advertise a capability without implementing its method. Requests for anything you don't advertise are rejected before they reach your agent.
+`start` raises `ArgumentError` if you advertise a capability without implementing its method. Requests for anything you don't advertise are rejected before they reach your agent, including a session request carrying a `systemPrompt` unless `capabilities.session_capabilities` sets `system_prompt`.
 
 ### Calling the client
 
@@ -86,6 +86,15 @@ Each request method returns its response type, or an [`ACP::RequestError`](#erro
 | `capabilities` | The client's `ClientCapabilities` (`nil` until the client connects) |
 
 File, terminal and elicitation calls need the matching client capability. Without it they return an error without contacting the client, so check `client.capabilities` before offering a feature that depends on one.
+
+`update` returns `nil` once sent, but some updates need a client capability too, and without it `update` returns an error and sends nothing:
+
+| Update | Client capability |
+| --- | --- |
+| `Notice` | `session.notices` |
+| `CompactionUpdate`, `CompactionSummaryChunk` | `session.compaction` |
+| `PlanUpdate`, `PlanRemoved` | `plan` |
+| `SubagentUpdate`, `SessionMessage`, `SessionMessageChunk`, and a `ToolCall` or `ToolCallUpdate` with `session` content | `subagents` |
 
 ### Cancellation
 
@@ -209,7 +218,17 @@ Draft protocol features, such as session forking, providers and usage reporting,
 require 'acp/types/unstable'
 ```
 
-Once loaded, the connections support `fork_session`, `list_providers`, `set_provider`, `disable_provider` and `auth_status`.
+Once loaded, the connections support these methods. An agent implements each when its capabilities set the one listed:
+
+| Method | Capability |
+| --- | --- |
+| `fork_session` | `session_capabilities.fork` |
+| `archive_session`, `unarchive_session` | `session_capabilities.archive` |
+| `session_status` | `session_capabilities.status` |
+| `session_options` | `session_capabilities.options` |
+| `set_session_title` (the agent implements `change_session_title`) | `session_capabilities.title` |
+| `list_providers`, `set_provider`, `disable_provider` | `providers` |
+| `auth_status` | `auth.status` |
 
 To report its sign-in state, an agent advertises `auth: ACP::Types::Unstable::AgentAuthCapabilities.new(status: ACP::Types::Unstable::AuthStatusCapabilities.new)` in its capabilities and implements `auth_status`, which must not return `auth_required`: clients call it to learn whether they need to authenticate. It can then push changes with `client.auth_status_update(notification)`. A client receives them by passing `auth_status_update:`, a callable that must return quickly, to `ACP::ClientConnection.build`.
 

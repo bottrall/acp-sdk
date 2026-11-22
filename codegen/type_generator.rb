@@ -123,6 +123,8 @@ module TypeGenerator
     attr_reader :attr #: String
     # @dynamic type
     attr_reader :type #: TypeGenerator::Type
+    # @dynamic null_default
+    attr_reader :null_default #: String?
 
     # @rbs attr: String
     # @rbs type: TypeGenerator::Type
@@ -131,8 +133,9 @@ module TypeGenerator
     # @rbs json: String?
     # @rbs clearable: bool
     # @rbs flattened: bool
+    # @rbs null_default: String?
     # @rbs return: void
-    def initialize(attr:, type:, required:, nullable:, json: nil, clearable: false, flattened: false)
+    def initialize(attr:, type:, required:, nullable:, json: nil, clearable: false, flattened: false, null_default: nil)
       @json = json
       @attr = attr
       @type = type
@@ -140,6 +143,7 @@ module TypeGenerator
       @nullable = nullable
       @clearable = clearable
       @flattened = flattened
+      @null_default = null_default
       freeze
     end
 

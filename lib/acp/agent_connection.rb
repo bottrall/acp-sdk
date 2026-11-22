@@ -148,8 +148,8 @@ class ACP::AgentConnection
   # @rbs return: Array[ACP::AgentConnection::OptionalRoute]
   def unstable_routes
     # The rows reference the unstable request types, so without the guard start
-    # would raise NameError even for an agent that never advertises fork,
-    # providers or auth status.
+    # would raise NameError even for an agent that never advertises an unstable
+    # capability.
     return [] unless ACP::Types.unstable_enabled?
 
     [
@@ -159,6 +159,36 @@ class ACP::AgentConnection
         agent_method: :fork_session,
         path: %i[agent_capabilities session_capabilities fork]
       ) { |agent, request| agent.fork_session(request) },
+      OptionalRoute.new(
+        rpc_method: 'session/archive',
+        type: ACP::Types::Unstable::ArchiveSessionRequest,
+        agent_method: :archive_session,
+        path: %i[agent_capabilities session_capabilities archive]
+      ) { |agent, request| agent.archive_session(request) },
+      OptionalRoute.new(
+        rpc_method: 'session/unarchive',
+        type: ACP::Types::Unstable::UnarchiveSessionRequest,
+        agent_method: :unarchive_session,
+        path: %i[agent_capabilities session_capabilities archive]
+      ) { |agent, request| agent.unarchive_session(request) },
+      OptionalRoute.new(
+        rpc_method: 'session/status',
+        type: ACP::Types::Unstable::SessionStatusRequest,
+        agent_method: :session_status,
+        path: %i[agent_capabilities session_capabilities status]
+      ) { |agent, request| agent.session_status(request) },
+      OptionalRoute.new(
+        rpc_method: 'session/options',
+        type: ACP::Types::Unstable::SessionOptionsRequest,
+        agent_method: :session_options,
+        path: %i[agent_capabilities session_capabilities options]
+      ) { |agent, request| agent.session_options(request) },
+      OptionalRoute.new(
+        rpc_method: 'session/set_title',
+        type: ACP::Types::Unstable::SetSessionTitleRequest,
+        agent_method: :change_session_title,
+        path: %i[agent_capabilities session_capabilities title]
+      ) { |agent, request| agent.change_session_title(request) },
       OptionalRoute.new(
         rpc_method: 'providers/list',
         type: ACP::Types::Unstable::ListProvidersRequest,
@@ -236,9 +266,19 @@ class ACP::AgentConnection
     lambda do |params|
       request = ACP::Types.parse(type, params)
       next ACP::RequestError.invalid_params([request.message]) if request.is_a?(ACP::Types::ParseError)
+      if unadvertised_system_prompt?(request)
+        next ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt')
+      end
 
       yield(request)
     end
+  end
+
+  # @rbs request: untyped
+  # @rbs return: bool
+  def unadvertised_system_prompt?(request)
+    request.respond_to?(:system_prompt) && !request.system_prompt.nil? &&
+      !@capabilities.session_capabilities&.system_prompt
   end
 
   # @rbs client: ACP::AgentConnection::Client

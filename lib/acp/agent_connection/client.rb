@@ -21,9 +21,13 @@ class ACP::AgentConnection::Client
 
   # @rbs session_id: String
   # @rbs update: ACP::Types::SessionUpdate::t
-  # @rbs return: void
+  # @rbs return: ACP::RequestError?
   def update(session_id, update)
+    capability = unadvertised_capability(update)
+    return ACP::RequestError.unadvertised(capability) if capability
+
     @peer.notify('session/update', ACP::Types::SessionNotification.new(session_id:, update:).to_h)
+    nil
   end
 
   # @rbs session_id: String
@@ -155,6 +159,25 @@ class ACP::AgentConnection::Client
   end
 
   private
+
+  # @rbs update: ACP::Types::SessionUpdate::t
+  # @rbs return: String?
+  def unadvertised_capability(update)
+    case update
+    when ACP::Types::SessionUpdate::Notice
+      'session.notices' unless capabilities&.session&.notices
+    when ACP::Types::SessionUpdate::CompactionUpdate, ACP::Types::SessionUpdate::CompactionSummaryChunk
+      'session.compaction' unless capabilities&.session&.compaction
+    when ACP::Types::SessionUpdate::PlanUpdate, ACP::Types::SessionUpdate::PlanRemoved
+      'plan' unless capabilities&.plan
+    when ACP::Types::SessionUpdate::SubagentUpdate,
+         ACP::Types::SessionUpdate::SessionMessage,
+         ACP::Types::SessionUpdate::SessionMessageChunk
+      'subagents' unless capabilities&.subagents
+    when ACP::Types::SessionUpdate::ToolCall, ACP::Types::SessionUpdate::ToolCallUpdate
+      'subagents' if update.content&.any?(ACP::Types::ToolCallContent::Session) && !capabilities&.subagents
+    end
+  end
 
   # @rbs rpc_method: String
   # @rbs type: ACP::Transport::_Parser

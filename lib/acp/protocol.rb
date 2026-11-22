@@ -6,7 +6,7 @@ module ACP::Protocol
   extend self
 
   # Readers missing along the chain count as unadvertised, so the stable
-  # capabilities answer false for the unstable-only paths (fork, providers).
+  # capabilities answer false for the unstable-only paths.
   #
   # @rbs capabilities: untyped
   # @rbs path: Array[Symbol]

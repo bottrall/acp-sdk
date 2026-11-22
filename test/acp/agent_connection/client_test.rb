@@ -66,15 +66,104 @@ describe ACP::AgentConnection::Client do
   let(:payload) { AgentConnectionClientMessage.new({ 'sessionId' => 's' }) }
 
   describe '#update' do
+    def notified(update)
+      [['session/update', ACP::Types::SessionNotification.new(session_id: 's', update:).to_h]]
+    end
+
+    text = { 'type' => 'text', 'text' => 'hi' }
+    session_content = [{ 'type' => 'session', 'sessionId' => 'child' }]
+    plan = ACP::Types::PlanCapabilities.new
+    subagents = ACP::Types::SubagentCapabilities.new
+    {
+      'session.notices' => [
+        { session: ACP::Types::ClientSessionCapabilities.new(notices: {}) },
+        { session: ACP::Types::ClientSessionCapabilities.new(compaction: {}), plan:, subagents: },
+        [{ 'sessionUpdate' => 'notice', 'severity' => 'info', 'title' => 'Heads up' }]
+      ],
+      'session.compaction' => [
+        { session: ACP::Types::ClientSessionCapabilities.new(compaction: {}) },
+        { session: ACP::Types::ClientSessionCapabilities.new(notices: {}), plan:, subagents: },
+        [
+          { 'sessionUpdate' => 'compaction_update', 'compactionId' => 'c', 'status' => 'started' },
+          { 'sessionUpdate' => 'compaction_summary_chunk', 'compactionId' => 'c', 'content' => text }
+        ]
+      ],
+      'plan' => [
+        { plan: },
+        { session: ACP::Types::ClientSessionCapabilities.new(notices: {}, compaction: {}), subagents: },
+        [
+          {
+            'sessionUpdate' => 'plan_update',
+            'plan' => { 'planId' => 'p', 'type' => 'markdown', 'content' => '# Plan' }
+          },
+          { 'sessionUpdate' => 'plan_removed', 'planId' => 'p' }
+        ]
+      ],
+      'subagents' => [
+        { subagents: },
+        { session: ACP::Types::ClientSessionCapabilities.new(notices: {}, compaction: {}), plan: },
+        [
+          { 'sessionUpdate' => 'subagent_update', 'sessionId' => 'child' },
+          { 'sessionUpdate' => 'session_message', 'messageId' => 'm' },
+          { 'sessionUpdate' => 'session_message_chunk', 'messageId' => 'm', 'content' => text },
+          { 'sessionUpdate' => 'tool_call', 'toolCallId' => 't', 'title' => 'Delegate', 'content' => session_content },
+          { 'sessionUpdate' => 'tool_call_update', 'toolCallId' => 't', 'content' => session_content }
+        ]
+      ]
+    }.each do |capability, (advertised, others, updates)|
+      updates.map { |hash| ACP::Types::SessionUpdate.from_h(hash) }.each do |update|
+        kind = update.to_h['sessionUpdate']
+
+        it "refuses #{kind} without notifying unless the client advertised #{capability}" do
+          peer = AgentConnectionClientPeer.new
+          clients = [before_initialize(peer), advertising(peer), advertising(peer, **others)]
+
+          assert_equal(
+            [[unadvertised(capability)] * 3, []],
+            [clients.map { |client| client.update('s', update).to_h }, peer.notifications]
+          )
+        end
+
+        it "notifies #{kind} on a client that advertised #{capability}" do
+          peer = AgentConnectionClientPeer.new
+          advertising(peer, **advertised).update('s', update)
+
+          assert_equal notified(update), peer.notifications
+        end
+      end
+    end
+
+    {
+      'a tool call without content' => { 'sessionUpdate' => 'tool_call', 'toolCallId' => 't', 'title' => 'Read' },
+      'a tool call with no session content' => {
+        'sessionUpdate' => 'tool_call',
+        'toolCallId' => 't',
+        'title' => 'Read',
+        'content' => [{ 'type' => 'content', 'content' => text }]
+      },
+      'a tool call update without content' => { 'sessionUpdate' => 'tool_call_update', 'toolCallId' => 't' }
+    }.each do |description, hash|
+      it "notifies #{description} on a client that advertised nothing" do
+        peer = AgentConnectionClientPeer.new
+        update = ACP::Types::SessionUpdate.from_h(hash)
+        advertising(peer).update('s', update)
+
+        assert_equal notified(update), peer.notifications
+      end
+    end
+
     it 'notifies session/update with the update wrapped in a session notification' do
       peer = AgentConnectionClientPeer.new
       update = AgentConnectionClientMessage.new({ 'sessionUpdate' => 'custom' })
       before_initialize(peer).update('s', update)
 
-      assert_equal(
-        [['session/update', ACP::Types::SessionNotification.new(session_id: 's', update:).to_h]],
-        peer.notifications
-      )
+      assert_equal notified(update), peer.notifications
+    end
+
+    it 'returns nil once it has notified' do
+      update = AgentConnectionClientMessage.new({ 'sessionUpdate' => 'custom' })
+
+      assert_nil before_initialize(AgentConnectionClientPeer.new).update('s', update)
     end
   end
 
