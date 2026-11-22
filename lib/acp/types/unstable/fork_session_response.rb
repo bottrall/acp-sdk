@@ -8,17 +8,17 @@ class ACP::Types::Unstable::ForkSessionResponse
   attr_reader :session_id #: String
 
   # @dynamic modes
-  attr_reader :modes #: ACP::Types::SessionModeState?
+  attr_reader :modes #: ACP::Types::Unstable::SessionModeState?
 
   # @dynamic config_options
-  attr_reader :config_options #: Array[ACP::Types::SessionConfigOption]?
+  attr_reader :config_options #: Array[ACP::Types::Unstable::SessionConfigOption]?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs session_id: String
-  # @rbs modes: ACP::Types::SessionModeState?
-  # @rbs config_options: Array[ACP::Types::SessionConfigOption]?
+  # @rbs modes: ACP::Types::Unstable::SessionModeState?
+  # @rbs config_options: Array[ACP::Types::Unstable::SessionConfigOption]?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(session_id:, modes: nil, config_options: nil, meta: nil)
@@ -33,11 +33,11 @@ class ACP::Types::Unstable::ForkSessionResponse
   # @rbs return: ACP::Types::Unstable::ForkSessionResponse
   def self.from_h(hash)
     config_options = ACP::Types::Check.array(hash['configOptions'], 'configOptions', allow_nil: true) do |item, path|
-      ACP::Types::Check.object(item, path, ACP::Types::SessionConfigOption)
+      ACP::Types::Check.object(item, path, ACP::Types::Unstable::SessionConfigOption)
     end
     new(
       session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
-      modes: ACP::Types::Check.object(hash['modes'], 'modes', ACP::Types::SessionModeState, allow_nil: true),
+      modes: ACP::Types::Check.object(hash['modes'], 'modes', ACP::Types::Unstable::SessionModeState, allow_nil: true),
       config_options:,
       meta: hash['_meta']
     )

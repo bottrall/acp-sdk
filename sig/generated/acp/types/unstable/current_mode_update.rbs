@@ -1,0 +1,3 @@
+# Generated from lib/acp/types/unstable/current_mode_update.rb with RBS::Inline
+
+class ACP::Types::Unstable::CurrentModeUpdate = ACP::Types::Unstable::SessionUpdate::CurrentModeUpdate

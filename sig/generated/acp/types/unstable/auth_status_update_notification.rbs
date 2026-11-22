@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/auth_status_update_notification.rb with RBS::Inline
+
+class ACP::Types::Unstable::AuthStatusUpdateNotification
+  # @dynamic state
+  attr_reader state: String
+
+  # @dynamic accounts
+  attr_reader accounts: Array[ACP::Types::Unstable::AuthAccount]?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs state: String
+  # @rbs accounts: Array[ACP::Types::Unstable::AuthAccount]?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (state: String, ?accounts: Array[ACP::Types::Unstable::AuthAccount]?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::AuthStatusUpdateNotification
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::AuthStatusUpdateNotification
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

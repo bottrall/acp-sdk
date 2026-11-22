@@ -11,7 +11,7 @@ class ACP::Types::Unstable::InitializeResponse
   attr_reader auth_methods: Array[ACP::Types::AuthMethod::t]?
 
   # @dynamic agent_info
-  attr_reader agent_info: ACP::Types::Implementation?
+  attr_reader agent_info: ACP::Types::Unstable::Implementation?
 
   # @dynamic meta
   attr_reader meta: Hash[String, untyped]?
@@ -19,10 +19,10 @@ class ACP::Types::Unstable::InitializeResponse
   # @rbs protocol_version: Integer
   # @rbs agent_capabilities: ACP::Types::Unstable::AgentCapabilities?
   # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]?
-  # @rbs agent_info: ACP::Types::Implementation?
+  # @rbs agent_info: ACP::Types::Unstable::Implementation?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize: (protocol_version: Integer, ?agent_capabilities: ACP::Types::Unstable::AgentCapabilities?, ?auth_methods: Array[ACP::Types::AuthMethod::t]?, ?agent_info: ACP::Types::Implementation?, ?meta: Hash[String, untyped]?) -> void
+  def initialize: (protocol_version: Integer, ?agent_capabilities: ACP::Types::Unstable::AgentCapabilities?, ?auth_methods: Array[ACP::Types::AuthMethod::t]?, ?agent_info: ACP::Types::Unstable::Implementation?, ?meta: Hash[String, untyped]?) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Unstable::InitializeResponse

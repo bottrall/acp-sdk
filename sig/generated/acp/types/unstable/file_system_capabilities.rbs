@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/file_system_capabilities.rb with RBS::Inline
+
+class ACP::Types::Unstable::FileSystemCapabilities
+  # @dynamic read_text_file
+  attr_reader read_text_file: bool?
+
+  # @dynamic write_text_file
+  attr_reader write_text_file: bool?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs read_text_file: bool?
+  # @rbs write_text_file: bool?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?read_text_file: bool?, ?write_text_file: bool?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::FileSystemCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::FileSystemCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

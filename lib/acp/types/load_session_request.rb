@@ -15,6 +15,9 @@ class ACP::Types::LoadSessionRequest
   # @dynamic session_id
   attr_reader :session_id #: String
 
+  # @dynamic system_prompt
+  attr_reader :system_prompt #: ACP::Types::SystemPrompt?
+
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
@@ -22,13 +25,15 @@ class ACP::Types::LoadSessionRequest
   # @rbs cwd: String
   # @rbs additional_directories: Array[String]?
   # @rbs session_id: String
+  # @rbs system_prompt: ACP::Types::SystemPrompt?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize(mcp_servers:, cwd:, session_id:, additional_directories: nil, meta: nil)
+  def initialize(mcp_servers:, cwd:, session_id:, additional_directories: nil, system_prompt: nil, meta: nil)
     @mcp_servers = mcp_servers
     @cwd = cwd
     @additional_directories = additional_directories
     @session_id = session_id
+    @system_prompt = system_prompt
     @meta = meta
     freeze
   end
@@ -51,6 +56,12 @@ class ACP::Types::LoadSessionRequest
       cwd: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'cwd'), 'cwd'),
       additional_directories:,
       session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      system_prompt: ACP::Types::Check.object(
+        hash['systemPrompt'],
+        'systemPrompt',
+        ACP::Types::SystemPrompt,
+        allow_nil: true
+      ),
       meta: hash['_meta']
     )
   end
@@ -62,6 +73,7 @@ class ACP::Types::LoadSessionRequest
       'cwd' => cwd,
       'sessionId' => session_id,
       'additionalDirectories' => additional_directories,
+      'systemPrompt' => system_prompt&.to_h,
       '_meta' => meta
     }.compact
   end

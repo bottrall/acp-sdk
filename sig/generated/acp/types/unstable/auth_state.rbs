@@ -1,0 +1,11 @@
+# Generated from lib/acp/types/unstable/auth_state.rb with RBS::Inline
+
+module ACP::Types::Unstable::AuthState
+  AUTHENTICATED: ::String
+
+  UNAUTHENTICATED: ::String
+
+  NOT_REQUIRED: ::String
+
+  UNKNOWN: ::String
+end

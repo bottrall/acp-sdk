@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/plan_items.rb with RBS::Inline
-
-class ACP::Types::Unstable::PlanItems = ACP::Types::Unstable::PlanUpdateContent::Items

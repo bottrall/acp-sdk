@@ -1,0 +1,3 @@
+# Generated from lib/acp/types/unstable/image_content.rb with RBS::Inline
+
+class ACP::Types::Unstable::ImageContent = ACP::Types::Unstable::ContentBlock::Image

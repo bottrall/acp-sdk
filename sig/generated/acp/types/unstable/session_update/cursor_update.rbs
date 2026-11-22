@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/unstable/session_update/cursor_update.rb with RBS::Inline
+
+class ACP::Types::Unstable::SessionUpdate::CursorUpdate
+  # @dynamic cursor_id
+  attr_reader cursor_id: String
+
+  # @dynamic capabilities
+  attr_reader capabilities: ACP::Types::Unstable::CursorCapabilities?
+
+  # @dynamic anchor
+  attr_reader anchor: ACP::Types::Unstable::CursorAnchor::t?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs cursor_id: String
+  # @rbs capabilities: ACP::Types::Unstable::CursorCapabilities?
+  # @rbs anchor: ACP::Types::Unstable::CursorAnchor::t?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (cursor_id: String, ?capabilities: ACP::Types::Unstable::CursorCapabilities?, ?anchor: ACP::Types::Unstable::CursorAnchor::t?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SessionUpdate::CursorUpdate
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SessionUpdate::CursorUpdate
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

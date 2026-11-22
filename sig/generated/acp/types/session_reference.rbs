@@ -1,0 +1,3 @@
+# Generated from lib/acp/types/session_reference.rb with RBS::Inline
+
+class ACP::Types::SessionReference = ACP::Types::ToolCallContent::Session

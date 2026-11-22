@@ -1,0 +1,19 @@
+# Generated from lib/acp/types/error_code.rb with RBS::Inline
+
+module ACP::Types::ErrorCode
+  PARSE_ERROR: ::Integer
+
+  INVALID_REQUEST: ::Integer
+
+  METHOD_NOT_FOUND: ::Integer
+
+  INVALID_PARAMS: ::Integer
+
+  INTERNAL_ERROR: ::Integer
+
+  REQUEST_CANCELLED: ::Integer
+
+  AUTHENTICATION_REQUIRED: ::Integer
+
+  RESOURCE_NOT_FOUND: ::Integer
+end

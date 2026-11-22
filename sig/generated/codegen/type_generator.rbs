@@ -143,6 +143,8 @@ module TypeGenerator
     # @rbs return: String
     def const: (String name) -> String
 
+    # A subsumed def's files live under its variant, whether or not the def changed.
+    #
     # @rbs name: String
     # @rbs return: bool
     def generated?: (String name) -> bool

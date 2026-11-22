@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/unstable/set_session_config_option_response.rb with RBS::Inline
+
+class ACP::Types::Unstable::SetSessionConfigOptionResponse
+  # @dynamic config_options
+  attr_reader config_options: Array[ACP::Types::Unstable::SessionConfigOption]
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs config_options: Array[ACP::Types::Unstable::SessionConfigOption]
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (config_options: Array[ACP::Types::Unstable::SessionConfigOption], ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SetSessionConfigOptionResponse
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SetSessionConfigOptionResponse
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

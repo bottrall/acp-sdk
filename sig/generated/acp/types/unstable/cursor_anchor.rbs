@@ -1,0 +1,9 @@
+# Generated from lib/acp/types/unstable/cursor_anchor.rb with RBS::Inline
+
+module ACP::Types::Unstable::CursorAnchor
+  type t = ACP::Types::Unstable::CursorAnchor::UserMessage | ACP::Types::Unstable::CursorAnchor::AgentMessage | ACP::Types::Unstable::CursorAnchor::AgentThought | ACP::Types::Unstable::CursorAnchor::SessionMessage | ACP::Types::Unstable::CursorAnchor::ToolCall | ACP::Types::Unstable::CursorAnchor::Compaction | Hash[String, untyped]
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: t
+  def self.from_h: (Hash[String, untyped] hash) -> t
+end

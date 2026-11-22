@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/agent_auth_capabilities.rb with RBS::Inline
+
+class ACP::Types::Unstable::AgentAuthCapabilities
+  # @dynamic status
+  attr_reader status: ACP::Types::Unstable::AuthStatusCapabilities?
+
+  # @dynamic logout
+  attr_reader logout: ACP::Types::Unstable::LogoutCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs status: ACP::Types::Unstable::AuthStatusCapabilities?
+  # @rbs logout: ACP::Types::Unstable::LogoutCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?status: ACP::Types::Unstable::AuthStatusCapabilities?, ?logout: ACP::Types::Unstable::LogoutCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::AgentAuthCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::AgentAuthCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

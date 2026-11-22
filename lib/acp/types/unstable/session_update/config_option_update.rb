@@ -5,12 +5,12 @@
 
 class ACP::Types::Unstable::SessionUpdate::ConfigOptionUpdate
   # @dynamic config_options
-  attr_reader :config_options #: Array[ACP::Types::SessionConfigOption]
+  attr_reader :config_options #: Array[ACP::Types::Unstable::SessionConfigOption]
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
-  # @rbs config_options: Array[ACP::Types::SessionConfigOption]
+  # @rbs config_options: Array[ACP::Types::Unstable::SessionConfigOption]
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(config_options:, meta: nil)
@@ -26,7 +26,7 @@ class ACP::Types::Unstable::SessionUpdate::ConfigOptionUpdate
       ACP::Types::Check.key(hash, 'configOptions'),
       'configOptions'
     ) do |item, path|
-      ACP::Types::Check.object(item, path, ACP::Types::SessionConfigOption)
+      ACP::Types::Check.object(item, path, ACP::Types::Unstable::SessionConfigOption)
     end
     new(config_options:, meta: hash['_meta'])
   end

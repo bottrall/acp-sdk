@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/nes_search_and_replace_suggestion.rb with RBS::Inline
-
-class ACP::Types::Unstable::NesSearchAndReplaceSuggestion = ACP::Types::Unstable::NesSuggestion::Searchandreplace

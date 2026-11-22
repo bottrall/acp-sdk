@@ -475,5 +475,12 @@ describe TypeGenerator::Unions do
 
       assert_equal enum_source.call(['FIRST_ITEM = 1']), unions.enum_file(schema, 'ACP::Types::Mode', definition)
     end
+
+    it 'writes each constant value as Emit renders an enum value' do
+      definition = { 'oneOf' => [{ 'type' => 'integer', 'const' => -32_700, 'title' => 'Parse error' }] }
+
+      assert_equal enum_source.call(["PARSE_ERROR = #{emit.enum_value(-32_700)}"]),
+                   unions.enum_file(schema, 'ACP::Types::Mode', definition)
+    end
   end
 end

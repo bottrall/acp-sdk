@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/nes_rename_suggestion.rb with RBS::Inline
-
-class ACP::Types::Unstable::NesRenameSuggestion = ACP::Types::Unstable::NesSuggestion::Rename

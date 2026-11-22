@@ -1,0 +1,3 @@
+# Generated from lib/acp/types/compaction_update.rb with RBS::Inline
+
+class ACP::Types::CompactionUpdate = ACP::Types::SessionUpdate::CompactionUpdate

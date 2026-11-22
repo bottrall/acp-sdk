@@ -203,7 +203,7 @@ connection.ext_request('_my_agent/ping', { 'hello' => 'world' }) # => { "pong" =
 
 ## Unstable features
 
-Draft protocol features, such as session forking, providers, usage reporting and plan and compaction updates, live under `ACP::Types::Unstable` and load only when you opt in:
+Draft protocol features, such as session forking, providers and usage reporting, live under `ACP::Types::Unstable` and load only when you opt in:
 
 ```ruby
 require 'acp/types/unstable'

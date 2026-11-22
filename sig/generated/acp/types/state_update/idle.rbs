@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/state_update/idle.rb with RBS::Inline
+
+class ACP::Types::StateUpdate::Idle
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @dynamic stop_reason
+  attr_reader stop_reason: ACP::Types::StateUpdate::Idle::StopReason::t
+
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs stop_reason: ACP::Types::StateUpdate::Idle::StopReason::t
+  # @rbs return: void
+  def initialize: (stop_reason: ACP::Types::StateUpdate::Idle::StopReason::t, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::StateUpdate::Idle
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::StateUpdate::Idle
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

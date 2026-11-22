@@ -230,7 +230,7 @@ module TypeGenerator::Unions
     constants = TypeGenerator::Resolve.variants(definition).select { |option| option.key?('const') }.map do |option|
       value = option.fetch('const')
       name = (value.is_a?(String) ? value : option.fetch('title')).upcase.gsub(/[^A-Z\d]+/, '_')
-      "#{name} = #{value.is_a?(String) ? "'#{value}'" : value}"
+      "#{name} = #{TypeGenerator::Emit.enum_value(value)}"
     end
     [TypeGenerator::Naming.path(const), TypeGenerator::Emit.source("module #{const}", [constants], defs.header)]
   end

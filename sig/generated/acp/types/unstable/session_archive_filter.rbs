@@ -1,0 +1,9 @@
+# Generated from lib/acp/types/unstable/session_archive_filter.rb with RBS::Inline
+
+module ACP::Types::Unstable::SessionArchiveFilter
+  EXCLUDE: ::String
+
+  INCLUDE: ::String
+
+  ONLY: ::String
+end

@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/create_elicitation_request/mode/url.rb with RBS::Inline
+
+class ACP::Types::Unstable::CreateElicitationRequest::Mode::Url
+  # @dynamic elicitation_id
+  attr_reader elicitation_id: String
+
+  # @dynamic url
+  attr_reader url: String
+
+  # @dynamic scope
+  attr_reader scope: ACP::Types::Unstable::CreateElicitationRequest::Mode::Url::Scope::t
+
+  # @rbs elicitation_id: String
+  # @rbs url: String
+  # @rbs scope: ACP::Types::Unstable::CreateElicitationRequest::Mode::Url::Scope::t
+  # @rbs return: void
+  def initialize: (elicitation_id: String, url: String, scope: ACP::Types::Unstable::CreateElicitationRequest::Mode::Url::Scope::t) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::CreateElicitationRequest::Mode::Url
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::CreateElicitationRequest::Mode::Url
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

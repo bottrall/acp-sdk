@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/plan_file.rb with RBS::Inline
-
-class ACP::Types::Unstable::PlanFile = ACP::Types::Unstable::PlanUpdateContent::File

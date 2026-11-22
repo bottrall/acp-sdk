@@ -1,0 +1,7 @@
+# Generated from lib/acp/types/system_prompt_mode.rb with RBS::Inline
+
+module ACP::Types::SystemPromptMode
+  APPEND: ::String
+
+  OVERRIDE: ::String
+end

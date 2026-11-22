@@ -1,7 +1,7 @@
 # Generated from lib/acp/types/tool_call_content.rb with RBS::Inline
 
 module ACP::Types::ToolCallContent
-  type t = ACP::Types::ToolCallContent::Content | ACP::Types::ToolCallContent::Diff | ACP::Types::ToolCallContent::Terminal | Hash[String, untyped]
+  type t = ACP::Types::ToolCallContent::Content | ACP::Types::ToolCallContent::Diff | ACP::Types::ToolCallContent::Terminal | ACP::Types::ToolCallContent::Session | Hash[String, untyped]
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: t
