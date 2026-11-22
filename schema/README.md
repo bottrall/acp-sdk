@@ -15,4 +15,6 @@ bin/fetch-schema
 bin/generate
 ```
 
+When a new 1.x release is out, Renovate opens a `feat:` pull request with `VERSION` set and the files fetched, and never merges it automatically. It doesn't regenerate, so run `bin/generate` on its branch and commit the result.
+
 `bin/diff-schema <before>` prints, as Markdown, the methods, defs and "MUST only send"-style rules that changed from the schema directory `before` to this one. The `schema-diff` workflow writes it to the job summary of every pull request that changes `schema/`.

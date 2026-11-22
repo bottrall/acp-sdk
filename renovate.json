@@ -1,4 +1,31 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>bottrall/deps"]
+  "extends": ["github>bottrall/deps"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The upstream repo's v* tags are the Rust crate, so versions come from its schema-v* tags",
+      "managerFilePatterns": ["/^schema/VERSION$/"],
+      "matchStrings": ["^(?<currentValue>\\S+)\\s*$"],
+      "depNameTemplate": "agentclientprotocol/agent-client-protocol",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^schema-v(?<version>.+)$"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "2.x is the next protocol version, a port rather than an update",
+      "matchDepNames": ["agentclientprotocol/agent-client-protocol"],
+      "groupName": "ACP schema",
+      "allowedVersions": "<2.0.0",
+      "automerge": false,
+      "semanticCommitType": "feat",
+      "semanticCommitScope": null,
+      "commitMessageTopic": "the vendored schema",
+      "postUpgradeTasks": {
+        "commands": ["bin/fetch-schema"],
+        "fileFilters": ["schema/**"]
+      }
+    }
+  ]
 }
