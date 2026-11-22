@@ -86,6 +86,20 @@ class ClientConnectionInbound
   end
 end
 
+class ClientConnectionAuthStatusUpdates
+  def initialize(log)
+    @log = log
+  end
+
+  def notifications
+    { 'auth/status_update' => :auth_status_route }
+  end
+
+  def advertised=(advertised)
+    @log << [:auth_status_advertised, advertised]
+  end
+end
+
 class ClientConnectionCancellation
   def initialize(answer)
     @answer = answer
@@ -102,10 +116,13 @@ describe ACP::ClientConnection do
     @transport = ClientConnectionTransport.new(@log)
     @streams = ClientConnectionStreams.new(@log)
     @inbound = ClientConnectionInbound.new(@log)
+    @auth_status_updates = ClientConnectionAuthStatusUpdates.new(@log)
   end
 
   def connection
-    ACP::ClientConnection.new(transport: @transport, streams: @streams, inbound: @inbound)
+    ACP::ClientConnection.new(
+      transport: @transport, streams: @streams, inbound: @inbound, auth_status_updates: @auth_status_updates
+    )
   end
 
   def built(**)
@@ -234,6 +251,18 @@ describe ACP::ClientConnection do
       )
     end
 
+    it 'wires the auth_status_update handler to auth/status_update' do
+      client = built(auth_status_update: recording(:auth_status_update))
+      @transport.replies['initialize'] = {
+        'protocolVersion' => 1, 'agentCapabilities' => { 'auth' => { 'status' => {} } }
+      }
+      client.connect(initialize_request)
+      @log.clear
+      @transport.notification_handlers.fetch('auth/status_update').call({ 'state' => 'authenticated' })
+
+      assert_equal [[:auth_status_update, ACP::Types::Unstable::AuthStatusUpdateNotification]], @log
+    end
+
     it 'wires the mcp_message handler and the extension handlers' do
       mcp = ->(_request) {}
       request = ->(_params) {}
@@ -279,16 +308,20 @@ describe ACP::ClientConnection do
         [@log, @transport.notification_handlers.fetch('inbound/notification')]
       )
     end
+
+    it 'routes the auth status updates notifications' do
+      connection.start
+
+      assert_equal :auth_status_route, @transport.notification_handlers.fetch('auth/status_update')
+    end
   end
 
   describe 'schema method coverage' do
-    unsupported = [
-      'auth/status_update' # SP9, #199
-    ].freeze
+    unsupported = [].freeze
     listed = SCHEMA_METHODS.fetch('clientMethods')
 
     def routed
-      built(mcp_message: ->(_request) {})
+      built(mcp_message: ->(_request) {}, auth_status_update: ->(_notification) {})
       @transport.handlers.keys + @transport.notification_handlers.keys
     end
 
@@ -311,7 +344,12 @@ describe ACP::ClientConnection do
       connection.connect(request)
 
       assert_equal(
-        [[:advertise, request.client_capabilities], [:request, 'initialize', request.to_h], [:mcp_advertised, false]],
+        [
+          [:advertise, request.client_capabilities],
+          [:request, 'initialize', request.to_h],
+          [:mcp_advertised, false],
+          [:auth_status_advertised, false]
+        ],
         @log
       )
     end
@@ -330,7 +368,16 @@ describe ACP::ClientConnection do
       }
       connection.connect(initialize_request)
 
-      assert_equal [:mcp_advertised, true], @log.last
+      assert_includes @log, [:mcp_advertised, true]
+    end
+
+    it 'tells the auth status updates the agent advertised auth.status when its reply does' do
+      @transport.replies['initialize'] = {
+        'protocolVersion' => 1, 'agentCapabilities' => { 'auth' => { 'status' => {} } }
+      }
+      connection.connect(initialize_request)
+
+      assert_equal [:auth_status_advertised, true], @log.last
     end
 
     it "returns the agent's error" do
@@ -548,6 +595,14 @@ describe ACP::ClientConnection do
   )
 
   it_sends(:logout, 'logout', ACP::Types::LogoutRequest.new, {}, ACP::Types::LogoutResponse)
+
+  it_sends(
+    :auth_status,
+    'auth/status',
+    ACP::Types::Unstable::AuthStatusRequest.new,
+    { 'state' => 'authenticated' },
+    ACP::Types::Unstable::AuthStatusResponse
+  )
 
   describe 'ext_request' do
     it 'refuses a name without the underscore prefix, before sending anything' do

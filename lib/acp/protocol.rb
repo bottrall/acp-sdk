@@ -40,4 +40,14 @@ module ACP::Protocol
 
     mcp.acp ? true : false
   end
+
+  # @rbs capabilities: Hash[String, untyped]
+  # @rbs return: bool
+  def auth_status_advertised?(capabilities)
+    return false unless ACP::Types.unstable_enabled?
+
+    # The client's stable parse of the initialize reply drops auth.status, so
+    # the auth sub-object is re-parsed with the unstable type.
+    advertised?(ACP::Types.parse(ACP::Types::Unstable::AgentAuthCapabilities, capabilities['auth']), %i[status])
+  end
 end

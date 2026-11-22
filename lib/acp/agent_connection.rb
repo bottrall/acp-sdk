@@ -99,7 +99,11 @@ class ACP::AgentConnection
 
   # @rbs return: Thread
   def start
-    client = ACP::AgentConnection::Client.new(peer: @transport, mcp_advertised: mcp_acp_advertised?)
+    client = ACP::AgentConnection::Client.new(
+      peer: @transport,
+      mcp_advertised: mcp_acp_advertised?,
+      auth_status_advertised: ACP::Protocol.advertised?(@capabilities, %i[auth status])
+    )
     agent = @factory.call(client)
     routes = OPTIONAL_ROUTES + unstable_routes
     # Routes are fixed before a client connects, so the check sees the
@@ -202,7 +206,13 @@ class ACP::AgentConnection
         type: ACP::Types::Unstable::DisableProviderRequest,
         agent_method: :disable_provider,
         path: %i[agent_capabilities providers]
-      ) { |agent, request| agent.disable_provider(request) }
+      ) { |agent, request| agent.disable_provider(request) },
+      OptionalRoute.new(
+        rpc_method: 'auth/status',
+        type: ACP::Types::Unstable::AuthStatusRequest,
+        agent_method: :auth_status,
+        path: %i[agent_capabilities auth status]
+      ) { |agent, request| agent.auth_status(request) }
     ]
   end
 

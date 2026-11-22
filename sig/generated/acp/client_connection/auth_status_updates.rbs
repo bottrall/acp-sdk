@@ -1,0 +1,27 @@
+# Generated from lib/acp/client_connection/auth_status_updates.rb with RBS::Inline
+
+class ACP::ClientConnection::AuthStatusUpdates
+  @handler: (^(ACP::Types::Unstable::AuthStatusUpdateNotification) -> void)?
+
+  @logger: ACP::Transport::_Logger
+
+  @advertised: bool
+
+  # @dynamic advertised=
+  attr_writer advertised: bool
+
+  # @rbs handler: (^(ACP::Types::Unstable::AuthStatusUpdateNotification) -> void)?
+  # @rbs logger: ACP::Transport::_Logger
+  # @rbs return: void
+  def initialize: (handler: (^(ACP::Types::Unstable::AuthStatusUpdateNotification) -> void)?, logger: ACP::Transport::_Logger) -> void
+
+  # @rbs return: Hash[String, ^(untyped) -> void]
+  def notifications: () -> Hash[String, ^(untyped) -> void]
+
+  private
+
+  # @rbs handler: ^(ACP::Types::Unstable::AuthStatusUpdateNotification) -> void
+  # @rbs params: untyped
+  # @rbs return: void
+  def update: (^(ACP::Types::Unstable::AuthStatusUpdateNotification) -> void handler, untyped params) -> void
+end

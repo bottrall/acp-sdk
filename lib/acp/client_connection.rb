@@ -4,6 +4,7 @@ class ACP::ClientConnection
   # @rbs @transport: ACP::Transport::Stdio
   # @rbs @streams: ACP::ClientConnection::Streams
   # @rbs @inbound: ACP::ClientConnection::Inbound
+  # @rbs @auth_status_updates: ACP::ClientConnection::AuthStatusUpdates
 
   IGNORE = ->(_notification) {} #: ^(ACP::Types::SessionNotification) -> void
 
@@ -15,6 +16,7 @@ class ACP::ClientConnection
   # @rbs elicitation: ACP::ClientConnection::_Elicitation?
   # @rbs mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) ->
   #   (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
+  # @rbs auth_status_update: (^(ACP::Types::Unstable::AuthStatusUpdateNotification) -> void)?
   # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs logger: ACP::Transport::_Logger
@@ -27,6 +29,7 @@ class ACP::ClientConnection
     terminal: nil,
     elicitation: nil,
     mcp_message: nil,
+    auth_status_update: nil,
     extension_requests: {},
     extension_notifications: {},
     logger: ACP::Transport::StderrLogger.new
@@ -40,24 +43,35 @@ class ACP::ClientConnection
       extension_requests:,
       extension_notifications:
     )
-    new(transport:, streams: Streams.new(sender: transport, permission:, updates:, logger:), inbound:)
+    new(
+      transport:,
+      streams: Streams.new(sender: transport, permission:, updates:, logger:),
+      inbound:,
+      auth_status_updates: AuthStatusUpdates.new(handler: auth_status_update, logger:)
+    )
   end
 
   # @rbs transport: ACP::Transport::Stdio
   # @rbs streams: ACP::ClientConnection::Streams
   # @rbs inbound: ACP::ClientConnection::Inbound
+  # @rbs auth_status_updates: ACP::ClientConnection::AuthStatusUpdates
   # @rbs return: void
-  def initialize(transport:, streams:, inbound:)
+  def initialize(transport:, streams:, inbound:, auth_status_updates:)
     @transport = transport
     @streams = streams
     @inbound = inbound
+    @auth_status_updates = auth_status_updates
   end
 
   # @rbs return: Thread
   def start
     @transport.start(
       requests: { 'session/request_permission' => @streams.method(:request_permission), **@inbound.requests },
-      notifications: { 'session/update' => @streams.method(:dispatch), **@inbound.notifications }
+      notifications: {
+        'session/update' => @streams.method(:dispatch),
+        **@inbound.notifications,
+        **@auth_status_updates.notifications
+      }
     )
   end
 
@@ -75,7 +89,9 @@ class ACP::ClientConnection
     # Safe: parse only calls from_h on a Hash, and its RequestError answer
     # short-circuited above.
     reply = result #: Hash[String, untyped]
-    @inbound.mcp_advertised = ACP::Protocol.mcp_acp_advertised?(reply['agentCapabilities'] || {})
+    agent_capabilities = reply['agentCapabilities'] || {}
+    @inbound.mcp_advertised = ACP::Protocol.mcp_acp_advertised?(agent_capabilities)
+    @auth_status_updates.advertised = ACP::Protocol.auth_status_advertised?(agent_capabilities)
     return response if response.protocol_version == ACP::Protocol::PROTOCOL_VERSION
 
     ACP::RequestError.unsupported_protocol_version(
@@ -221,6 +237,12 @@ class ACP::ClientConnection
   # @rbs return: ACP::Types::LogoutResponse | ACP::RequestError
   def logout(request)
     parse(ACP::Types::LogoutResponse, @transport.request('logout', request.to_h))
+  end
+
+  # @rbs request: ACP::Types::Unstable::AuthStatusRequest
+  # @rbs return: (ACP::Types::Unstable::AuthStatusResponse | ACP::RequestError)
+  def auth_status(request)
+    parse(ACP::Types::Unstable::AuthStatusResponse, @transport.request('auth/status', request.to_h))
   end
 
   # Extension methods have no schema to parse the result into.

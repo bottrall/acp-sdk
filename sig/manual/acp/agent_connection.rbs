@@ -28,6 +28,7 @@ class ACP::AgentConnection
     def list_providers: (ACP::Types::Unstable::ListProvidersRequest) -> (ACP::Types::Unstable::ListProvidersResponse | ACP::RequestError)
     def set_provider: (ACP::Types::Unstable::SetProviderRequest) -> (ACP::Types::Unstable::SetProviderResponse | ACP::RequestError)
     def disable_provider: (ACP::Types::Unstable::DisableProviderRequest) -> (ACP::Types::Unstable::DisableProviderResponse | ACP::RequestError)
+    def auth_status: (ACP::Types::Unstable::AuthStatusRequest) -> (ACP::Types::Unstable::AuthStatusResponse | ACP::RequestError)
   end
 
   interface _SessionCreated

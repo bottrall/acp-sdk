@@ -1,6 +1,8 @@
 # Generated from lib/acp/client_connection.rb with RBS::Inline
 
 class ACP::ClientConnection
+  @auth_status_updates: ACP::ClientConnection::AuthStatusUpdates
+
   @inbound: ACP::ClientConnection::Inbound
 
   @streams: ACP::ClientConnection::Streams
@@ -17,17 +19,19 @@ class ACP::ClientConnection
   # @rbs elicitation: ACP::ClientConnection::_Elicitation?
   # @rbs mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) ->
   #   (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
+  # @rbs auth_status_update: (^(ACP::Types::Unstable::AuthStatusUpdateNotification) -> void)?
   # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs logger: ACP::Transport::_Logger
   # @rbs return: ACP::ClientConnection
-  def self.build: (transport: ACP::Transport::Stdio, permission: ACP::ClientConnection::_PermissionHandler, ?updates: ACP::ClientConnection::_UpdateHandler, ?fs: ACP::ClientConnection::_FileSystem?, ?terminal: ACP::ClientConnection::_Terminal?, ?elicitation: ACP::ClientConnection::_Elicitation?, ?mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) -> ACP::ClientConnection
+  def self.build: (transport: ACP::Transport::Stdio, permission: ACP::ClientConnection::_PermissionHandler, ?updates: ACP::ClientConnection::_UpdateHandler, ?fs: ACP::ClientConnection::_FileSystem?, ?terminal: ACP::ClientConnection::_Terminal?, ?elicitation: ACP::ClientConnection::_Elicitation?, ?mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?, ?auth_status_update: (^(ACP::Types::Unstable::AuthStatusUpdateNotification) -> void)?, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void], ?logger: ACP::Transport::_Logger) -> ACP::ClientConnection
 
   # @rbs transport: ACP::Transport::Stdio
   # @rbs streams: ACP::ClientConnection::Streams
   # @rbs inbound: ACP::ClientConnection::Inbound
+  # @rbs auth_status_updates: ACP::ClientConnection::AuthStatusUpdates
   # @rbs return: void
-  def initialize: (transport: ACP::Transport::Stdio, streams: ACP::ClientConnection::Streams, inbound: ACP::ClientConnection::Inbound) -> void
+  def initialize: (transport: ACP::Transport::Stdio, streams: ACP::ClientConnection::Streams, inbound: ACP::ClientConnection::Inbound, auth_status_updates: ACP::ClientConnection::AuthStatusUpdates) -> void
 
   # @rbs return: Thread
   def start: () -> Thread
@@ -134,6 +138,10 @@ class ACP::ClientConnection
   # @rbs request: ACP::Types::LogoutRequest
   # @rbs return: ACP::Types::LogoutResponse | ACP::RequestError
   def logout: (ACP::Types::LogoutRequest request) -> (ACP::Types::LogoutResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::Unstable::AuthStatusRequest
+  # @rbs return: (ACP::Types::Unstable::AuthStatusResponse | ACP::RequestError)
+  def auth_status: (ACP::Types::Unstable::AuthStatusRequest request) -> (ACP::Types::Unstable::AuthStatusResponse | ACP::RequestError)
 
   # Extension methods have no schema to parse the result into.
   #
