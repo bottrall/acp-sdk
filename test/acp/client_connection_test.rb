@@ -281,6 +281,30 @@ describe ACP::ClientConnection do
     end
   end
 
+  describe 'schema method coverage' do
+    unsupported = [
+      'auth/status_update' # SP9, #199
+    ].freeze
+    listed = SCHEMA_METHODS.fetch('clientMethods')
+
+    def routed
+      built(mcp_message: ->(_request) {})
+      @transport.handlers.keys + @transport.notification_handlers.keys
+    end
+
+    it 'routes every method schema/meta*.json lists, or lists it as unsupported' do
+      assert_empty listed - routed - unsupported, "route these, or add them to the unsupported list in #{__FILE__}"
+    end
+
+    it 'lists as unsupported only methods it does not route' do
+      assert_empty unsupported & routed
+    end
+
+    it 'lists as unsupported only methods schema/meta*.json lists' do
+      assert_empty unsupported - listed
+    end
+  end
+
   describe 'connect' do
     it 'advertises the client capabilities to the inbound side before sending initialize' do
       request = initialize_request(terminal: true)

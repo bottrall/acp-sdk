@@ -1,0 +1,79 @@
+# Generated from codegen/schema_diff.rb with RBS::Inline
+
+module SchemaDiff
+  # Upstream words its capability gates as "Agents MUST only send this update
+  # when…", "MUST NOT send … unless…" or "SHOULD only send it when…".
+  SEND_RULE: ::Regexp
+
+  class Edition < Data
+    attr_reader schema(): Hash[String, untyped]
+
+    attr_reader meta(): Hash[String, untyped]
+
+    def self.new: (Hash[String, untyped] schema, Hash[String, untyped] meta) -> instance
+                | (schema: Hash[String, untyped], meta: Hash[String, untyped]) -> instance
+
+    def self.members: () -> [ :schema, :meta ]
+
+    def members: () -> [ :schema, :meta ]
+  end
+
+  class Release < Data
+    attr_reader version(): String
+
+    attr_reader stable(): SchemaDiff::Edition
+
+    attr_reader unstable(): SchemaDiff::Edition
+
+    def self.new: (String version, SchemaDiff::Edition stable, SchemaDiff::Edition unstable) -> instance
+                | (version: String, stable: SchemaDiff::Edition, unstable: SchemaDiff::Edition) -> instance
+
+    def self.members: () -> [ :version, :stable, :unstable ]
+
+    def members: () -> [ :version, :stable, :unstable ]
+  end
+
+  class Category < Data
+    attr_reader title(): String
+
+    attr_reader items(): Array[String]
+
+    def self.new: (String title, Array[String] items) -> instance
+                | (title: String, items: Array[String]) -> instance
+
+    def self.members: () -> [ :title, :items ]
+
+    def members: () -> [ :title, :items ]
+  end
+
+  # @rbs before: SchemaDiff::Release
+  # @rbs after: SchemaDiff::Release
+  # @rbs return: String
+  def markdown: (SchemaDiff::Release before, SchemaDiff::Release after) -> String
+
+  # @rbs before: SchemaDiff::Edition
+  # @rbs after: SchemaDiff::Edition
+  # @rbs return: Array[SchemaDiff::Category]
+  def changes: (SchemaDiff::Edition before, SchemaDiff::Edition after) -> Array[SchemaDiff::Category]
+
+  # @rbs meta: Hash[String, untyped]
+  # @rbs return: Array[String]
+  def method_names: (Hash[String, untyped] meta) -> Array[String]
+
+  # @rbs schema: Hash[String, untyped]
+  # @rbs return: Array[String]
+  def send_rules: (Hash[String, untyped] schema) -> Array[String]
+
+  # @rbs node: untyped
+  # @rbs return: Array[String]
+  def descriptions: (untyped node) -> Array[String]
+
+  # @rbs names: Array[String]
+  # @rbs return: Array[String]
+  def code: (Array[String] names) -> Array[String]
+
+  # @rbs heading: String
+  # @rbs categories: Array[SchemaDiff::Category]
+  # @rbs return: String
+  def section: (String heading, Array[SchemaDiff::Category] categories) -> String
+end

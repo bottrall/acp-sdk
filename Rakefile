@@ -6,6 +6,7 @@ require 'rake/testtask'
 require 'rbconfig'
 require 'rubocop/rake_task'
 require 'tmpdir'
+require_relative 'codegen/schema_diff'
 require_relative 'codegen/type_generator'
 
 GEMSPEC = 'acp-sdk.gemspec'
@@ -58,6 +59,34 @@ namespace :generate do
     require 'guard/commander'
 
     Guard.start(no_interactions: true)
+  end
+end
+
+# A schema directory from before this repo vendored meta.json and VERSION reads
+# as listing no methods and naming no version.
+def read_optional(path, missing)
+  File.exist?(path) ? File.read(path) : missing
+end
+
+def schema_edition(dir, suffix)
+  SchemaDiff::Edition.new(
+    schema: JSON.parse(File.read(File.join(dir, "schema#{suffix}.json"))),
+    meta: JSON.parse(read_optional(File.join(dir, "meta#{suffix}.json"), '{}'))
+  )
+end
+
+def schema_release(dir)
+  SchemaDiff::Release.new(
+    version: read_optional(File.join(dir, 'VERSION'), 'unknown').strip,
+    stable: schema_edition(dir, ''),
+    unstable: schema_edition(dir, '.unstable')
+  )
+end
+
+namespace :schema do
+  desc 'Print, as Markdown, what changed from the schema directory BEFORE to the one AFTER'
+  task :diff do
+    puts SchemaDiff.markdown(schema_release(ENV.fetch('BEFORE')), schema_release(ENV.fetch('AFTER')))
   end
 end
 

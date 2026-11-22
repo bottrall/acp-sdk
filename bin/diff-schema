@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Prints, as Markdown, what changed from the ACP schema in one directory to the one in another
+# (default schema/), through `rake schema:diff`.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=lib/stack.sh
+source bin/lib/stack.sh
+
+if (($# < 1 || $# > 2)); then fail "takes a before directory and an optional after directory (default schema)"; fi
+
+exec bundle exec rake schema:diff "BEFORE=$1" "AFTER=${2:-schema}"

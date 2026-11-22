@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Downloads the ACP schemas and method lists for the release schema/VERSION names into schema/.
+# It runs only bash and curl, so Renovate can run it without executing gem code.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# shellcheck source=lib/stack.sh
+source bin/lib/stack.sh
+
+FILES=(schema.json schema.unstable.json meta.json meta.unstable.json)
+
+if (($#)); then fail "takes no arguments; it fetches the release schema/VERSION names"; fi
+
+version=$(<schema/VERSION)
+base="https://raw.githubusercontent.com/agentclientprotocol/agent-client-protocol/schema-v${version}/schema/v1"
+
+# Every file downloads before any is replaced, so a failed fetch leaves schema/ as it was.
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+for file in "${FILES[@]}"; do
+  curl -fsSL --retry 3 -o "$tmp/$file" "$base/$file"
+done
+mv "$tmp"/* schema/
