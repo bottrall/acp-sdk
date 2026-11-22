@@ -223,18 +223,21 @@ module TypeGenerator::Resolve
   # @rbs return: Array[TypeGenerator::Field]
   def object_fields(defs, name)
     definition = defs.fetch(name)
-    plain = fields(defs, definition, clearable: TypeGenerator::CLEARABLE.fetch(name, []))
-    return plain unless variants(definition)
+    clearable = TypeGenerator::CLEARABLE.fetch(name, [])
+    return fields(defs, definition, clearable:) unless variants(definition)
 
     union = flattened_union(defs, name)
     flattened = TypeGenerator::Field.new(
-      attr: TypeGenerator::FLATTENED_UNION_ATTRS.fetch(name),
+      attr: flattened_attr(name),
       flattened: true,
       required: true,
       nullable: false,
       type: TypeGenerator::Type.new(rbs: "#{union}::t", from: [:call, "#{union}.from_h"], to: [:send, 'to_h'])
     )
-    [*plain, flattened]
+    # Each variant class stamps its own discriminator value, so a parent that
+    # also declares the discriminator would take it twice.
+    tag = TypeGenerator::Unions.variant_consts(defs, union, definition).tag
+    [*fields(defs, definition, except: [tag].compact, clearable:), flattened]
   end
 
   # @rbs defs: TypeGenerator::Schema
@@ -263,6 +266,14 @@ module TypeGenerator::Resolve
   # @rbs name: String
   # @rbs return: String
   def flattened_union(defs, name)
-    "#{defs.nested_const(name)}::#{TypeGenerator::Naming.camel(TypeGenerator::FLATTENED_UNION_ATTRS.fetch(name))}"
+    "#{defs.nested_const(name)}::#{TypeGenerator::Naming.camel(flattened_attr(name))}"
+  end
+
+  # @rbs name: String
+  # @rbs return: String
+  def flattened_attr(name)
+    TypeGenerator::FLATTENED_UNION_ATTRS.fetch(name) do
+      raise "No FLATTENED_UNION_ATTRS entry for #{name}: name the attr that holds its flattened union"
+    end
   end
 end

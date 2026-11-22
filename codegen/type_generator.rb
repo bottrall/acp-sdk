@@ -31,6 +31,8 @@ module TypeGenerator
     'CreateElicitationResponse' => 'action',
     'ElicitationFormMode' => 'scope',
     'ElicitationUrlMode' => 'scope',
+    'IdleStateUpdate' => 'stop_reason',
+    'InitialSessionConfigOption' => 'value',
     'SessionConfigOption' => 'kind',
     'SetSessionConfigOptionRequest' => 'value'
   }.freeze #: Hash[String, String]
@@ -231,7 +233,7 @@ module TypeGenerator
   Dispatch = Data.define(
     :tag, #: String?
     :tagged, #: Array[[String, String]]
-    :untagged #: Array[[String, String]]
+    :untagged #: Array[[String, Array[String]]]
   )
 
   # @rbs schema: Hash[String, untyped]

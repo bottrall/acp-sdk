@@ -80,4 +80,8 @@ module TypeGenerator::Resolve
   # @rbs name: String
   # @rbs return: String
   def flattened_union: (TypeGenerator::Schema defs, String name) -> String
+
+  # @rbs name: String
+  # @rbs return: String
+  def flattened_attr: (String name) -> String
 end

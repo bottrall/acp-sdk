@@ -184,10 +184,10 @@ module TypeGenerator
 
     attr_reader tagged(): Array[[ String, String ]]
 
-    attr_reader untagged(): Array[[ String, String ]]
+    attr_reader untagged(): Array[[ String, Array[String] ]]
 
-    def self.new: (String? tag, Array[[ String, String ]] tagged, Array[[ String, String ]] untagged) -> instance
-                | (tag: String?, tagged: Array[[ String, String ]], untagged: Array[[ String, String ]]) -> instance
+    def self.new: (String? tag, Array[[ String, String ]] tagged, Array[[ String, Array[String] ]] untagged) -> instance
+                | (tag: String?, tagged: Array[[ String, String ]], untagged: Array[[ String, Array[String] ]]) -> instance
 
     def self.members: () -> [ :tag, :tagged, :untagged ]
 

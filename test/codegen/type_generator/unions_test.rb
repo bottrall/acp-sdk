@@ -55,7 +55,7 @@ describe TypeGenerator::Unions do
       dispatch = TypeGenerator::Dispatch.new(
         tag: 'type',
         tagged: [['tagged', tagged_const]],
-        untagged: [["#{union}::Plain", 'note']]
+        untagged: [["#{union}::Plain", ['note']]]
       )
 
       assert_equal(
@@ -68,13 +68,13 @@ describe TypeGenerator::Unions do
       )
     end
 
-    it 'emits no class for an untagged variant that is another def, and keys each variant on its required key' do
+    it 'emits no class for an untagged variant that is another def, and pairs each variant with its required keys' do
       union = 'ACP::Types::Pick'
       inline = { 'title' => 'Inline', 'properties' => { 'flag' => { 'type' => 'string' } }, 'required' => ['flag'] }
       dispatch = TypeGenerator::Dispatch.new(
         tag: nil,
         tagged: [],
-        untagged: [['ACP::Types::Note', 'text'], ["#{union}::Inline", 'flag']]
+        untagged: [['ACP::Types::Note', ['text']], ["#{union}::Inline", ['flag']]]
       )
 
       assert_equal(
@@ -83,6 +83,28 @@ describe TypeGenerator::Unions do
           emit.class_file(schema, "#{union}::Inline", unions.variant_fields(schema, inline, nil))
         ],
         unions.union_files(schema, union, { 'anyOf' => [{ 'allOf' => [ref.call('Note')] }, inline] })
+      )
+    end
+
+    it 'emits a tagged union whose untagged variant requires no key, as when the tag is null or absent' do
+      union = 'ACP::Types::Idle'
+      ended_const = "#{union}::#{naming.camel('ended')}"
+      none_const = "#{union}::#{naming.camel('none')}"
+      ended = { 'properties' => { 'reason' => const.call('ended') }, 'required' => ['reason'] }
+      none = { 'title' => 'none', 'properties' => { 'reason' => { 'type' => 'null' } } }
+      dispatch = TypeGenerator::Dispatch.new(
+        tag: 'reason',
+        tagged: [['ended', ended_const]],
+        untagged: [[none_const, []]]
+      )
+
+      assert_equal(
+        [
+          unions.union_file(schema, union, dispatch),
+          emit.class_file(schema, ended_const, [], tag: %w[reason ended]),
+          emit.class_file(schema, none_const, [])
+        ],
+        unions.union_files(schema, union, { 'anyOf' => [ended, none] })
       )
     end
   end
@@ -261,7 +283,7 @@ describe TypeGenerator::Unions do
 
   describe '.union_file' do
     it 'writes the module to the union path, aliasing t to the tagged, untagged, and raw variants ahead of from_h' do
-      dispatch = TypeGenerator::Dispatch.new(tag: 'kind', tagged: [%w[read Read]], untagged: [%w[Plain note]])
+      dispatch = TypeGenerator::Dispatch.new(tag: 'kind', tagged: [%w[read Read]], untagged: [['Plain', ['note']]])
 
       assert_equal(
         [
@@ -301,8 +323,8 @@ describe TypeGenerator::Unions do
   end
 
   describe '.dispatch_body' do
-    it 'dispatches an untagged union on the presence of each variant key, falling back to the hash' do
-      dispatch = TypeGenerator::Dispatch.new(tag: nil, tagged: [], untagged: [%w[First a], %w[Second b]])
+    it 'dispatches an untagged union on the presence of the key only each variant requires, falling back to the hash' do
+      dispatch = TypeGenerator::Dispatch.new(tag: nil, tagged: [], untagged: [['First', %w[a c]], ['Second', %w[c b]]])
 
       assert_equal(
         [
@@ -319,7 +341,7 @@ describe TypeGenerator::Unions do
     end
 
     it 'raises when a tagged union has several untagged variants' do
-      untagged = [%w[First a], %w[Second b]]
+      untagged = [['First', ['a']], ['Second', ['b']]]
       dispatch = TypeGenerator::Dispatch.new(tag: 'kind', tagged: [%w[read Read]], untagged:)
 
       error = raised(RuntimeError) { unions.dispatch_body(dispatch) }
@@ -342,8 +364,8 @@ describe TypeGenerator::Unions do
       )
     end
 
-    it 'routes a missing tag to the one untagged variant' do
-      dispatch = TypeGenerator::Dispatch.new(tag: 'kind', tagged: [%w[read Read]], untagged: [%w[Plain note]])
+    it 'routes a missing tag to the one untagged variant, even one that requires no key' do
+      dispatch = TypeGenerator::Dispatch.new(tag: 'kind', tagged: [%w[read Read]], untagged: [['Plain', []]])
 
       assert_equal(
         [
