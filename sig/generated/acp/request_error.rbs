@@ -77,6 +77,10 @@ class ACP::RequestError
   # @rbs return: ACP::RequestError
   def self.unadvertised_agent: (String capability) -> ACP::RequestError
 
+  # @rbs capability: String
+  # @rbs return: ACP::RequestError
+  def self.unadvertised_agent_param: (String capability) -> ACP::RequestError
+
   # @rbs return: ACP::RequestError
   def self.internal_error: () -> ACP::RequestError
 

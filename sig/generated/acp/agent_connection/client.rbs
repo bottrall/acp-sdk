@@ -15,8 +15,8 @@ class ACP::AgentConnection::Client
 
   # @rbs session_id: String
   # @rbs update: ACP::Types::SessionUpdate::t
-  # @rbs return: void
-  def update: (String session_id, ACP::Types::SessionUpdate::t update) -> void
+  # @rbs return: ACP::RequestError?
+  def update: (String session_id, ACP::Types::SessionUpdate::t update) -> ACP::RequestError?
 
   # @rbs session_id: String
   # @rbs commands: Array[ACP::Types::AvailableCommand]
@@ -88,6 +88,10 @@ class ACP::AgentConnection::Client
   def ext_notify: (String method, ?untyped params) -> void
 
   private
+
+  # @rbs update: ACP::Types::SessionUpdate::t
+  # @rbs return: String?
+  def unadvertised_capability: (ACP::Types::SessionUpdate::t update) -> String?
 
   # @rbs rpc_method: String
   # @rbs type: ACP::Transport::_Parser

@@ -93,6 +93,12 @@ class ACP::RequestError
     new(code: METHOD_NOT_FOUND, message: "Agent does not advertise #{capability}")
   end
 
+  # @rbs capability: String
+  # @rbs return: ACP::RequestError
+  def self.unadvertised_agent_param(capability)
+    new(code: INVALID_PARAMS, message: "Agent does not advertise #{capability}")
+  end
+
   # @rbs return: ACP::RequestError
   def self.internal_error
     new(code: INTERNAL_ERROR, message: 'Internal error')

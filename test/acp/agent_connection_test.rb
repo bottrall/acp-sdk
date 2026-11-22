@@ -429,6 +429,52 @@ describe ACP::AgentConnection do
     end
   end
 
+  describe 'systemPrompt' do
+    system_prompt = { 'mode' => 'append', 'content' => [{ 'type' => 'text', 'text' => 'Be terse.' }] }
+    lifecycle = %w[session/new session/load session/resume session/fork]
+    let(:prompted) do
+      ACP::Types::Unstable::AgentCapabilities.new(
+        load_session: true,
+        session_capabilities: ACP::Types::Unstable::SessionCapabilities.new(
+          resume: ACP::Types::SessionResumeCapabilities.new,
+          fork: ACP::Types::Unstable::SessionForkCapabilities.new,
+          system_prompt: ACP::Types::Unstable::SessionSystemPromptCapabilities.new
+        )
+      )
+    end
+
+    define_method(:prompt_reply) do |rpc_method, params, capabilities|
+      agent = AgentConnectionAgent.new(*optional)
+      start(agent, capabilities:)
+      [transport.requests.fetch(rpc_method).call(params.merge('systemPrompt' => system_prompt)), agent.calls]
+    end
+
+    it 'refuses session/new carrying one when the agent advertised no session capabilities' do
+      reply, = prompt_reply('session/new', { 'cwd' => '/work', 'mcpServers' => [] }, ACP::Types::AgentCapabilities.new)
+
+      assert_equal ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt').to_h, reply.to_h
+    end
+
+    (routes + unstable_routes)
+      .select { |rpc_method, *| lifecycle.include?(rpc_method) }
+      .each do |rpc_method, params, agent_method|
+        it "refuses #{rpc_method} carrying one without calling the agent unless the agent advertised it" do
+          reply, calls = prompt_reply(rpc_method, params, everything)
+
+          assert_equal(
+            [ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt').to_h, []],
+            [reply.to_h, calls]
+          )
+        end
+
+        it "answers #{rpc_method} carrying one with the agent's #{agent_method} when the agent advertised it" do
+          _reply, calls = prompt_reply(rpc_method, params, prompted)
+
+          assert_equal [agent_method], calls.map(&:first)
+        end
+      end
+  end
+
   describe 'initialize' do
     def connect(client_capabilities = nil, **)
       start(**)
