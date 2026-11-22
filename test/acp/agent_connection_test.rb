@@ -404,6 +404,38 @@ describe ACP::AgentConnection do
     end
   end
 
+  describe 'schema method coverage' do
+    unsupported = [
+      'proxy/initialize', 'proxy/successor', # the proxy role is deferred by #191
+      'auth/status' # SP9, #199
+    ].freeze
+    listed = SCHEMA_METHODS.fetch('agentMethods') + SCHEMA_METHODS.fetch('proxyMethods')
+
+    define_method(:routed) do
+      capabilities = ACP::Types::Unstable::AgentCapabilities.from_h(
+        everything.to_h.merge('mcpCapabilities' => { 'acp' => true })
+      )
+      start(
+        AgentConnectionAgent.new(*optional, *per_session, :mcp_message_notification),
+        capabilities:,
+        auth_methods: [token]
+      )
+      transport.requests.keys + transport.notifications.keys
+    end
+
+    it 'routes every method schema/meta*.json lists, or lists it as unsupported' do
+      assert_empty listed - routed - unsupported, "route these, or add them to the unsupported list in #{__FILE__}"
+    end
+
+    it 'lists as unsupported only methods it does not route' do
+      assert_empty unsupported & routed
+    end
+
+    it 'lists as unsupported only methods schema/meta*.json lists' do
+      assert_empty unsupported - listed
+    end
+  end
+
   describe 'session/cancel' do
     it 'logs and drops params that do not parse' do
       agent = AgentConnectionAgent.new
