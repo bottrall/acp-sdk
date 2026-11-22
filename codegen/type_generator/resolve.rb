@@ -226,11 +226,17 @@ module TypeGenerator::Resolve
   def null_default(property)
     return unless property['x-deserialize-default-on-null']
 
-    case Array(property['type'])
-    when ['array'] then '[]'
-    when ['object'] then '{}'
-    else raise "Unsupported x-deserialize-default-on-null shape: #{property}"
+    literal =
+      case Array(property['type'])
+      when ['array'] then '[]'
+      when ['object'] then '{}'
+      else raise "Unsupported x-deserialize-default-on-null shape: #{property}"
+      end
+    if property.key?('default') && property['default'].inspect != literal
+      raise "Unsupported x-deserialize-default-on-null default: #{property}"
     end
+
+    literal
   end
 
   # @rbs defs: TypeGenerator::Schema
