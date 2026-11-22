@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/tool_call_location.rb with RBS::Inline
+
+class ACP::Types::Unstable::ToolCallLocation
+  # @dynamic path
+  attr_reader path: String
+
+  # @dynamic line
+  attr_reader line: Integer?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs path: String
+  # @rbs line: Integer?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (path: String, ?line: Integer?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::ToolCallLocation
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::ToolCallLocation
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

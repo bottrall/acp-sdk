@@ -7,28 +7,18 @@ class ACP::Types::Unstable::SessionUpdate::SessionMessageChunk
   # @dynamic message_id
   attr_reader :message_id #: String
 
-  # @dynamic sender_session_id
-  attr_reader :sender_session_id #: String?
-
-  # @dynamic recipient_session_id
-  attr_reader :recipient_session_id #: String?
-
   # @dynamic content
-  attr_reader :content #: ACP::Types::ContentBlock::t
+  attr_reader :content #: ACP::Types::Unstable::ContentBlock::t
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs message_id: String
-  # @rbs sender_session_id: String?
-  # @rbs recipient_session_id: String?
-  # @rbs content: ACP::Types::ContentBlock::t
+  # @rbs content: ACP::Types::Unstable::ContentBlock::t
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize(message_id:, content:, sender_session_id: nil, recipient_session_id: nil, meta: nil)
+  def initialize(message_id:, content:, meta: nil)
     @message_id = message_id
-    @sender_session_id = sender_session_id
-    @recipient_session_id = recipient_session_id
     @content = content
     @meta = meta
     freeze
@@ -39,9 +29,11 @@ class ACP::Types::Unstable::SessionUpdate::SessionMessageChunk
   def self.from_h(hash)
     new(
       message_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'messageId'), 'messageId'),
-      sender_session_id: ACP::Types::Check.string(hash['senderSessionId'], 'senderSessionId', allow_nil: true),
-      recipient_session_id: ACP::Types::Check.string(hash['recipientSessionId'], 'recipientSessionId', allow_nil: true),
-      content: ACP::Types::Check.object(ACP::Types::Check.key(hash, 'content'), 'content', ACP::Types::ContentBlock),
+      content: ACP::Types::Check.object(
+        ACP::Types::Check.key(hash, 'content'),
+        'content',
+        ACP::Types::Unstable::ContentBlock
+      ),
       meta: hash['_meta']
     )
   end
@@ -52,8 +44,6 @@ class ACP::Types::Unstable::SessionUpdate::SessionMessageChunk
       'sessionUpdate' => 'session_message_chunk',
       'messageId' => message_id,
       'content' => content.to_h,
-      'senderSessionId' => sender_session_id,
-      'recipientSessionId' => recipient_session_id,
       '_meta' => meta
     }.compact
   end

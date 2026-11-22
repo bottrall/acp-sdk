@@ -4,6 +4,6 @@
 # Unstable: not part of the ACP spec, may change or disappear at any point.
 
 # @rbs!
-#   class ACP::Types::Unstable::IdleStateUpdate = ACP::Types::Unstable::StateUpdate::Idle
+#   class ACP::Types::Unstable::IdleStateUpdate = ACP::Types::StateUpdate::Idle
 
-ACP::Types::Unstable::IdleStateUpdate = ACP::Types::Unstable::StateUpdate::Idle
+ACP::Types::Unstable::IdleStateUpdate = ACP::Types::StateUpdate::Idle

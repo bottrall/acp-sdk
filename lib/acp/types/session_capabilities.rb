@@ -12,6 +12,9 @@ class ACP::Types::SessionCapabilities
   # @dynamic additional_directories
   attr_reader :additional_directories #: ACP::Types::SessionAdditionalDirectoriesCapabilities?
 
+  # @dynamic system_prompt
+  attr_reader :system_prompt #: ACP::Types::SessionSystemPromptCapabilities?
+
   # @dynamic resume
   attr_reader :resume #: ACP::Types::SessionResumeCapabilities?
 
@@ -24,14 +27,24 @@ class ACP::Types::SessionCapabilities
   # @rbs list: ACP::Types::SessionListCapabilities?
   # @rbs delete: ACP::Types::SessionDeleteCapabilities?
   # @rbs additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?
+  # @rbs system_prompt: ACP::Types::SessionSystemPromptCapabilities?
   # @rbs resume: ACP::Types::SessionResumeCapabilities?
   # @rbs close: ACP::Types::SessionCloseCapabilities?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize(list: nil, delete: nil, additional_directories: nil, resume: nil, close: nil, meta: nil)
+  def initialize(
+    list: nil,
+    delete: nil,
+    additional_directories: nil,
+    system_prompt: nil,
+    resume: nil,
+    close: nil,
+    meta: nil
+  )
     @list = list
     @delete = delete
     @additional_directories = additional_directories
+    @system_prompt = system_prompt
     @resume = resume
     @close = close
     @meta = meta
@@ -55,6 +68,12 @@ class ACP::Types::SessionCapabilities
         ACP::Types::SessionAdditionalDirectoriesCapabilities,
         allow_nil: true
       ),
+      system_prompt: ACP::Types::Check.object(
+        hash['systemPrompt'],
+        'systemPrompt',
+        ACP::Types::SessionSystemPromptCapabilities,
+        allow_nil: true
+      ),
       resume: ACP::Types::Check.object(
         hash['resume'],
         'resume',
@@ -72,6 +91,7 @@ class ACP::Types::SessionCapabilities
       'list' => list&.to_h,
       'delete' => delete&.to_h,
       'additionalDirectories' => additional_directories&.to_h,
+      'systemPrompt' => system_prompt&.to_h,
       'resume' => resume&.to_h,
       'close' => close&.to_h,
       '_meta' => meta

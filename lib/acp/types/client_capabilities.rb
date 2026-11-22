@@ -12,6 +12,12 @@ class ACP::Types::ClientCapabilities
   # @dynamic session
   attr_reader :session #: ACP::Types::ClientSessionCapabilities?
 
+  # @dynamic subagents
+  attr_reader :subagents #: ACP::Types::SubagentCapabilities?
+
+  # @dynamic plan
+  attr_reader :plan #: ACP::Types::PlanCapabilities?
+
   # @dynamic auth
   attr_reader :auth #: ACP::Types::AuthCapabilities?
 
@@ -24,14 +30,27 @@ class ACP::Types::ClientCapabilities
   # @rbs fs: ACP::Types::FileSystemCapabilities?
   # @rbs terminal: bool?
   # @rbs session: ACP::Types::ClientSessionCapabilities?
+  # @rbs subagents: ACP::Types::SubagentCapabilities?
+  # @rbs plan: ACP::Types::PlanCapabilities?
   # @rbs auth: ACP::Types::AuthCapabilities?
   # @rbs elicitation: ACP::Types::ElicitationCapabilities?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize(fs: nil, terminal: nil, session: nil, auth: nil, elicitation: nil, meta: nil)
+  def initialize(
+    fs: nil,
+    terminal: nil,
+    session: nil,
+    subagents: nil,
+    plan: nil,
+    auth: nil,
+    elicitation: nil,
+    meta: nil
+  )
     @fs = fs
     @terminal = terminal
     @session = session
+    @subagents = subagents
+    @plan = plan
     @auth = auth
     @elicitation = elicitation
     @meta = meta
@@ -50,6 +69,13 @@ class ACP::Types::ClientCapabilities
         ACP::Types::ClientSessionCapabilities,
         allow_nil: true
       ),
+      subagents: ACP::Types::Check.object(
+        hash['subagents'],
+        'subagents',
+        ACP::Types::SubagentCapabilities,
+        allow_nil: true
+      ),
+      plan: ACP::Types::Check.object(hash['plan'], 'plan', ACP::Types::PlanCapabilities, allow_nil: true),
       auth: ACP::Types::Check.object(hash['auth'], 'auth', ACP::Types::AuthCapabilities, allow_nil: true),
       elicitation: ACP::Types::Check.object(
         hash['elicitation'],
@@ -67,6 +93,8 @@ class ACP::Types::ClientCapabilities
       'fs' => fs&.to_h,
       'terminal' => terminal,
       'session' => session&.to_h,
+      'subagents' => subagents&.to_h,
+      'plan' => plan&.to_h,
       'auth' => auth&.to_h,
       'elicitation' => elicitation&.to_h,
       '_meta' => meta

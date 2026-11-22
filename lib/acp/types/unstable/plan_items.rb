@@ -4,6 +4,6 @@
 # Unstable: not part of the ACP spec, may change or disappear at any point.
 
 # @rbs!
-#   class ACP::Types::Unstable::PlanItems = ACP::Types::Unstable::PlanUpdateContent::Items
+#   class ACP::Types::Unstable::PlanItems = ACP::Types::PlanUpdateContent::Items
 
-ACP::Types::Unstable::PlanItems = ACP::Types::Unstable::PlanUpdateContent::Items
+ACP::Types::Unstable::PlanItems = ACP::Types::PlanUpdateContent::Items

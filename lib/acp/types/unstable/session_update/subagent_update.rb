@@ -14,10 +14,16 @@ class ACP::Types::Unstable::SessionUpdate::SubagentUpdate
   attr_reader :description #: String?
 
   # @dynamic capabilities
-  attr_reader :capabilities #: ACP::Types::Unstable::SubagentSessionCapabilities?
+  attr_reader :capabilities #: ACP::Types::SubagentSessionCapabilities?
 
   # @dynamic state
-  attr_reader :state #: ACP::Types::Unstable::StateUpdate::t?
+  attr_reader :state #: ACP::Types::StateUpdate::t?
+
+  # @dynamic cwd
+  attr_reader :cwd #: String?
+
+  # @dynamic additional_directories
+  attr_reader :additional_directories #: Array[String]?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
@@ -25,16 +31,29 @@ class ACP::Types::Unstable::SessionUpdate::SubagentUpdate
   # @rbs session_id: String
   # @rbs title: String?
   # @rbs description: String?
-  # @rbs capabilities: ACP::Types::Unstable::SubagentSessionCapabilities?
-  # @rbs state: ACP::Types::Unstable::StateUpdate::t?
+  # @rbs capabilities: ACP::Types::SubagentSessionCapabilities?
+  # @rbs state: ACP::Types::StateUpdate::t?
+  # @rbs cwd: String?
+  # @rbs additional_directories: Array[String]?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize(session_id:, title: nil, description: nil, capabilities: nil, state: nil, meta: nil)
+  def initialize(
+    session_id:,
+    title: nil,
+    description: nil,
+    capabilities: nil,
+    state: nil,
+    cwd: nil,
+    additional_directories: nil,
+    meta: nil
+  )
     @session_id = session_id
     @title = title
     @description = description
     @capabilities = capabilities
     @state = state
+    @cwd = cwd
+    @additional_directories = additional_directories
     @meta = meta
     freeze
   end
@@ -42,6 +61,13 @@ class ACP::Types::Unstable::SessionUpdate::SubagentUpdate
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Unstable::SessionUpdate::SubagentUpdate
   def self.from_h(hash)
+    additional_directories = ACP::Types::Check.array(
+      hash['additionalDirectories'],
+      'additionalDirectories',
+      allow_nil: true
+    ) do |item, path|
+      ACP::Types::Check.string(item, path)
+    end
     new(
       session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
       title: ACP::Types::Check.string(hash['title'], 'title', allow_nil: true),
@@ -49,10 +75,12 @@ class ACP::Types::Unstable::SessionUpdate::SubagentUpdate
       capabilities: ACP::Types::Check.object(
         hash['capabilities'],
         'capabilities',
-        ACP::Types::Unstable::SubagentSessionCapabilities,
+        ACP::Types::SubagentSessionCapabilities,
         allow_nil: true
       ),
-      state: ACP::Types::Check.object(hash['state'], 'state', ACP::Types::Unstable::StateUpdate, allow_nil: true),
+      state: ACP::Types::Check.object(hash['state'], 'state', ACP::Types::StateUpdate, allow_nil: true),
+      cwd: ACP::Types::Check.string(hash['cwd'], 'cwd', allow_nil: true),
+      additional_directories:,
       meta: hash['_meta']
     )
   end
@@ -66,6 +94,8 @@ class ACP::Types::Unstable::SessionUpdate::SubagentUpdate
       'description' => description,
       'capabilities' => capabilities&.to_h,
       'state' => state&.to_h,
+      'cwd' => cwd,
+      'additionalDirectories' => additional_directories,
       '_meta' => meta
     }.compact
   end

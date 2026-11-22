@@ -13,8 +13,14 @@ class ACP::Types::Unstable::SessionUpdate::SessionMessage
   # @dynamic recipient_session_id
   attr_reader :recipient_session_id #: String?
 
+  # @dynamic sender_message_id
+  attr_reader :sender_message_id #: String?
+
+  # @dynamic recipient_message_id
+  attr_reader :recipient_message_id #: String?
+
   # @dynamic content
-  attr_reader :content #: Array[ACP::Types::ContentBlock::t]?
+  attr_reader :content #: Array[ACP::Types::Unstable::ContentBlock::t]?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
@@ -22,13 +28,25 @@ class ACP::Types::Unstable::SessionUpdate::SessionMessage
   # @rbs message_id: String
   # @rbs sender_session_id: String?
   # @rbs recipient_session_id: String?
-  # @rbs content: Array[ACP::Types::ContentBlock::t]?
+  # @rbs sender_message_id: String?
+  # @rbs recipient_message_id: String?
+  # @rbs content: Array[ACP::Types::Unstable::ContentBlock::t]?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize(message_id:, sender_session_id: nil, recipient_session_id: nil, content: nil, meta: nil)
+  def initialize(
+    message_id:,
+    sender_session_id: nil,
+    recipient_session_id: nil,
+    sender_message_id: nil,
+    recipient_message_id: nil,
+    content: nil,
+    meta: nil
+  )
     @message_id = message_id
     @sender_session_id = sender_session_id
     @recipient_session_id = recipient_session_id
+    @sender_message_id = sender_message_id
+    @recipient_message_id = recipient_message_id
     @content = content
     @meta = meta
     freeze
@@ -38,12 +56,14 @@ class ACP::Types::Unstable::SessionUpdate::SessionMessage
   # @rbs return: ACP::Types::Unstable::SessionUpdate::SessionMessage
   def self.from_h(hash)
     content = ACP::Types::Check.array(hash['content'], 'content', allow_nil: true) do |item, path|
-      ACP::Types::Check.object(item, path, ACP::Types::ContentBlock)
+      ACP::Types::Check.object(item, path, ACP::Types::Unstable::ContentBlock)
     end
     new(
       message_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'messageId'), 'messageId'),
       sender_session_id: ACP::Types::Check.string(hash['senderSessionId'], 'senderSessionId', allow_nil: true),
       recipient_session_id: ACP::Types::Check.string(hash['recipientSessionId'], 'recipientSessionId', allow_nil: true),
+      sender_message_id: ACP::Types::Check.string(hash['senderMessageId'], 'senderMessageId', allow_nil: true),
+      recipient_message_id: ACP::Types::Check.string(hash['recipientMessageId'], 'recipientMessageId', allow_nil: true),
       content:,
       meta: hash['_meta']
     )
@@ -56,6 +76,8 @@ class ACP::Types::Unstable::SessionUpdate::SessionMessage
       'messageId' => message_id,
       'senderSessionId' => sender_session_id,
       'recipientSessionId' => recipient_session_id,
+      'senderMessageId' => sender_message_id,
+      'recipientMessageId' => recipient_message_id,
       'content' => content&.map(&:to_h),
       '_meta' => meta
     }.compact

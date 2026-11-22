@@ -21,6 +21,8 @@ module ACP::Types::Unstable::SessionUpdate
   #          | ACP::Types::Unstable::SessionUpdate::Notice
   #          | ACP::Types::Unstable::SessionUpdate::CompactionUpdate
   #          | ACP::Types::Unstable::SessionUpdate::CompactionSummaryChunk
+  #          | ACP::Types::Unstable::SessionUpdate::PromptSuggestionsUpdate
+  #          | ACP::Types::Unstable::SessionUpdate::CursorUpdate
   #          | ACP::Types::Unstable::SessionUpdate::SubagentUpdate
   #          | ACP::Types::Unstable::SessionUpdate::SessionMessage
   #          | ACP::Types::Unstable::SessionUpdate::SessionMessageChunk
@@ -46,6 +48,8 @@ module ACP::Types::Unstable::SessionUpdate
     when 'notice' then ACP::Types::Unstable::SessionUpdate::Notice.from_h(hash)
     when 'compaction_update' then ACP::Types::Unstable::SessionUpdate::CompactionUpdate.from_h(hash)
     when 'compaction_summary_chunk' then ACP::Types::Unstable::SessionUpdate::CompactionSummaryChunk.from_h(hash)
+    when 'prompt_suggestions_update' then ACP::Types::Unstable::SessionUpdate::PromptSuggestionsUpdate.from_h(hash)
+    when 'cursor_update' then ACP::Types::Unstable::SessionUpdate::CursorUpdate.from_h(hash)
     when 'subagent_update' then ACP::Types::Unstable::SessionUpdate::SubagentUpdate.from_h(hash)
     when 'session_message' then ACP::Types::Unstable::SessionUpdate::SessionMessage.from_h(hash)
     when 'session_message_chunk' then ACP::Types::Unstable::SessionUpdate::SessionMessageChunk.from_h(hash)

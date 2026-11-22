@@ -1,0 +1,41 @@
+# Generated from lib/acp/types/unstable/auth_account.rb with RBS::Inline
+
+class ACP::Types::Unstable::AuthAccount
+  # @dynamic label
+  attr_reader label: String
+
+  # @dynamic description
+  attr_reader description: String?
+
+  # @dynamic active
+  attr_reader active: bool?
+
+  # @dynamic name
+  attr_reader name: String?
+
+  # @dynamic email
+  attr_reader email: String?
+
+  # @dynamic organization
+  attr_reader organization: String?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs label: String
+  # @rbs description: String?
+  # @rbs active: bool?
+  # @rbs name: String?
+  # @rbs email: String?
+  # @rbs organization: String?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (label: String, ?description: String?, ?active: bool?, ?name: String?, ?email: String?, ?organization: String?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::AuthAccount
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::AuthAccount
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

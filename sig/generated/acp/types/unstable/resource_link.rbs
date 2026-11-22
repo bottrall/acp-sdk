@@ -1,0 +1,3 @@
+# Generated from lib/acp/types/unstable/resource_link.rb with RBS::Inline
+
+class ACP::Types::Unstable::ResourceLink = ACP::Types::Unstable::ContentBlock::ResourceLink

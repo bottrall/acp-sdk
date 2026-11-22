@@ -1,0 +1,9 @@
+# Generated from lib/acp/types/state_update/idle/stop_reason.rb with RBS::Inline
+
+module ACP::Types::StateUpdate::Idle::StopReason
+  type t = ACP::Types::StateUpdate::Idle::StopReason::EndTurn | ACP::Types::StateUpdate::Idle::StopReason::MaxTokens | ACP::Types::StateUpdate::Idle::StopReason::MaxTurnRequests | ACP::Types::StateUpdate::Idle::StopReason::Refusal | ACP::Types::StateUpdate::Idle::StopReason::Cancelled | ACP::Types::StateUpdate::Idle::StopReason::Error | Hash[String, untyped]
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: t
+  def self.from_h: (Hash[String, untyped] hash) -> t
+end

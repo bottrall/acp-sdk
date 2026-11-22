@@ -1,7 +1,7 @@
 # Generated from lib/acp/types/unstable/mcp_server.rb with RBS::Inline
 
 module ACP::Types::Unstable::McpServer
-  type t = ACP::Types::Unstable::McpServer::Http | ACP::Types::Unstable::McpServer::Sse | ACP::Types::Unstable::McpServer::Acp | ACP::Types::McpServerStdio | Hash[String, untyped]
+  type t = ACP::Types::Unstable::McpServer::Http | ACP::Types::Unstable::McpServer::Sse | ACP::Types::Unstable::McpServer::Acp | ACP::Types::Unstable::McpServerStdio | Hash[String, untyped]
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: t

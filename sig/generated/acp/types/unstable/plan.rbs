@@ -1,0 +1,3 @@
+# Generated from lib/acp/types/unstable/plan.rb with RBS::Inline
+
+class ACP::Types::Unstable::Plan = ACP::Types::Unstable::SessionUpdate::Plan

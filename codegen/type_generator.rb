@@ -31,6 +31,8 @@ module TypeGenerator
     'CreateElicitationResponse' => 'action',
     'ElicitationFormMode' => 'scope',
     'ElicitationUrlMode' => 'scope',
+    'IdleStateUpdate' => 'stop_reason',
+    'InitialSessionConfigOption' => 'value',
     'SessionConfigOption' => 'kind',
     'SetSessionConfigOptionRequest' => 'value'
   }.freeze #: Hash[String, String]

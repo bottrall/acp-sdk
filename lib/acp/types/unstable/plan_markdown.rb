@@ -4,6 +4,6 @@
 # Unstable: not part of the ACP spec, may change or disappear at any point.
 
 # @rbs!
-#   class ACP::Types::Unstable::PlanMarkdown = ACP::Types::Unstable::PlanUpdateContent::Markdown
+#   class ACP::Types::Unstable::PlanMarkdown = ACP::Types::PlanUpdateContent::Markdown
 
-ACP::Types::Unstable::PlanMarkdown = ACP::Types::Unstable::PlanUpdateContent::Markdown
+ACP::Types::Unstable::PlanMarkdown = ACP::Types::PlanUpdateContent::Markdown

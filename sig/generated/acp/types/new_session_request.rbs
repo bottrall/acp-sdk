@@ -10,15 +10,19 @@ class ACP::Types::NewSessionRequest
   # @dynamic mcp_servers
   attr_reader mcp_servers: Array[ACP::Types::McpServer::t]
 
+  # @dynamic system_prompt
+  attr_reader system_prompt: ACP::Types::SystemPrompt?
+
   # @dynamic meta
   attr_reader meta: Hash[String, untyped]?
 
   # @rbs cwd: String
   # @rbs additional_directories: Array[String]?
   # @rbs mcp_servers: Array[ACP::Types::McpServer::t]
+  # @rbs system_prompt: ACP::Types::SystemPrompt?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize: (cwd: String, mcp_servers: Array[ACP::Types::McpServer::t], ?additional_directories: Array[String]?, ?meta: Hash[String, untyped]?) -> void
+  def initialize: (cwd: String, mcp_servers: Array[ACP::Types::McpServer::t], ?additional_directories: Array[String]?, ?system_prompt: ACP::Types::SystemPrompt?, ?meta: Hash[String, untyped]?) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::NewSessionRequest

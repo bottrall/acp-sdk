@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/unstable/prompt_suggestions_capabilities.rb with RBS::Inline
+
+class ACP::Types::Unstable::PromptSuggestionsCapabilities
+  # @dynamic image
+  attr_reader image: ACP::Types::Unstable::PromptSuggestionsImageCapabilities?
+
+  # @dynamic audio
+  attr_reader audio: ACP::Types::Unstable::PromptSuggestionsAudioCapabilities?
+
+  # @dynamic embedded_context
+  attr_reader embedded_context: ACP::Types::Unstable::PromptSuggestionsEmbeddedContextCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs image: ACP::Types::Unstable::PromptSuggestionsImageCapabilities?
+  # @rbs audio: ACP::Types::Unstable::PromptSuggestionsAudioCapabilities?
+  # @rbs embedded_context: ACP::Types::Unstable::PromptSuggestionsEmbeddedContextCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?image: ACP::Types::Unstable::PromptSuggestionsImageCapabilities?, ?audio: ACP::Types::Unstable::PromptSuggestionsAudioCapabilities?, ?embedded_context: ACP::Types::Unstable::PromptSuggestionsEmbeddedContextCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::PromptSuggestionsCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::PromptSuggestionsCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

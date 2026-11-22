@@ -10,6 +10,9 @@ class ACP::Types::SessionCapabilities
   # @dynamic additional_directories
   attr_reader additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?
 
+  # @dynamic system_prompt
+  attr_reader system_prompt: ACP::Types::SessionSystemPromptCapabilities?
+
   # @dynamic resume
   attr_reader resume: ACP::Types::SessionResumeCapabilities?
 
@@ -22,11 +25,12 @@ class ACP::Types::SessionCapabilities
   # @rbs list: ACP::Types::SessionListCapabilities?
   # @rbs delete: ACP::Types::SessionDeleteCapabilities?
   # @rbs additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?
+  # @rbs system_prompt: ACP::Types::SessionSystemPromptCapabilities?
   # @rbs resume: ACP::Types::SessionResumeCapabilities?
   # @rbs close: ACP::Types::SessionCloseCapabilities?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize: (?list: ACP::Types::SessionListCapabilities?, ?delete: ACP::Types::SessionDeleteCapabilities?, ?additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?, ?resume: ACP::Types::SessionResumeCapabilities?, ?close: ACP::Types::SessionCloseCapabilities?, ?meta: Hash[String, untyped]?) -> void
+  def initialize: (?list: ACP::Types::SessionListCapabilities?, ?delete: ACP::Types::SessionDeleteCapabilities?, ?additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?, ?system_prompt: ACP::Types::SessionSystemPromptCapabilities?, ?resume: ACP::Types::SessionResumeCapabilities?, ?close: ACP::Types::SessionCloseCapabilities?, ?meta: Hash[String, untyped]?) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::SessionCapabilities

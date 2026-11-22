@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/compaction_summary_chunk.rb with RBS::Inline
-
-class ACP::Types::Unstable::CompactionSummaryChunk = ACP::Types::Unstable::SessionUpdate::CompactionSummaryChunk

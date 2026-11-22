@@ -1,0 +1,3 @@
+# Generated from lib/acp/types/idle_state_update.rb with RBS::Inline
+
+class ACP::Types::IdleStateUpdate = ACP::Types::StateUpdate::Idle

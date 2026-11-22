@@ -1,0 +1,3 @@
+# Generated from lib/acp/types/unstable/string_property_schema.rb with RBS::Inline
+
+class ACP::Types::Unstable::StringPropertySchema = ACP::Types::ElicitationPropertySchema::StringPropertySchema

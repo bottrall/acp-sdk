@@ -1,0 +1,3 @@
+# Generated from lib/acp/types/unstable/multi_select_property_schema.rb with RBS::Inline
+
+class ACP::Types::Unstable::MultiSelectPropertySchema = ACP::Types::ElicitationPropertySchema::MultiSelectPropertySchema
