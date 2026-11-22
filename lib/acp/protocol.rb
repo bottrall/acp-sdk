@@ -48,7 +48,6 @@ module ACP::Protocol
 
     # The client's stable parse of the initialize reply drops auth.status, so
     # the auth sub-object is re-parsed with the unstable type.
-    auth = ACP::Types.parse(ACP::Types::Unstable::AgentAuthCapabilities, capabilities['auth'])
-    auth.is_a?(ACP::Types::Unstable::AgentAuthCapabilities) && !auth.status.nil?
+    advertised?(ACP::Types.parse(ACP::Types::Unstable::AgentAuthCapabilities, capabilities['auth']), %i[status])
   end
 end

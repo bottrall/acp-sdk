@@ -1,6 +1,8 @@
 # Generated from lib/acp/client_connection.rb with RBS::Inline
 
 class ACP::ClientConnection
+  @auth_status_updates: ACP::ClientConnection::AuthStatusUpdates
+
   @inbound: ACP::ClientConnection::Inbound
 
   @streams: ACP::ClientConnection::Streams
@@ -27,8 +29,9 @@ class ACP::ClientConnection
   # @rbs transport: ACP::Transport::Stdio
   # @rbs streams: ACP::ClientConnection::Streams
   # @rbs inbound: ACP::ClientConnection::Inbound
+  # @rbs auth_status_updates: ACP::ClientConnection::AuthStatusUpdates
   # @rbs return: void
-  def initialize: (transport: ACP::Transport::Stdio, streams: ACP::ClientConnection::Streams, inbound: ACP::ClientConnection::Inbound) -> void
+  def initialize: (transport: ACP::Transport::Stdio, streams: ACP::ClientConnection::Streams, inbound: ACP::ClientConnection::Inbound, auth_status_updates: ACP::ClientConnection::AuthStatusUpdates) -> void
 
   # @rbs return: Thread
   def start: () -> Thread

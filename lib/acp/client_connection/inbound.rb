@@ -5,7 +5,6 @@ class ACP::ClientConnection::Inbound
   # @rbs @terminal: ACP::ClientConnection::_Terminal?
   # @rbs @elicitation: ACP::ClientConnection::_Elicitation?
   # @rbs @elicitations: ACP::ClientConnection::Elicitations
-  # @rbs @auth_status_updates: ACP::ClientConnection::AuthStatusUpdates
   # @rbs @mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) ->
   #   (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
   # @rbs @extension_requests: Hash[String, ^(untyped) -> untyped]
@@ -83,7 +82,6 @@ class ACP::ClientConnection::Inbound
   attr_writer :mcp_advertised #: bool
 
   # @rbs elicitations: ACP::ClientConnection::Elicitations
-  # @rbs auth_status_updates: ACP::ClientConnection::AuthStatusUpdates
   # @rbs fs: ACP::ClientConnection::_FileSystem?
   # @rbs terminal: ACP::ClientConnection::_Terminal?
   # @rbs elicitation: ACP::ClientConnection::_Elicitation?
@@ -94,7 +92,6 @@ class ACP::ClientConnection::Inbound
   # @rbs return: void
   def initialize(
     elicitations:,
-    auth_status_updates:,
     fs: nil, # rubocop:disable Naming/MethodParameterName -- named after ClientCapabilities#fs
     terminal: nil,
     elicitation: nil,
@@ -104,7 +101,6 @@ class ACP::ClientConnection::Inbound
   )
     ACP::Extensions.validate_names(extension_requests.keys + extension_notifications.keys)
     @elicitations = elicitations
-    @auth_status_updates = auth_status_updates
     @fs = fs
     @terminal = terminal
     @elicitation = elicitation
@@ -113,12 +109,6 @@ class ACP::ClientConnection::Inbound
     @extension_notifications = extension_notifications
     @capabilities = nil
     @mcp_advertised = false
-  end
-
-  # @rbs advertised: bool
-  # @rbs return: void
-  def auth_status_advertised=(advertised)
-    @auth_status_updates.advertised = advertised
   end
 
   # @rbs return: Hash[String, ACP::Transport::Stdio::_Handler]
@@ -134,11 +124,7 @@ class ACP::ClientConnection::Inbound
 
   # @rbs return: Hash[String, ACP::Transport::Stdio::_NotificationHandler]
   def notifications
-    {
-      'elicitation/complete' => @elicitations.method(:complete),
-      **@auth_status_updates.notifications,
-      **@extension_notifications
-    }
+    { 'elicitation/complete' => @elicitations.method(:complete), **@extension_notifications }
   end
 
   # @rbs capabilities: ACP::Types::ClientCapabilities?

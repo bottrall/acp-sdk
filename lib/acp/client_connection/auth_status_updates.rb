@@ -39,7 +39,6 @@ class ACP::ClientConnection::AuthStatusUpdates
 
     notification = ACP::Types.parse(ACP::Types::Unstable::AuthStatusUpdateNotification, params)
     if notification.is_a?(ACP::Types::ParseError)
-      # Nor a parse failure, so a malformed one is logged.
       @logger.warn("dropped malformed auth/status_update: #{notification.message}")
     else
       handler.call(notification)

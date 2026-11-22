@@ -406,8 +406,7 @@ describe ACP::AgentConnection do
 
   describe 'schema method coverage' do
     unsupported = [
-      'proxy/initialize', 'proxy/successor', # the proxy role is deferred by #191
-      'auth/status' # SP9, #199
+      'proxy/initialize', 'proxy/successor' # the proxy role is deferred by #191
     ].freeze
     listed = SCHEMA_METHODS.fetch('agentMethods') + SCHEMA_METHODS.fetch('proxyMethods')
 

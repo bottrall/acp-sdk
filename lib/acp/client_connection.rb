@@ -4,6 +4,7 @@ class ACP::ClientConnection
   # @rbs @transport: ACP::Transport::Stdio
   # @rbs @streams: ACP::ClientConnection::Streams
   # @rbs @inbound: ACP::ClientConnection::Inbound
+  # @rbs @auth_status_updates: ACP::ClientConnection::AuthStatusUpdates
 
   IGNORE = ->(_notification) {} #: ^(ACP::Types::SessionNotification) -> void
 
@@ -35,7 +36,6 @@ class ACP::ClientConnection
   )
     inbound = Inbound.new(
       elicitations: Elicitations.new(handler: elicitation, logger:),
-      auth_status_updates: AuthStatusUpdates.new(handler: auth_status_update, logger:),
       fs:,
       terminal:,
       elicitation:,
@@ -43,24 +43,35 @@ class ACP::ClientConnection
       extension_requests:,
       extension_notifications:
     )
-    new(transport:, streams: Streams.new(sender: transport, permission:, updates:, logger:), inbound:)
+    new(
+      transport:,
+      streams: Streams.new(sender: transport, permission:, updates:, logger:),
+      inbound:,
+      auth_status_updates: AuthStatusUpdates.new(handler: auth_status_update, logger:)
+    )
   end
 
   # @rbs transport: ACP::Transport::Stdio
   # @rbs streams: ACP::ClientConnection::Streams
   # @rbs inbound: ACP::ClientConnection::Inbound
+  # @rbs auth_status_updates: ACP::ClientConnection::AuthStatusUpdates
   # @rbs return: void
-  def initialize(transport:, streams:, inbound:)
+  def initialize(transport:, streams:, inbound:, auth_status_updates:)
     @transport = transport
     @streams = streams
     @inbound = inbound
+    @auth_status_updates = auth_status_updates
   end
 
   # @rbs return: Thread
   def start
     @transport.start(
       requests: { 'session/request_permission' => @streams.method(:request_permission), **@inbound.requests },
-      notifications: { 'session/update' => @streams.method(:dispatch), **@inbound.notifications }
+      notifications: {
+        'session/update' => @streams.method(:dispatch),
+        **@inbound.notifications,
+        **@auth_status_updates.notifications
+      }
     )
   end
 
@@ -80,7 +91,7 @@ class ACP::ClientConnection
     reply = result #: Hash[String, untyped]
     agent_capabilities = reply['agentCapabilities'] || {}
     @inbound.mcp_advertised = ACP::Protocol.mcp_acp_advertised?(agent_capabilities)
-    @inbound.auth_status_advertised = ACP::Protocol.auth_status_advertised?(agent_capabilities)
+    @auth_status_updates.advertised = ACP::Protocol.auth_status_advertised?(agent_capabilities)
     return response if response.protocol_version == ACP::Protocol::PROTOCOL_VERSION
 
     ACP::RequestError.unsupported_protocol_version(
