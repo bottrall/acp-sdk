@@ -564,6 +564,41 @@ describe TypeGenerator::Resolve do
     it 'leaves the unlisted properties unclearable' do
       refute_predicate field_for({ 'type' => 'string' }, clearable: ['other']), :clearable?
     end
+
+    it 'gives a required property the literal its null defaults to' do
+      property = { 'type' => 'array', 'items' => { 'type' => 'string' }, 'x-deserialize-default-on-null' => true }
+      fields = resolver.fields(defs, { 'properties' => { 'tags' => property }, 'required' => ['tags'] })
+
+      assert_equal '[]', fields.fetch(0).null_default
+    end
+
+    it 'gives an optional property no null default, since null already parses to nil' do
+      property = { 'type' => 'array', 'items' => { 'type' => 'string' }, 'x-deserialize-default-on-null' => true }
+
+      assert_nil field_for(property).null_default
+    end
+  end
+
+  describe '.null_default' do
+    def unsupported(property) = assert_raises(RuntimeError) { resolver.null_default(property) }.message
+
+    it 'is nil for a property that does not read null as its default' do
+      assert_nil resolver.null_default({ 'type' => 'array' })
+    end
+
+    it 'is an empty array for an array property' do
+      assert_equal '[]', resolver.null_default({ 'type' => 'array', 'x-deserialize-default-on-null' => true })
+    end
+
+    it 'is an empty hash for an object property' do
+      assert_equal '{}', resolver.null_default({ 'type' => 'object', 'x-deserialize-default-on-null' => true })
+    end
+
+    it 'rejects a property of any other type' do
+      property = { 'type' => 'string', 'x-deserialize-default-on-null' => true }
+
+      assert_equal "Unsupported x-deserialize-default-on-null shape: #{property}", unsupported(property)
+    end
   end
 
   describe '.object_fields' do

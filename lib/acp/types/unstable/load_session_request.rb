@@ -55,9 +55,13 @@ class ACP::Types::Unstable::LoadSessionRequest
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Unstable::LoadSessionRequest
   def self.from_h(hash)
-    mcp_servers = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'mcpServers'), 'mcpServers') do |item, path|
+    mcp_servers = ACP::Types::Check.array(
+      ACP::Types::Check.key(hash, 'mcpServers'),
+      'mcpServers',
+      allow_nil: true
+    ) do |item, path|
       ACP::Types::Check.object(item, path, ACP::Types::Unstable::McpServer)
-    end
+    end || []
     additional_directories = ACP::Types::Check.array(
       hash['additionalDirectories'],
       'additionalDirectories',

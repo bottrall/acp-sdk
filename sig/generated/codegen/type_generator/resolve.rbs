@@ -61,6 +61,10 @@ module TypeGenerator::Resolve
   # @rbs return: Array[TypeGenerator::Field]
   def fields: (TypeGenerator::Schema defs, Hash[String, untyped] schema, ?except: Array[String], ?clearable: Array[String]) -> Array[TypeGenerator::Field]
 
+  # @rbs property: Hash[String, untyped]
+  # @rbs return: String?
+  def null_default: (Hash[String, untyped] property) -> String?
+
   # @rbs defs: TypeGenerator::Schema
   # @rbs name: String
   # @rbs return: Array[TypeGenerator::Field]

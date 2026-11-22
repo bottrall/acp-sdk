@@ -49,9 +49,13 @@ class ACP::Types::Unstable::NewSessionRequest
     ) do |item, path|
       ACP::Types::Check.string(item, path)
     end
-    mcp_servers = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'mcpServers'), 'mcpServers') do |item, path|
+    mcp_servers = ACP::Types::Check.array(
+      ACP::Types::Check.key(hash, 'mcpServers'),
+      'mcpServers',
+      allow_nil: true
+    ) do |item, path|
       ACP::Types::Check.object(item, path, ACP::Types::Unstable::McpServer)
-    end
+    end || []
     config_options = ACP::Types::Check.array(hash['configOptions'], 'configOptions', allow_nil: true) do |item, path|
       ACP::Types::Check.object(item, path, ACP::Types::Unstable::InitialSessionConfigOption)
     end

@@ -70,6 +70,11 @@ module TypeGenerator::Emit
   # @rbs return: TypeGenerator::expression
   def from_expression: (TypeGenerator::Field field) -> TypeGenerator::expression
 
+  # @rbs expression: TypeGenerator::expression
+  # @rbs default: String
+  # @rbs return: TypeGenerator::expression
+  def or_default: (TypeGenerator::expression expression, String default) -> TypeGenerator::expression
+
   # Top-level guards take the field path as a string; guards nested in a
   # container take the block's `path` parameter, so the Check module can report
   # absolute paths.
