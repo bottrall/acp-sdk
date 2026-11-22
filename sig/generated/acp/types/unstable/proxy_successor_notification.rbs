@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/proxy_successor_notification.rb with RBS::Inline
+
+class ACP::Types::Unstable::ProxySuccessorNotification
+  # @dynamic method
+  attr_reader method: String
+
+  # @dynamic params
+  attr_reader params: untyped
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs method: String
+  # @rbs params: untyped
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (method: String, ?params: untyped, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::ProxySuccessorNotification
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::ProxySuccessorNotification
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

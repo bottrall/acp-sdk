@@ -5,7 +5,7 @@
 
 class ACP::Types::Unstable::ClientCapabilities
   # @dynamic fs
-  attr_reader :fs #: ACP::Types::FileSystemCapabilities?
+  attr_reader :fs #: ACP::Types::Unstable::FileSystemCapabilities?
 
   # @dynamic terminal
   attr_reader :terminal #: bool?
@@ -14,35 +14,27 @@ class ACP::Types::Unstable::ClientCapabilities
   attr_reader :session #: ACP::Types::Unstable::ClientSessionCapabilities?
 
   # @dynamic subagents
-  attr_reader :subagents #: ACP::Types::Unstable::SubagentCapabilities?
+  attr_reader :subagents #: ACP::Types::SubagentCapabilities?
 
   # @dynamic plan
   attr_reader :plan #: ACP::Types::Unstable::PlanCapabilities?
 
   # @dynamic auth
-  attr_reader :auth #: ACP::Types::AuthCapabilities?
+  attr_reader :auth #: ACP::Types::Unstable::AuthCapabilities?
 
   # @dynamic elicitation
-  attr_reader :elicitation #: ACP::Types::ElicitationCapabilities?
-
-  # @dynamic nes
-  attr_reader :nes #: ACP::Types::Unstable::ClientNesCapabilities?
-
-  # @dynamic position_encodings
-  attr_reader :position_encodings #: Array[String]?
+  attr_reader :elicitation #: ACP::Types::Unstable::ElicitationCapabilities?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
-  # @rbs fs: ACP::Types::FileSystemCapabilities?
+  # @rbs fs: ACP::Types::Unstable::FileSystemCapabilities?
   # @rbs terminal: bool?
   # @rbs session: ACP::Types::Unstable::ClientSessionCapabilities?
-  # @rbs subagents: ACP::Types::Unstable::SubagentCapabilities?
+  # @rbs subagents: ACP::Types::SubagentCapabilities?
   # @rbs plan: ACP::Types::Unstable::PlanCapabilities?
-  # @rbs auth: ACP::Types::AuthCapabilities?
-  # @rbs elicitation: ACP::Types::ElicitationCapabilities?
-  # @rbs nes: ACP::Types::Unstable::ClientNesCapabilities?
-  # @rbs position_encodings: Array[String]?
+  # @rbs auth: ACP::Types::Unstable::AuthCapabilities?
+  # @rbs elicitation: ACP::Types::Unstable::ElicitationCapabilities?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(
@@ -53,8 +45,6 @@ class ACP::Types::Unstable::ClientCapabilities
     plan: nil,
     auth: nil,
     elicitation: nil,
-    nes: nil,
-    position_encodings: nil,
     meta: nil
   )
     @fs = fs
@@ -64,8 +54,6 @@ class ACP::Types::Unstable::ClientCapabilities
     @plan = plan
     @auth = auth
     @elicitation = elicitation
-    @nes = nes
-    @position_encodings = position_encodings
     @meta = meta
     freeze
   end
@@ -73,15 +61,8 @@ class ACP::Types::Unstable::ClientCapabilities
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Unstable::ClientCapabilities
   def self.from_h(hash)
-    position_encodings = ACP::Types::Check.array(
-      hash['positionEncodings'],
-      'positionEncodings',
-      allow_nil: true
-    ) do |item, path|
-      ACP::Types::Check.enum(item, path, %w[utf-16 utf-32 utf-8])
-    end
     new(
-      fs: ACP::Types::Check.object(hash['fs'], 'fs', ACP::Types::FileSystemCapabilities, allow_nil: true),
+      fs: ACP::Types::Check.object(hash['fs'], 'fs', ACP::Types::Unstable::FileSystemCapabilities, allow_nil: true),
       terminal: ACP::Types::Check.boolean(hash['terminal'], 'terminal', allow_nil: true),
       session: ACP::Types::Check.object(
         hash['session'],
@@ -92,19 +73,17 @@ class ACP::Types::Unstable::ClientCapabilities
       subagents: ACP::Types::Check.object(
         hash['subagents'],
         'subagents',
-        ACP::Types::Unstable::SubagentCapabilities,
+        ACP::Types::SubagentCapabilities,
         allow_nil: true
       ),
       plan: ACP::Types::Check.object(hash['plan'], 'plan', ACP::Types::Unstable::PlanCapabilities, allow_nil: true),
-      auth: ACP::Types::Check.object(hash['auth'], 'auth', ACP::Types::AuthCapabilities, allow_nil: true),
+      auth: ACP::Types::Check.object(hash['auth'], 'auth', ACP::Types::Unstable::AuthCapabilities, allow_nil: true),
       elicitation: ACP::Types::Check.object(
         hash['elicitation'],
         'elicitation',
-        ACP::Types::ElicitationCapabilities,
+        ACP::Types::Unstable::ElicitationCapabilities,
         allow_nil: true
       ),
-      nes: ACP::Types::Check.object(hash['nes'], 'nes', ACP::Types::Unstable::ClientNesCapabilities, allow_nil: true),
-      position_encodings:,
       meta: hash['_meta']
     )
   end
@@ -119,8 +98,6 @@ class ACP::Types::Unstable::ClientCapabilities
       'plan' => plan&.to_h,
       'auth' => auth&.to_h,
       'elicitation' => elicitation&.to_h,
-      'nes' => nes&.to_h,
-      'positionEncodings' => position_encodings,
       '_meta' => meta
     }.compact
   end

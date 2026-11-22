@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/system_prompt.rb with RBS::Inline
+
+class ACP::Types::Unstable::SystemPrompt
+  # @dynamic mode
+  attr_reader mode: String
+
+  # @dynamic content
+  attr_reader content: Array[ACP::Types::Unstable::ContentBlock::t]
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs mode: String
+  # @rbs content: Array[ACP::Types::Unstable::ContentBlock::t]
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (mode: String, content: Array[ACP::Types::Unstable::ContentBlock::t], ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SystemPrompt
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SystemPrompt
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

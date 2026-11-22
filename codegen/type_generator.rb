@@ -188,12 +188,11 @@ module TypeGenerator
     # @rbs return: String
     def const(name) = "#{@twins&.include?(name) ? UNSTABLE_NAMESPACE : NAMESPACE}::#{name}"
 
+    # A subsumed def's files live under its variant, whether or not the def changed.
+    #
     # @rbs name: String
     # @rbs return: bool
-    def generated?(name)
-      twins = @twins
-      twins.nil? || twins.include?(name)
-    end
+    def generated?(name) = @twins.nil? || nested_const(name).start_with?("#{UNSTABLE_NAMESPACE}::")
 
     # A subsumed def's nested declarations live under the variant constant
     # that absorbed it: RBS can't declare a namespace under a class alias.

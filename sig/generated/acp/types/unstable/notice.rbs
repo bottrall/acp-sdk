@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/notice.rb with RBS::Inline
-
-class ACP::Types::Unstable::Notice = ACP::Types::Unstable::SessionUpdate::Notice

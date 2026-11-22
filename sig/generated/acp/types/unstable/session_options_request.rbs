@@ -1,0 +1,29 @@
+# Generated from lib/acp/types/unstable/session_options_request.rb with RBS::Inline
+
+class ACP::Types::Unstable::SessionOptionsRequest
+  # @dynamic cwd
+  attr_reader cwd: String
+
+  # @dynamic additional_directories
+  attr_reader additional_directories: Array[String]?
+
+  # @dynamic session_id
+  attr_reader session_id: String?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs cwd: String
+  # @rbs additional_directories: Array[String]?
+  # @rbs session_id: String?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (cwd: String, ?additional_directories: Array[String]?, ?session_id: String?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SessionOptionsRequest
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SessionOptionsRequest
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

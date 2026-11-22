@@ -5,12 +5,12 @@
 
 class ACP::Types::Unstable::SessionUpdate::AvailableCommandsUpdate
   # @dynamic available_commands
-  attr_reader :available_commands #: Array[ACP::Types::AvailableCommand]
+  attr_reader :available_commands #: Array[ACP::Types::Unstable::AvailableCommand]
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
-  # @rbs available_commands: Array[ACP::Types::AvailableCommand]
+  # @rbs available_commands: Array[ACP::Types::Unstable::AvailableCommand]
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(available_commands:, meta: nil)
@@ -26,7 +26,7 @@ class ACP::Types::Unstable::SessionUpdate::AvailableCommandsUpdate
       ACP::Types::Check.key(hash, 'availableCommands'),
       'availableCommands'
     ) do |item, path|
-      ACP::Types::Check.object(item, path, ACP::Types::AvailableCommand)
+      ACP::Types::Check.object(item, path, ACP::Types::Unstable::AvailableCommand)
     end
     new(available_commands:, meta: hash['_meta'])
   end

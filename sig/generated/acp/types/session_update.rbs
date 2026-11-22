@@ -1,7 +1,7 @@
 # Generated from lib/acp/types/session_update.rb with RBS::Inline
 
 module ACP::Types::SessionUpdate
-  type t = ACP::Types::SessionUpdate::UserMessageChunk | ACP::Types::SessionUpdate::AgentMessageChunk | ACP::Types::SessionUpdate::AgentThoughtChunk | ACP::Types::SessionUpdate::ToolCall | ACP::Types::SessionUpdate::ToolCallUpdate | ACP::Types::SessionUpdate::Plan | ACP::Types::SessionUpdate::AvailableCommandsUpdate | ACP::Types::SessionUpdate::CurrentModeUpdate | ACP::Types::SessionUpdate::ConfigOptionUpdate | ACP::Types::SessionUpdate::SessionInfoUpdate | ACP::Types::SessionUpdate::UsageUpdate | Hash[String, untyped]
+  type t = ACP::Types::SessionUpdate::UserMessageChunk | ACP::Types::SessionUpdate::AgentMessageChunk | ACP::Types::SessionUpdate::AgentThoughtChunk | ACP::Types::SessionUpdate::ToolCall | ACP::Types::SessionUpdate::ToolCallUpdate | ACP::Types::SessionUpdate::Plan | ACP::Types::SessionUpdate::PlanUpdate | ACP::Types::SessionUpdate::PlanRemoved | ACP::Types::SessionUpdate::AvailableCommandsUpdate | ACP::Types::SessionUpdate::CurrentModeUpdate | ACP::Types::SessionUpdate::ConfigOptionUpdate | ACP::Types::SessionUpdate::SessionInfoUpdate | ACP::Types::SessionUpdate::UsageUpdate | ACP::Types::SessionUpdate::Notice | ACP::Types::SessionUpdate::CompactionUpdate | ACP::Types::SessionUpdate::CompactionSummaryChunk | ACP::Types::SessionUpdate::SubagentUpdate | ACP::Types::SessionUpdate::SessionMessage | ACP::Types::SessionUpdate::SessionMessageChunk | Hash[String, untyped]
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: t

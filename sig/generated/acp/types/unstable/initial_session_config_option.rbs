@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/initial_session_config_option.rb with RBS::Inline
+
+class ACP::Types::Unstable::InitialSessionConfigOption
+  # @dynamic config_id
+  attr_reader config_id: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @dynamic value
+  attr_reader value: ACP::Types::Unstable::InitialSessionConfigOption::Value::t
+
+  # @rbs config_id: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs value: ACP::Types::Unstable::InitialSessionConfigOption::Value::t
+  # @rbs return: void
+  def initialize: (config_id: String, value: ACP::Types::Unstable::InitialSessionConfigOption::Value::t, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::InitialSessionConfigOption
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::InitialSessionConfigOption
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

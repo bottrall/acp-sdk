@@ -5,39 +5,77 @@
 
 class ACP::Types::Unstable::SessionCapabilities
   # @dynamic list
-  attr_reader :list #: ACP::Types::SessionListCapabilities?
+  attr_reader :list #: ACP::Types::Unstable::SessionListCapabilities?
 
   # @dynamic delete
-  attr_reader :delete #: ACP::Types::SessionDeleteCapabilities?
+  attr_reader :delete #: ACP::Types::Unstable::SessionDeleteCapabilities?
 
   # @dynamic additional_directories
-  attr_reader :additional_directories #: ACP::Types::SessionAdditionalDirectoriesCapabilities?
+  attr_reader :additional_directories #: ACP::Types::Unstable::SessionAdditionalDirectoriesCapabilities?
+
+  # @dynamic system_prompt
+  attr_reader :system_prompt #: ACP::Types::Unstable::SessionSystemPromptCapabilities?
 
   # @dynamic fork
   attr_reader :fork #: ACP::Types::Unstable::SessionForkCapabilities?
 
+  # @dynamic archive
+  attr_reader :archive #: ACP::Types::Unstable::SessionArchiveCapabilities?
+
+  # @dynamic status
+  attr_reader :status #: ACP::Types::Unstable::SessionStatusCapabilities?
+
+  # @dynamic options
+  attr_reader :options #: ACP::Types::Unstable::SessionOptionsCapabilities?
+
+  # @dynamic title
+  attr_reader :title #: ACP::Types::Unstable::SessionTitleCapabilities?
+
   # @dynamic resume
-  attr_reader :resume #: ACP::Types::SessionResumeCapabilities?
+  attr_reader :resume #: ACP::Types::Unstable::SessionResumeCapabilities?
 
   # @dynamic close
-  attr_reader :close #: ACP::Types::SessionCloseCapabilities?
+  attr_reader :close #: ACP::Types::Unstable::SessionCloseCapabilities?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
-  # @rbs list: ACP::Types::SessionListCapabilities?
-  # @rbs delete: ACP::Types::SessionDeleteCapabilities?
-  # @rbs additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?
+  # @rbs list: ACP::Types::Unstable::SessionListCapabilities?
+  # @rbs delete: ACP::Types::Unstable::SessionDeleteCapabilities?
+  # @rbs additional_directories: ACP::Types::Unstable::SessionAdditionalDirectoriesCapabilities?
+  # @rbs system_prompt: ACP::Types::Unstable::SessionSystemPromptCapabilities?
   # @rbs fork: ACP::Types::Unstable::SessionForkCapabilities?
-  # @rbs resume: ACP::Types::SessionResumeCapabilities?
-  # @rbs close: ACP::Types::SessionCloseCapabilities?
+  # @rbs archive: ACP::Types::Unstable::SessionArchiveCapabilities?
+  # @rbs status: ACP::Types::Unstable::SessionStatusCapabilities?
+  # @rbs options: ACP::Types::Unstable::SessionOptionsCapabilities?
+  # @rbs title: ACP::Types::Unstable::SessionTitleCapabilities?
+  # @rbs resume: ACP::Types::Unstable::SessionResumeCapabilities?
+  # @rbs close: ACP::Types::Unstable::SessionCloseCapabilities?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize(list: nil, delete: nil, additional_directories: nil, fork: nil, resume: nil, close: nil, meta: nil)
+  def initialize(
+    list: nil,
+    delete: nil,
+    additional_directories: nil,
+    system_prompt: nil,
+    fork: nil,
+    archive: nil,
+    status: nil,
+    options: nil,
+    title: nil,
+    resume: nil,
+    close: nil,
+    meta: nil
+  )
     @list = list
     @delete = delete
     @additional_directories = additional_directories
+    @system_prompt = system_prompt
     @fork = fork
+    @archive = archive
+    @status = status
+    @options = options
+    @title = title
     @resume = resume
     @close = close
     @meta = meta
@@ -48,17 +86,28 @@ class ACP::Types::Unstable::SessionCapabilities
   # @rbs return: ACP::Types::Unstable::SessionCapabilities
   def self.from_h(hash)
     new(
-      list: ACP::Types::Check.object(hash['list'], 'list', ACP::Types::SessionListCapabilities, allow_nil: true),
+      list: ACP::Types::Check.object(
+        hash['list'],
+        'list',
+        ACP::Types::Unstable::SessionListCapabilities,
+        allow_nil: true
+      ),
       delete: ACP::Types::Check.object(
         hash['delete'],
         'delete',
-        ACP::Types::SessionDeleteCapabilities,
+        ACP::Types::Unstable::SessionDeleteCapabilities,
         allow_nil: true
       ),
       additional_directories: ACP::Types::Check.object(
         hash['additionalDirectories'],
         'additionalDirectories',
-        ACP::Types::SessionAdditionalDirectoriesCapabilities,
+        ACP::Types::Unstable::SessionAdditionalDirectoriesCapabilities,
+        allow_nil: true
+      ),
+      system_prompt: ACP::Types::Check.object(
+        hash['systemPrompt'],
+        'systemPrompt',
+        ACP::Types::Unstable::SessionSystemPromptCapabilities,
         allow_nil: true
       ),
       fork: ACP::Types::Check.object(
@@ -67,13 +116,42 @@ class ACP::Types::Unstable::SessionCapabilities
         ACP::Types::Unstable::SessionForkCapabilities,
         allow_nil: true
       ),
+      archive: ACP::Types::Check.object(
+        hash['archive'],
+        'archive',
+        ACP::Types::Unstable::SessionArchiveCapabilities,
+        allow_nil: true
+      ),
+      status: ACP::Types::Check.object(
+        hash['status'],
+        'status',
+        ACP::Types::Unstable::SessionStatusCapabilities,
+        allow_nil: true
+      ),
+      options: ACP::Types::Check.object(
+        hash['options'],
+        'options',
+        ACP::Types::Unstable::SessionOptionsCapabilities,
+        allow_nil: true
+      ),
+      title: ACP::Types::Check.object(
+        hash['title'],
+        'title',
+        ACP::Types::Unstable::SessionTitleCapabilities,
+        allow_nil: true
+      ),
       resume: ACP::Types::Check.object(
         hash['resume'],
         'resume',
-        ACP::Types::SessionResumeCapabilities,
+        ACP::Types::Unstable::SessionResumeCapabilities,
         allow_nil: true
       ),
-      close: ACP::Types::Check.object(hash['close'], 'close', ACP::Types::SessionCloseCapabilities, allow_nil: true),
+      close: ACP::Types::Check.object(
+        hash['close'],
+        'close',
+        ACP::Types::Unstable::SessionCloseCapabilities,
+        allow_nil: true
+      ),
       meta: hash['_meta']
     )
   end
@@ -84,7 +162,12 @@ class ACP::Types::Unstable::SessionCapabilities
       'list' => list&.to_h,
       'delete' => delete&.to_h,
       'additionalDirectories' => additional_directories&.to_h,
+      'systemPrompt' => system_prompt&.to_h,
       'fork' => fork&.to_h,
+      'archive' => archive&.to_h,
+      'status' => status&.to_h,
+      'options' => options&.to_h,
+      'title' => title&.to_h,
       'resume' => resume&.to_h,
       'close' => close&.to_h,
       '_meta' => meta

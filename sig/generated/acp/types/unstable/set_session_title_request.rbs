@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/set_session_title_request.rb with RBS::Inline
+
+class ACP::Types::Unstable::SetSessionTitleRequest
+  # @dynamic session_id
+  attr_reader session_id: String
+
+  # @dynamic title
+  attr_reader title: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs session_id: String
+  # @rbs title: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (session_id: String, title: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SetSessionTitleRequest
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SetSessionTitleRequest
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

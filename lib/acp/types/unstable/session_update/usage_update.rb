@@ -11,14 +11,14 @@ class ACP::Types::Unstable::SessionUpdate::UsageUpdate
   attr_reader :size #: Integer
 
   # @dynamic cost
-  attr_reader :cost #: ACP::Types::Cost?
+  attr_reader :cost #: ACP::Types::Unstable::Cost?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs used: Integer
   # @rbs size: Integer
-  # @rbs cost: ACP::Types::Cost?
+  # @rbs cost: ACP::Types::Unstable::Cost?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(used:, size:, cost: nil, meta: nil)
@@ -35,7 +35,7 @@ class ACP::Types::Unstable::SessionUpdate::UsageUpdate
     new(
       used: ACP::Types::Check.integer(ACP::Types::Check.key(hash, 'used'), 'used', min: 0),
       size: ACP::Types::Check.integer(ACP::Types::Check.key(hash, 'size'), 'size', min: 0),
-      cost: ACP::Types::Check.object(hash['cost'], 'cost', ACP::Types::Cost, allow_nil: true),
+      cost: ACP::Types::Check.object(hash['cost'], 'cost', ACP::Types::Unstable::Cost, allow_nil: true),
       meta: hash['_meta']
     )
   end

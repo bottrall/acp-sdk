@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/session_system_prompt_capabilities.rb with RBS::Inline
+
+class ACP::Types::SessionSystemPromptCapabilities
+  # @dynamic mode
+  attr_reader mode: ACP::Types::SessionSystemPromptModeCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs mode: ACP::Types::SessionSystemPromptModeCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?mode: ACP::Types::SessionSystemPromptModeCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::SessionSystemPromptCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::SessionSystemPromptCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

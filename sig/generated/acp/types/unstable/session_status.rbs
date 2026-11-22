@@ -1,0 +1,7 @@
+# Generated from lib/acp/types/unstable/session_status.rb with RBS::Inline
+
+module ACP::Types::Unstable::SessionStatus
+  OPEN: ::String
+
+  SAVED: ::String
+end

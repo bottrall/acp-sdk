@@ -8,7 +8,7 @@ class ACP::Types::Unstable::AgentCapabilities
   attr_reader :load_session #: bool?
 
   # @dynamic prompt_capabilities
-  attr_reader :prompt_capabilities #: ACP::Types::PromptCapabilities?
+  attr_reader :prompt_capabilities #: ACP::Types::Unstable::PromptCapabilities?
 
   # @dynamic mcp_capabilities
   attr_reader :mcp_capabilities #: ACP::Types::Unstable::McpCapabilities?
@@ -17,28 +17,20 @@ class ACP::Types::Unstable::AgentCapabilities
   attr_reader :session_capabilities #: ACP::Types::Unstable::SessionCapabilities?
 
   # @dynamic auth
-  attr_reader :auth #: ACP::Types::AgentAuthCapabilities?
+  attr_reader :auth #: ACP::Types::Unstable::AgentAuthCapabilities?
 
   # @dynamic providers
   attr_reader :providers #: ACP::Types::Unstable::ProvidersCapabilities?
-
-  # @dynamic nes
-  attr_reader :nes #: ACP::Types::Unstable::NesCapabilities?
-
-  # @dynamic position_encoding
-  attr_reader :position_encoding #: String?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs load_session: bool?
-  # @rbs prompt_capabilities: ACP::Types::PromptCapabilities?
+  # @rbs prompt_capabilities: ACP::Types::Unstable::PromptCapabilities?
   # @rbs mcp_capabilities: ACP::Types::Unstable::McpCapabilities?
   # @rbs session_capabilities: ACP::Types::Unstable::SessionCapabilities?
-  # @rbs auth: ACP::Types::AgentAuthCapabilities?
+  # @rbs auth: ACP::Types::Unstable::AgentAuthCapabilities?
   # @rbs providers: ACP::Types::Unstable::ProvidersCapabilities?
-  # @rbs nes: ACP::Types::Unstable::NesCapabilities?
-  # @rbs position_encoding: String?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(
@@ -48,8 +40,6 @@ class ACP::Types::Unstable::AgentCapabilities
     session_capabilities: nil,
     auth: nil,
     providers: nil,
-    nes: nil,
-    position_encoding: nil,
     meta: nil
   )
     @load_session = load_session
@@ -58,8 +48,6 @@ class ACP::Types::Unstable::AgentCapabilities
     @session_capabilities = session_capabilities
     @auth = auth
     @providers = providers
-    @nes = nes
-    @position_encoding = position_encoding
     @meta = meta
     freeze
   end
@@ -72,7 +60,7 @@ class ACP::Types::Unstable::AgentCapabilities
       prompt_capabilities: ACP::Types::Check.object(
         hash['promptCapabilities'],
         'promptCapabilities',
-        ACP::Types::PromptCapabilities,
+        ACP::Types::Unstable::PromptCapabilities,
         allow_nil: true
       ),
       mcp_capabilities: ACP::Types::Check.object(
@@ -87,18 +75,16 @@ class ACP::Types::Unstable::AgentCapabilities
         ACP::Types::Unstable::SessionCapabilities,
         allow_nil: true
       ),
-      auth: ACP::Types::Check.object(hash['auth'], 'auth', ACP::Types::AgentAuthCapabilities, allow_nil: true),
+      auth: ACP::Types::Check.object(
+        hash['auth'],
+        'auth',
+        ACP::Types::Unstable::AgentAuthCapabilities,
+        allow_nil: true
+      ),
       providers: ACP::Types::Check.object(
         hash['providers'],
         'providers',
         ACP::Types::Unstable::ProvidersCapabilities,
-        allow_nil: true
-      ),
-      nes: ACP::Types::Check.object(hash['nes'], 'nes', ACP::Types::Unstable::NesCapabilities, allow_nil: true),
-      position_encoding: ACP::Types::Check.enum(
-        hash['positionEncoding'],
-        'positionEncoding',
-        %w[utf-16 utf-32 utf-8],
         allow_nil: true
       ),
       meta: hash['_meta']
@@ -114,8 +100,6 @@ class ACP::Types::Unstable::AgentCapabilities
       'sessionCapabilities' => session_capabilities&.to_h,
       'auth' => auth&.to_h,
       'providers' => providers&.to_h,
-      'nes' => nes&.to_h,
-      'positionEncoding' => position_encoding,
       '_meta' => meta
     }.compact
   end

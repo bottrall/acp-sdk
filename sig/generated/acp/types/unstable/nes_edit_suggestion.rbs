@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/nes_edit_suggestion.rb with RBS::Inline
-
-class ACP::Types::Unstable::NesEditSuggestion = ACP::Types::Unstable::NesSuggestion::Edit

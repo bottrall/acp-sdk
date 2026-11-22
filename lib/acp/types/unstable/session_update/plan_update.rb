@@ -5,12 +5,12 @@
 
 class ACP::Types::Unstable::SessionUpdate::PlanUpdate
   # @dynamic plan
-  attr_reader :plan #: ACP::Types::Unstable::PlanUpdateContent::t
+  attr_reader :plan #: ACP::Types::PlanUpdateContent::t
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
-  # @rbs plan: ACP::Types::Unstable::PlanUpdateContent::t
+  # @rbs plan: ACP::Types::PlanUpdateContent::t
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(plan:, meta: nil)
@@ -23,11 +23,7 @@ class ACP::Types::Unstable::SessionUpdate::PlanUpdate
   # @rbs return: ACP::Types::Unstable::SessionUpdate::PlanUpdate
   def self.from_h(hash)
     new(
-      plan: ACP::Types::Check.object(
-        ACP::Types::Check.key(hash, 'plan'),
-        'plan',
-        ACP::Types::Unstable::PlanUpdateContent
-      ),
+      plan: ACP::Types::Check.object(ACP::Types::Check.key(hash, 'plan'), 'plan', ACP::Types::PlanUpdateContent),
       meta: hash['_meta']
     )
   end

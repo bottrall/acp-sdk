@@ -2,15 +2,15 @@
 
 class ACP::Types::Unstable::SessionUpdate::ConfigOptionUpdate
   # @dynamic config_options
-  attr_reader config_options: Array[ACP::Types::SessionConfigOption]
+  attr_reader config_options: Array[ACP::Types::Unstable::SessionConfigOption]
 
   # @dynamic meta
   attr_reader meta: Hash[String, untyped]?
 
-  # @rbs config_options: Array[ACP::Types::SessionConfigOption]
+  # @rbs config_options: Array[ACP::Types::Unstable::SessionConfigOption]
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize: (config_options: Array[ACP::Types::SessionConfigOption], ?meta: Hash[String, untyped]?) -> void
+  def initialize: (config_options: Array[ACP::Types::Unstable::SessionConfigOption], ?meta: Hash[String, untyped]?) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Unstable::SessionUpdate::ConfigOptionUpdate

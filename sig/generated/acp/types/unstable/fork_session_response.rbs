@@ -5,20 +5,20 @@ class ACP::Types::Unstable::ForkSessionResponse
   attr_reader session_id: String
 
   # @dynamic modes
-  attr_reader modes: ACP::Types::SessionModeState?
+  attr_reader modes: ACP::Types::Unstable::SessionModeState?
 
   # @dynamic config_options
-  attr_reader config_options: Array[ACP::Types::SessionConfigOption]?
+  attr_reader config_options: Array[ACP::Types::Unstable::SessionConfigOption]?
 
   # @dynamic meta
   attr_reader meta: Hash[String, untyped]?
 
   # @rbs session_id: String
-  # @rbs modes: ACP::Types::SessionModeState?
-  # @rbs config_options: Array[ACP::Types::SessionConfigOption]?
+  # @rbs modes: ACP::Types::Unstable::SessionModeState?
+  # @rbs config_options: Array[ACP::Types::Unstable::SessionConfigOption]?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize: (session_id: String, ?modes: ACP::Types::SessionModeState?, ?config_options: Array[ACP::Types::SessionConfigOption]?, ?meta: Hash[String, untyped]?) -> void
+  def initialize: (session_id: String, ?modes: ACP::Types::Unstable::SessionModeState?, ?config_options: Array[ACP::Types::Unstable::SessionConfigOption]?, ?meta: Hash[String, untyped]?) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Unstable::ForkSessionResponse

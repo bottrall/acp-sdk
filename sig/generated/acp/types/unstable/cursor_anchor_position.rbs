@@ -1,0 +1,7 @@
+# Generated from lib/acp/types/unstable/cursor_anchor_position.rb with RBS::Inline
+
+module ACP::Types::Unstable::CursorAnchorPosition
+  BEFORE: ::String
+
+  AFTER: ::String
+end

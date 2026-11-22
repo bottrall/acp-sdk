@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/session_message_chunk.rb with RBS::Inline
-
-class ACP::Types::Unstable::SessionMessageChunk = ACP::Types::Unstable::SessionUpdate::SessionMessageChunk

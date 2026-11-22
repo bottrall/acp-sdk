@@ -114,7 +114,10 @@ describe TypeGenerator::Plan do
         ]
       )
     end
-    let(:nesting) { schema({ 'Vessel' => { 'oneOf' => [subsuming('cup', flattened)] }, flattened => mode }) }
+    let(:nesting_defs) { { 'Vessel' => { 'oneOf' => [subsuming('cup', flattened)] }, flattened => mode } }
+    let(:nesting) { schema(nesting_defs) }
+    let(:unstable_variant) { schema(nesting_defs, twins: %w[Vessel]) }
+    let(:stable_variant) { schema(nesting_defs, twins: [flattened]) }
 
     it 'emits only the defs reachable from the roots' do
       files, = plan.generate(schema(stable.fetch('$defs')), %w[Step])
@@ -150,6 +153,18 @@ describe TypeGenerator::Plan do
       assert_equal [true, nested.merge(own => content)], [nested.any?, files.slice(own, *nested.keys)]
     end
 
+    it 'keeps the nested union files of a def it does not generate when a variant it generates subsumes it' do
+      files, = plan.generate(unstable_variant, %w[Vessel])
+
+      assert_includes files.keys, "unstable/vessel/cup/#{TypeGenerator::FLATTENED_UNION_ATTRS.fetch(flattened)}.rb"
+    end
+
+    it 'emits nothing for a def it generates when a variant it does not generate subsumes it' do
+      files, = plan.generate(stable_variant, %w[Vessel])
+
+      assert_empty files
+    end
+
     it 'emits a def one variant class subsumes as an alias of that variant' do
       pass = schema({ 'Vessel' => vessel, 'Mug' => object })
       files, = plan.generate(pass, %w[Vessel])
@@ -179,6 +194,14 @@ describe TypeGenerator::Plan do
 
     it 'returns no alias path for a subsumed def the schema does not generate' do
       assert_empty plan.generate(ungenerated, %w[Vessel]).last
+    end
+
+    it 'returns no alias path for a def it does not generate that a variant it generates subsumes' do
+      assert_empty plan.generate(unstable_variant, %w[Vessel]).last
+    end
+
+    it 'returns no alias path for a def it generates that a variant it does not generate subsumes' do
+      assert_empty plan.generate(stable_variant, %w[Vessel]).last
     end
 
     it 'returns no alias path for a def several variant classes subsume' do

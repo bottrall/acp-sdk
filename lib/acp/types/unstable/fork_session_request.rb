@@ -7,6 +7,9 @@ class ACP::Types::Unstable::ForkSessionRequest
   # @dynamic session_id
   attr_reader :session_id #: String
 
+  # @dynamic cursor_id
+  attr_reader :cursor_id #: String?
+
   # @dynamic cwd
   attr_reader :cwd #: String
 
@@ -16,20 +19,41 @@ class ACP::Types::Unstable::ForkSessionRequest
   # @dynamic mcp_servers
   attr_reader :mcp_servers #: Array[ACP::Types::Unstable::McpServer::t]?
 
+  # @dynamic system_prompt
+  attr_reader :system_prompt #: ACP::Types::Unstable::SystemPrompt?
+
+  # @dynamic config_options
+  attr_reader :config_options #: Array[ACP::Types::Unstable::InitialSessionConfigOption]?
+
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs session_id: String
+  # @rbs cursor_id: String?
   # @rbs cwd: String
   # @rbs additional_directories: Array[String]?
   # @rbs mcp_servers: Array[ACP::Types::Unstable::McpServer::t]?
+  # @rbs system_prompt: ACP::Types::Unstable::SystemPrompt?
+  # @rbs config_options: Array[ACP::Types::Unstable::InitialSessionConfigOption]?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize(session_id:, cwd:, additional_directories: nil, mcp_servers: nil, meta: nil)
+  def initialize(
+    session_id:,
+    cwd:,
+    cursor_id: nil,
+    additional_directories: nil,
+    mcp_servers: nil,
+    system_prompt: nil,
+    config_options: nil,
+    meta: nil
+  )
     @session_id = session_id
+    @cursor_id = cursor_id
     @cwd = cwd
     @additional_directories = additional_directories
     @mcp_servers = mcp_servers
+    @system_prompt = system_prompt
+    @config_options = config_options
     @meta = meta
     freeze
   end
@@ -47,11 +71,22 @@ class ACP::Types::Unstable::ForkSessionRequest
     mcp_servers = ACP::Types::Check.array(hash['mcpServers'], 'mcpServers', allow_nil: true) do |item, path|
       ACP::Types::Check.object(item, path, ACP::Types::Unstable::McpServer)
     end
+    config_options = ACP::Types::Check.array(hash['configOptions'], 'configOptions', allow_nil: true) do |item, path|
+      ACP::Types::Check.object(item, path, ACP::Types::Unstable::InitialSessionConfigOption)
+    end
     new(
       session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
+      cursor_id: ACP::Types::Check.string(hash['cursorId'], 'cursorId', allow_nil: true),
       cwd: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'cwd'), 'cwd'),
       additional_directories:,
       mcp_servers:,
+      system_prompt: ACP::Types::Check.object(
+        hash['systemPrompt'],
+        'systemPrompt',
+        ACP::Types::Unstable::SystemPrompt,
+        allow_nil: true
+      ),
+      config_options:,
       meta: hash['_meta']
     )
   end
@@ -61,8 +96,11 @@ class ACP::Types::Unstable::ForkSessionRequest
     {
       'sessionId' => session_id,
       'cwd' => cwd,
+      'cursorId' => cursor_id,
       'additionalDirectories' => additional_directories,
       'mcpServers' => mcp_servers&.map(&:to_h),
+      'systemPrompt' => system_prompt&.to_h,
+      'configOptions' => config_options&.map(&:to_h),
       '_meta' => meta
     }.compact
   end

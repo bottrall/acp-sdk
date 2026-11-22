@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/unstable/set_session_title_response.rb with RBS::Inline
+
+class ACP::Types::Unstable::SetSessionTitleResponse
+  # @dynamic title
+  attr_reader title: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs title: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (title: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SetSessionTitleResponse
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SetSessionTitleResponse
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

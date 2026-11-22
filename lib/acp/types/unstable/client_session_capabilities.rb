@@ -8,23 +8,33 @@ class ACP::Types::Unstable::ClientSessionCapabilities
   attr_reader :compaction #: Hash[String, untyped]?
 
   # @dynamic config_options
-  attr_reader :config_options #: ACP::Types::SessionConfigOptionsCapabilities?
+  attr_reader :config_options #: ACP::Types::Unstable::SessionConfigOptionsCapabilities?
 
   # @dynamic notices
   attr_reader :notices #: Hash[String, untyped]?
+
+  # @dynamic prompt_suggestions
+  attr_reader :prompt_suggestions #: ACP::Types::Unstable::PromptSuggestionsCapabilities?
+
+  # @dynamic cursors
+  attr_reader :cursors #: Hash[String, untyped]?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs compaction: Hash[String, untyped]?
-  # @rbs config_options: ACP::Types::SessionConfigOptionsCapabilities?
+  # @rbs config_options: ACP::Types::Unstable::SessionConfigOptionsCapabilities?
   # @rbs notices: Hash[String, untyped]?
+  # @rbs prompt_suggestions: ACP::Types::Unstable::PromptSuggestionsCapabilities?
+  # @rbs cursors: Hash[String, untyped]?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize(compaction: nil, config_options: nil, notices: nil, meta: nil)
+  def initialize(compaction: nil, config_options: nil, notices: nil, prompt_suggestions: nil, cursors: nil, meta: nil)
     @compaction = compaction
     @config_options = config_options
     @notices = notices
+    @prompt_suggestions = prompt_suggestions
+    @cursors = cursors
     @meta = meta
     freeze
   end
@@ -37,10 +47,17 @@ class ACP::Types::Unstable::ClientSessionCapabilities
       config_options: ACP::Types::Check.object(
         hash['configOptions'],
         'configOptions',
-        ACP::Types::SessionConfigOptionsCapabilities,
+        ACP::Types::Unstable::SessionConfigOptionsCapabilities,
         allow_nil: true
       ),
       notices: hash['notices'],
+      prompt_suggestions: ACP::Types::Check.object(
+        hash['promptSuggestions'],
+        'promptSuggestions',
+        ACP::Types::Unstable::PromptSuggestionsCapabilities,
+        allow_nil: true
+      ),
+      cursors: hash['cursors'],
       meta: hash['_meta']
     )
   end
@@ -51,6 +68,8 @@ class ACP::Types::Unstable::ClientSessionCapabilities
       'compaction' => compaction,
       'configOptions' => config_options&.to_h,
       'notices' => notices,
+      'promptSuggestions' => prompt_suggestions&.to_h,
+      'cursors' => cursors,
       '_meta' => meta
     }.compact
   end

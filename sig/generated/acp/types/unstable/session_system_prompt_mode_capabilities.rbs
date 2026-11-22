@@ -1,0 +1,21 @@
+# Generated from lib/acp/types/unstable/session_system_prompt_mode_capabilities.rb with RBS::Inline
+
+class ACP::Types::Unstable::SessionSystemPromptModeCapabilities
+  # @dynamic override
+  attr_reader override: ACP::Types::Unstable::SessionSystemPromptOverrideCapabilities?
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs override: ACP::Types::Unstable::SessionSystemPromptOverrideCapabilities?
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (?override: ACP::Types::Unstable::SessionSystemPromptOverrideCapabilities?, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::SessionSystemPromptModeCapabilities
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::SessionSystemPromptModeCapabilities
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

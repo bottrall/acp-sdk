@@ -7,6 +7,7 @@ module ACP::Types::ToolCallContent
   #   type t = ACP::Types::ToolCallContent::Content
   #          | ACP::Types::ToolCallContent::Diff
   #          | ACP::Types::ToolCallContent::Terminal
+  #          | ACP::Types::ToolCallContent::Session
   #          | Hash[String, untyped]
 
   # @rbs hash: Hash[String, untyped]
@@ -16,6 +17,7 @@ module ACP::Types::ToolCallContent
     when 'content' then ACP::Types::ToolCallContent::Content.from_h(hash)
     when 'diff' then ACP::Types::ToolCallContent::Diff.from_h(hash)
     when 'terminal' then ACP::Types::ToolCallContent::Terminal.from_h(hash)
+    when 'session' then ACP::Types::ToolCallContent::Session.from_h(hash)
     else hash
     end
   end

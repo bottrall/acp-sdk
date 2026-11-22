@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/compaction_update.rb with RBS::Inline
-
-class ACP::Types::Unstable::CompactionUpdate = ACP::Types::Unstable::SessionUpdate::CompactionUpdate

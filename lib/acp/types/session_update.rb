@@ -10,11 +10,19 @@ module ACP::Types::SessionUpdate
   #          | ACP::Types::SessionUpdate::ToolCall
   #          | ACP::Types::SessionUpdate::ToolCallUpdate
   #          | ACP::Types::SessionUpdate::Plan
+  #          | ACP::Types::SessionUpdate::PlanUpdate
+  #          | ACP::Types::SessionUpdate::PlanRemoved
   #          | ACP::Types::SessionUpdate::AvailableCommandsUpdate
   #          | ACP::Types::SessionUpdate::CurrentModeUpdate
   #          | ACP::Types::SessionUpdate::ConfigOptionUpdate
   #          | ACP::Types::SessionUpdate::SessionInfoUpdate
   #          | ACP::Types::SessionUpdate::UsageUpdate
+  #          | ACP::Types::SessionUpdate::Notice
+  #          | ACP::Types::SessionUpdate::CompactionUpdate
+  #          | ACP::Types::SessionUpdate::CompactionSummaryChunk
+  #          | ACP::Types::SessionUpdate::SubagentUpdate
+  #          | ACP::Types::SessionUpdate::SessionMessage
+  #          | ACP::Types::SessionUpdate::SessionMessageChunk
   #          | Hash[String, untyped]
 
   # @rbs hash: Hash[String, untyped]
@@ -27,11 +35,19 @@ module ACP::Types::SessionUpdate
     when 'tool_call' then ACP::Types::SessionUpdate::ToolCall.from_h(hash)
     when 'tool_call_update' then ACP::Types::SessionUpdate::ToolCallUpdate.from_h(hash)
     when 'plan' then ACP::Types::SessionUpdate::Plan.from_h(hash)
+    when 'plan_update' then ACP::Types::SessionUpdate::PlanUpdate.from_h(hash)
+    when 'plan_removed' then ACP::Types::SessionUpdate::PlanRemoved.from_h(hash)
     when 'available_commands_update' then ACP::Types::SessionUpdate::AvailableCommandsUpdate.from_h(hash)
     when 'current_mode_update' then ACP::Types::SessionUpdate::CurrentModeUpdate.from_h(hash)
     when 'config_option_update' then ACP::Types::SessionUpdate::ConfigOptionUpdate.from_h(hash)
     when 'session_info_update' then ACP::Types::SessionUpdate::SessionInfoUpdate.from_h(hash)
     when 'usage_update' then ACP::Types::SessionUpdate::UsageUpdate.from_h(hash)
+    when 'notice' then ACP::Types::SessionUpdate::Notice.from_h(hash)
+    when 'compaction_update' then ACP::Types::SessionUpdate::CompactionUpdate.from_h(hash)
+    when 'compaction_summary_chunk' then ACP::Types::SessionUpdate::CompactionSummaryChunk.from_h(hash)
+    when 'subagent_update' then ACP::Types::SessionUpdate::SubagentUpdate.from_h(hash)
+    when 'session_message' then ACP::Types::SessionUpdate::SessionMessage.from_h(hash)
+    when 'session_message_chunk' then ACP::Types::SessionUpdate::SessionMessageChunk.from_h(hash)
     else hash
     end
   end

@@ -1,0 +1,25 @@
+# Generated from lib/acp/types/unstable/cursor_anchor/user_message.rb with RBS::Inline
+
+class ACP::Types::Unstable::CursorAnchor::UserMessage
+  # @dynamic message_id
+  attr_reader message_id: String
+
+  # @dynamic position
+  attr_reader position: String
+
+  # @dynamic meta
+  attr_reader meta: Hash[String, untyped]?
+
+  # @rbs message_id: String
+  # @rbs position: String
+  # @rbs meta: Hash[String, untyped]?
+  # @rbs return: void
+  def initialize: (message_id: String, position: String, ?meta: Hash[String, untyped]?) -> void
+
+  # @rbs hash: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::CursorAnchor::UserMessage
+  def self.from_h: (Hash[String, untyped] hash) -> ACP::Types::Unstable::CursorAnchor::UserMessage
+
+  # @rbs return: Hash[String, untyped]
+  def to_h: () -> Hash[String, untyped]
+end

@@ -74,19 +74,19 @@ module TypeGenerator::Plan
     seen = reachable(schema, roots.map { |name| [name, :normal] }, {})
     subsumed = seen.filter_map { |name, status| [name, status.first] if status.is_a?(Array) && status.size == 1 }.to_h
     defs = schema.with_subsumed(subsumed)
+    # The alias is declared at the def's own constant and targets its variant,
+    # so this pass emits it only when it generates both.
+    aliased = subsumed.select { |name, _| schema.generated?(name) && defs.generated?(name) }
     files = seen.flat_map do |name, status|
-      if !schema.generated?(name) then []
-      elsif status == :normal then TypeGenerator::Resolve.definition_files(defs, name)
+      if status == :normal then TypeGenerator::Resolve.definition_files(defs, name)
       else
         own = TypeGenerator::Naming.path(schema.const(name))
         kept = TypeGenerator::Resolve.definition_files(defs, name).reject { |path, _| path == own }
-        kept.push(alias_file(schema, name, subsumed[name])) if subsumed[name]
+        kept.push(alias_file(schema, name, aliased[name])) if aliased[name]
         kept
       end
     end.sort.to_h
-    aliases = subsumed.filter_map do |name, _|
-      TypeGenerator::Naming.path(schema.const(name)) if schema.generated?(name)
-    end.sort
+    aliases = aliased.map { |name, _| TypeGenerator::Naming.path(schema.const(name)) }.sort
     [files, aliases]
   end
 

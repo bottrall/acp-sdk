@@ -8,17 +8,17 @@ class ACP::Types::Unstable::SessionUpdate::UsageUpdate
   attr_reader size: Integer
 
   # @dynamic cost
-  attr_reader cost: ACP::Types::Cost?
+  attr_reader cost: ACP::Types::Unstable::Cost?
 
   # @dynamic meta
   attr_reader meta: Hash[String, untyped]?
 
   # @rbs used: Integer
   # @rbs size: Integer
-  # @rbs cost: ACP::Types::Cost?
+  # @rbs cost: ACP::Types::Unstable::Cost?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize: (used: Integer, size: Integer, ?cost: ACP::Types::Cost?, ?meta: Hash[String, untyped]?) -> void
+  def initialize: (used: Integer, size: Integer, ?cost: ACP::Types::Unstable::Cost?, ?meta: Hash[String, untyped]?) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Unstable::SessionUpdate::UsageUpdate

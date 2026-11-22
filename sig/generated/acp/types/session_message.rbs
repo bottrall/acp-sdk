@@ -1,0 +1,3 @@
+# Generated from lib/acp/types/session_message.rb with RBS::Inline
+
+class ACP::Types::SessionMessage = ACP::Types::SessionUpdate::SessionMessage

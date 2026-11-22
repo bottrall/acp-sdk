@@ -67,6 +67,14 @@ describe TypeGenerator do
         assert stable.generated?('Step')
       end
 
+      it 'generates a subsumed def whose variant is in the unstable namespace' do
+        assert unstable.with_subsumed('Mug' => 'ACP::Types::Unstable::Vessel::Cup').generated?('Mug')
+      end
+
+      it 'does not generate a subsumed twin whose variant is in the stable namespace' do
+        refute unstable.with_subsumed('Step' => 'ACP::Types::Vessel::Cup').generated?('Step')
+      end
+
       it 'generates a twin' do
         assert unstable.generated?('Step')
       end
