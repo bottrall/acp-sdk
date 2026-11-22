@@ -28,14 +28,10 @@ module TypeGenerator::Unions
 
       TypeGenerator::Emit.class_file(defs, variant, variant_fields(defs, option, tag))
     end
-    keys = unique_keys(untagged.map { |option, _| required_keys(defs, option) })
-    # zip can't see that both arrays have one entry per untagged variant, so it
-    # types each key as nilable.
-    untagged_keys = untagged.map(&:last).zip(keys) #: Array[[String, String]]
     dispatch = TypeGenerator::Dispatch.new(
       tag:,
       tagged: variants.tagged.map { |option, variant| [option.dig('properties', tag, 'const'), variant] },
-      untagged: untagged_keys
+      untagged: untagged.map { |option, variant| [variant, required_keys(defs, option)] }
     )
     [union_file(defs, union, dispatch), *tagged_classes, *untagged_classes]
   end
@@ -158,10 +154,11 @@ module TypeGenerator::Unions
   # @rbs return: Array[String]
   def dispatch_body(dispatch)
     unless dispatch.tag
-      return key_dispatch(
-        dispatch.untagged.map { |variant, key| ["hash.key?('#{key}')", ["#{variant}.from_h(hash)"]] },
-        'hash'
-      )
+      keys = unique_keys(dispatch.untagged.map(&:last))
+      # zip can't see that both arrays have one entry per untagged variant, so it
+      # types each key as nilable.
+      keyed = dispatch.untagged.map(&:first).zip(keys) #: Array[[String, String]]
+      return key_dispatch(keyed.map { |variant, key| ["hash.key?('#{key}')", ["#{variant}.from_h(hash)"]] }, 'hash')
     end
 
     raise "Several untagged variants alongside #{dispatch.tag}" if dispatch.untagged.size > 1

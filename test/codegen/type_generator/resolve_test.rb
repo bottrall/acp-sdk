@@ -48,6 +48,10 @@ describe TypeGenerator::Resolve do
   let(:session_info_update) do
     { 'type' => 'object', 'properties' => { 'title' => { 'type' => 'string' }, 'cwd' => { 'type' => 'string' } } }
   end
+  let(:idle_state_update) do
+    properties = { 'usage' => { 'type' => 'integer' }, 'kind' => { 'type' => %w[string null] } }
+    { 'type' => 'object', 'properties' => properties, **choice }
+  end
   let(:raw_defs) do
     {
       'Step' => step,
@@ -60,7 +64,8 @@ describe TypeGenerator::Resolve do
       'MaybeTags' => maybe_tags,
       'Label' => { 'type' => 'string' },
       'SessionConfigOption' => session_config_option,
-      'SessionInfoUpdate' => session_info_update
+      'SessionInfoUpdate' => session_info_update,
+      'IdleStateUpdate' => idle_state_update
     }
   end
   let(:defs) { TypeGenerator::Schema.new(raw_defs) }
@@ -599,6 +604,10 @@ describe TypeGenerator::Resolve do
       )
     end
 
+    it 'leaves out of the own fields of a def with variants the discriminator its variant classes stamp' do
+      assert_equal ['usage', nil], resolver.object_fields(defs, 'IdleStateUpdate').map(&:json)
+    end
+
     it "keeps the def's own fields ahead of the flattened one in a def with variants" do
       assert_equal ['id', nil], resolver.object_fields(defs, 'SessionConfigOption').map(&:json)
     end
@@ -659,6 +668,19 @@ describe TypeGenerator::Resolve do
       subsumed = defs.with_subsumed('SessionConfigOption' => 'ACP::Types::Host::Option')
 
       assert_equal "ACP::Types::Host::Option::#{nested}", resolver.flattened_union(subsumed, 'SessionConfigOption')
+    end
+  end
+
+  describe '.flattened_attr' do
+    it 'is the attr the table lists for the def' do
+      assert_equal TypeGenerator::FLATTENED_UNION_ATTRS.fetch('SessionConfigOption'),
+                   resolver.flattened_attr('SessionConfigOption')
+    end
+
+    it 'raises naming the table and the def for a def the table does not list' do
+      error = raised(RuntimeError) { resolver.flattened_attr('Unlisted') }
+
+      assert_match(/\ANo FLATTENED_UNION_ATTRS entry for Unlisted\b/, error&.message)
     end
   end
 end
