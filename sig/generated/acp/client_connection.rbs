@@ -76,6 +76,26 @@ class ACP::ClientConnection
   # @rbs return: (ACP::Types::Unstable::ForkSessionResponse | ACP::RequestError)
   def fork_session: (ACP::Types::Unstable::ForkSessionRequest request) -> (ACP::Types::Unstable::ForkSessionResponse | ACP::RequestError)
 
+  # @rbs request: ACP::Types::Unstable::ArchiveSessionRequest
+  # @rbs return: (ACP::Types::Unstable::ArchiveSessionResponse | ACP::RequestError)
+  def archive_session: (ACP::Types::Unstable::ArchiveSessionRequest request) -> (ACP::Types::Unstable::ArchiveSessionResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::Unstable::UnarchiveSessionRequest
+  # @rbs return: (ACP::Types::Unstable::UnarchiveSessionResponse | ACP::RequestError)
+  def unarchive_session: (ACP::Types::Unstable::UnarchiveSessionRequest request) -> (ACP::Types::Unstable::UnarchiveSessionResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::Unstable::SessionStatusRequest
+  # @rbs return: (ACP::Types::Unstable::SessionStatusResponse | ACP::RequestError)
+  def session_status: (ACP::Types::Unstable::SessionStatusRequest request) -> (ACP::Types::Unstable::SessionStatusResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::Unstable::SessionOptionsRequest
+  # @rbs return: (ACP::Types::Unstable::SessionOptionsResponse | ACP::RequestError)
+  def session_options: (ACP::Types::Unstable::SessionOptionsRequest request) -> (ACP::Types::Unstable::SessionOptionsResponse | ACP::RequestError)
+
+  # @rbs request: ACP::Types::Unstable::SetSessionTitleRequest
+  # @rbs return: (ACP::Types::Unstable::SetSessionTitleResponse | ACP::RequestError)
+  def set_session_title: (ACP::Types::Unstable::SetSessionTitleRequest request) -> (ACP::Types::Unstable::SetSessionTitleResponse | ACP::RequestError)
+
   # @rbs request: ACP::Types::Unstable::ListProvidersRequest
   # @rbs return: (ACP::Types::Unstable::ListProvidersResponse | ACP::RequestError)
   def list_providers: (ACP::Types::Unstable::ListProvidersRequest request) -> (ACP::Types::Unstable::ListProvidersResponse | ACP::RequestError)

@@ -56,6 +56,11 @@ describe ACP::AgentConnection do
     delete_session
     logout
     fork_session
+    archive_session
+    unarchive_session
+    session_status
+    session_options
+    change_session_title
     list_providers
     set_provider
     disable_provider
@@ -92,6 +97,16 @@ describe ACP::AgentConnection do
   ].freeze
   unstable_routes = [
     ['session/fork', { 'sessionId' => 's', 'cwd' => '/work' }, :fork_session, ACP::Types::Unstable::ForkSessionRequest],
+    ['session/archive', { 'sessionId' => 's' }, :archive_session, ACP::Types::Unstable::ArchiveSessionRequest],
+    ['session/unarchive', { 'sessionId' => 's' }, :unarchive_session, ACP::Types::Unstable::UnarchiveSessionRequest],
+    ['session/status', { 'sessionId' => 's' }, :session_status, ACP::Types::Unstable::SessionStatusRequest],
+    ['session/options', { 'cwd' => '/work' }, :session_options, ACP::Types::Unstable::SessionOptionsRequest],
+    [
+      'session/set_title',
+      { 'sessionId' => 's', 'title' => 'Refactor' },
+      :change_session_title,
+      ACP::Types::Unstable::SetSessionTitleRequest
+    ],
     ['providers/list', {}, :list_providers, ACP::Types::Unstable::ListProvidersRequest],
     ['providers/set', set_provider, :set_provider, ACP::Types::Unstable::SetProviderRequest],
     [
@@ -120,7 +135,11 @@ describe ACP::AgentConnection do
         resume: ACP::Types::SessionResumeCapabilities.new,
         close: ACP::Types::SessionCloseCapabilities.new,
         delete: ACP::Types::SessionDeleteCapabilities.new,
-        fork: ACP::Types::Unstable::SessionForkCapabilities.new
+        fork: ACP::Types::Unstable::SessionForkCapabilities.new,
+        archive: ACP::Types::Unstable::SessionArchiveCapabilities.new,
+        status: ACP::Types::Unstable::SessionStatusCapabilities.new,
+        options: ACP::Types::Unstable::SessionOptionsCapabilities.new,
+        title: ACP::Types::Unstable::SessionTitleCapabilities.new
       )
     )
   end
@@ -247,12 +266,17 @@ describe ACP::AgentConnection do
           providers/disable
           providers/list
           providers/set
+          session/archive
           session/close
           session/delete
           session/fork
           session/list
           session/load
+          session/options
           session/resume
+          session/set_title
+          session/status
+          session/unarchive
         ],
         (transport.requests.keys - %w[initialize session/new session/prompt]).sort
       )
@@ -304,6 +328,11 @@ describe ACP::AgentConnection do
     it 'starts without the unstable routes when the unstable types are not opted into' do
       keys = stable_only_routes(<<~RUBY)
         def agent.fork_session(_request); end
+        def agent.archive_session(_request); end
+        def agent.unarchive_session(_request); end
+        def agent.session_status(_request); end
+        def agent.session_options(_request); end
+        def agent.change_session_title(_request); end
         def agent.list_providers(_request); end
         def agent.set_provider(_request); end
         def agent.disable_provider(_request); end
