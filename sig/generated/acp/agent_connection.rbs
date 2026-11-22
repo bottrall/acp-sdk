@@ -70,6 +70,10 @@ class ACP::AgentConnection
   # @rbs return: ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
   def route: (ACP::Transport::_Parser type) { (untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply) } -> ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
 
+  # @rbs request: untyped
+  # @rbs return: bool
+  def unadvertised_system_prompt?: (untyped request) -> bool
+
   # @rbs client: ACP::AgentConnection::Client
   # @rbs request: ACP::Types::InitializeRequest
   # @rbs return: ACP::Types::InitializeResponse

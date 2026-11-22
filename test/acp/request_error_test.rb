@@ -124,6 +124,17 @@ describe ACP::RequestError do
     end
   end
 
+  describe '.unadvertised_agent_param' do
+    it 'builds a -32602 error naming the capability the agent lacks' do
+      error = ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt')
+
+      assert_equal(
+        [-32_602, 'Agent does not advertise sessionCapabilities.systemPrompt', nil],
+        [error.code, error.message, error.data]
+      )
+    end
+  end
+
   describe '.internal_error' do
     it 'builds a -32603 error' do
       error = ACP::RequestError.internal_error

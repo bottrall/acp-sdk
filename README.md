@@ -71,7 +71,7 @@ Each request method returns its response type, or an [`ACP::RequestError`](#erro
 | `change_session_mode`, `change_session_config_option` | Your sessions offer modes or config options |
 | `session_created(response)` | You want a hook after `session/new` is answered, e.g. to send available commands |
 
-`start` raises `ArgumentError` if you advertise a capability without implementing its method. Requests for anything you don't advertise are rejected before they reach your agent.
+`start` raises `ArgumentError` if you advertise a capability without implementing its method. Requests for anything you don't advertise are rejected before they reach your agent, including a session request carrying a `systemPrompt` unless `capabilities.session_capabilities` sets `system_prompt`.
 
 ### Calling the client
 
@@ -86,6 +86,15 @@ Each request method returns its response type, or an [`ACP::RequestError`](#erro
 | `capabilities` | The client's `ClientCapabilities` (`nil` until the client connects) |
 
 File, terminal and elicitation calls need the matching client capability. Without it they return an error without contacting the client, so check `client.capabilities` before offering a feature that depends on one.
+
+`update` returns `nil` once sent, but some updates need a client capability too, and without it `update` returns an error and sends nothing:
+
+| Update | Client capability |
+| --- | --- |
+| `Notice` | `session.notices` |
+| `CompactionUpdate`, `CompactionSummaryChunk` | `session.compaction` |
+| `PlanUpdate`, `PlanRemoved` | `plan` |
+| `SubagentUpdate`, `SessionMessage`, `SessionMessageChunk`, and a `ToolCall` or `ToolCallUpdate` with `session` content | `subagents` |
 
 ### Cancellation
 

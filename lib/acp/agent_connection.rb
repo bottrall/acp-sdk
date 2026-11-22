@@ -226,9 +226,19 @@ class ACP::AgentConnection
     lambda do |params|
       request = ACP::Types.parse(type, params)
       next ACP::RequestError.invalid_params([request.message]) if request.is_a?(ACP::Types::ParseError)
+      if unadvertised_system_prompt?(request)
+        next ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt')
+      end
 
       yield(request)
     end
+  end
+
+  # @rbs request: untyped
+  # @rbs return: bool
+  def unadvertised_system_prompt?(request)
+    request.respond_to?(:system_prompt) && !request.system_prompt.nil? &&
+      !@capabilities.session_capabilities&.system_prompt
   end
 
   # @rbs client: ACP::AgentConnection::Client
