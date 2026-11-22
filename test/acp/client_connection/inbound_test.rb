@@ -19,6 +19,20 @@ class InboundElicitations
   end
 end
 
+class InboundAuthStatusUpdates
+  def initialize(log)
+    @log = log
+  end
+
+  def notifications
+    { 'auth/status_update' => :auth_status_route }
+  end
+
+  def advertised=(advertised)
+    @log << [:auth_status_advertised, advertised]
+  end
+end
+
 describe ACP::ClientConnection::Inbound do
   terminal_params = { 'sessionId' => 's', 'terminalId' => 't1' }
   routes = [
@@ -52,10 +66,19 @@ describe ACP::ClientConnection::Inbound do
   before do
     @log = []
     @elicitations = InboundElicitations.new(@log)
+    @auth_status_updates = InboundAuthStatusUpdates.new(@log)
   end
 
   def inbound(**)
-    ACP::ClientConnection::Inbound.new(elicitations: @elicitations, **)
+    ACP::ClientConnection::Inbound.new(elicitations: @elicitations, auth_status_updates: @auth_status_updates, **)
+  end
+
+  describe '#auth_status_advertised=' do
+    it 'tells the auth status updates whether the agent advertised auth.status' do
+      inbound.auth_status_advertised = true
+
+      assert_equal [[:auth_status_advertised, true]], @log
+    end
   end
 
   def fs_methods
@@ -134,6 +157,10 @@ describe ACP::ClientConnection::Inbound do
       inbound.notifications.fetch('elicitation/complete').call(:completion)
 
       assert_equal [%i[complete completion]], @log
+    end
+
+    it 'adds the auth status updates notifications' do
+      assert_equal :auth_status_route, inbound.notifications['auth/status_update']
     end
 
     it 'adds the extension notifications' do
@@ -268,7 +295,7 @@ describe ACP::ClientConnection::Inbound do
       out, _err = Open3.capture3('bundle', 'exec', 'ruby', '-I', 'lib', '-e', <<~RUBY)
         require 'acp/sdk'
 
-        inbound = ACP::ClientConnection::Inbound.new(elicitations: nil, mcp_message: ->(_request) {})
+        inbound = ACP::ClientConnection::Inbound.new(elicitations: nil, auth_status_updates: nil, mcp_message: ->(_request) {})
         print inbound.requests.key?('mcp/message')
       RUBY
 

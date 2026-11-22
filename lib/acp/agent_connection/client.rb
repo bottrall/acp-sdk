@@ -3,16 +3,19 @@
 class ACP::AgentConnection::Client
   # @rbs @peer: ACP::Transport::Stdio
   # @rbs @mcp_advertised: bool
+  # @rbs @auth_status_advertised: bool
 
   # @dynamic capabilities, capabilities=
   attr_accessor :capabilities #: ACP::Types::ClientCapabilities?
 
   # @rbs peer: ACP::Transport::Stdio
   # @rbs mcp_advertised: bool
+  # @rbs auth_status_advertised: bool
   # @rbs return: void
-  def initialize(peer:, mcp_advertised: false)
+  def initialize(peer:, mcp_advertised: false, auth_status_advertised: false)
     @peer = peer
     @mcp_advertised = mcp_advertised
+    @auth_status_advertised = auth_status_advertised
     @capabilities = nil
   end
 
@@ -123,6 +126,14 @@ class ACP::AgentConnection::Client
     return ACP::RequestError.unadvertised_agent('mcpCapabilities.acp') unless @mcp_advertised
 
     call('mcp/message', ACP::Types::Unstable::MessageMcpResponse, request)
+  end
+
+  # @rbs notification: ACP::Types::Unstable::AuthStatusUpdateNotification
+  # @rbs return: void
+  def auth_status_update(notification)
+    return ACP::RequestError.unadvertised_agent('auth.status') unless @auth_status_advertised
+
+    @peer.notify('auth/status_update', notification.to_h)
   end
 
   # Extension methods have no schema to parse the result into.

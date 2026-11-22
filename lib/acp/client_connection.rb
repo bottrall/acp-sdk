@@ -15,6 +15,7 @@ class ACP::ClientConnection
   # @rbs elicitation: ACP::ClientConnection::_Elicitation?
   # @rbs mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) ->
   #   (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
+  # @rbs auth_status_update: (^(ACP::Types::Unstable::AuthStatusUpdateNotification) -> void)?
   # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs logger: ACP::Transport::_Logger
@@ -27,12 +28,14 @@ class ACP::ClientConnection
     terminal: nil,
     elicitation: nil,
     mcp_message: nil,
+    auth_status_update: nil,
     extension_requests: {},
     extension_notifications: {},
     logger: ACP::Transport::StderrLogger.new
   )
     inbound = Inbound.new(
       elicitations: Elicitations.new(handler: elicitation, logger:),
+      auth_status_updates: AuthStatusUpdates.new(handler: auth_status_update, logger:),
       fs:,
       terminal:,
       elicitation:,
@@ -75,7 +78,9 @@ class ACP::ClientConnection
     # Safe: parse only calls from_h on a Hash, and its RequestError answer
     # short-circuited above.
     reply = result #: Hash[String, untyped]
-    @inbound.mcp_advertised = ACP::Protocol.mcp_acp_advertised?(reply['agentCapabilities'] || {})
+    agent_capabilities = reply['agentCapabilities'] || {}
+    @inbound.mcp_advertised = ACP::Protocol.mcp_acp_advertised?(agent_capabilities)
+    @inbound.auth_status_advertised = ACP::Protocol.auth_status_advertised?(agent_capabilities)
     return response if response.protocol_version == ACP::Protocol::PROTOCOL_VERSION
 
     ACP::RequestError.unsupported_protocol_version(
@@ -191,6 +196,12 @@ class ACP::ClientConnection
   # @rbs return: ACP::Types::LogoutResponse | ACP::RequestError
   def logout(request)
     parse(ACP::Types::LogoutResponse, @transport.request('logout', request.to_h))
+  end
+
+  # @rbs request: ACP::Types::Unstable::AuthStatusRequest
+  # @rbs return: (ACP::Types::Unstable::AuthStatusResponse | ACP::RequestError)
+  def auth_status(request)
+    parse(ACP::Types::Unstable::AuthStatusResponse, @transport.request('auth/status', request.to_h))
   end
 
   # Extension methods have no schema to parse the result into.

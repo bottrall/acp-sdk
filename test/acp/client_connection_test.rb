@@ -84,6 +84,10 @@ class ClientConnectionInbound
   def mcp_advertised=(advertised)
     @log << [:mcp_advertised, advertised]
   end
+
+  def auth_status_advertised=(advertised)
+    @log << [:auth_status_advertised, advertised]
+  end
 end
 
 class ClientConnectionCancellation
@@ -234,6 +238,18 @@ describe ACP::ClientConnection do
       )
     end
 
+    it 'wires the auth_status_update handler to auth/status_update' do
+      client = built(auth_status_update: recording(:auth_status_update))
+      @transport.replies['initialize'] = {
+        'protocolVersion' => 1, 'agentCapabilities' => { 'auth' => { 'status' => {} } }
+      }
+      client.connect(initialize_request)
+      @log.clear
+      @transport.notification_handlers.fetch('auth/status_update').call({ 'state' => 'authenticated' })
+
+      assert_equal [[:auth_status_update, ACP::Types::Unstable::AuthStatusUpdateNotification]], @log
+    end
+
     it 'wires the mcp_message handler and the extension handlers' do
       mcp = ->(_request) {}
       request = ->(_params) {}
@@ -287,7 +303,12 @@ describe ACP::ClientConnection do
       connection.connect(request)
 
       assert_equal(
-        [[:advertise, request.client_capabilities], [:request, 'initialize', request.to_h], [:mcp_advertised, false]],
+        [
+          [:advertise, request.client_capabilities],
+          [:request, 'initialize', request.to_h],
+          [:mcp_advertised, false],
+          [:auth_status_advertised, false]
+        ],
         @log
       )
     end
@@ -306,7 +327,16 @@ describe ACP::ClientConnection do
       }
       connection.connect(initialize_request)
 
-      assert_equal [:mcp_advertised, true], @log.last
+      assert_includes @log, [:mcp_advertised, true]
+    end
+
+    it 'tells the inbound side the agent advertised auth.status when its reply does' do
+      @transport.replies['initialize'] = {
+        'protocolVersion' => 1, 'agentCapabilities' => { 'auth' => { 'status' => {} } }
+      }
+      connection.connect(initialize_request)
+
+      assert_equal [:auth_status_advertised, true], @log.last
     end
 
     it "returns the agent's error" do
@@ -484,6 +514,14 @@ describe ACP::ClientConnection do
   )
 
   it_sends(:logout, 'logout', ACP::Types::LogoutRequest.new, {}, ACP::Types::LogoutResponse)
+
+  it_sends(
+    :auth_status,
+    'auth/status',
+    ACP::Types::Unstable::AuthStatusRequest.new,
+    { 'state' => 'authenticated' },
+    ACP::Types::Unstable::AuthStatusResponse
+  )
 
   describe 'ext_request' do
     it 'refuses a name without the underscore prefix, before sending anything' do

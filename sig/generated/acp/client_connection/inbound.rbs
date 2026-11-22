@@ -9,6 +9,8 @@ class ACP::ClientConnection::Inbound
 
   @mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?
 
+  @auth_status_updates: ACP::ClientConnection::AuthStatusUpdates
+
   @elicitations: ACP::ClientConnection::Elicitations
 
   @elicitation: ACP::ClientConnection::_Elicitation?
@@ -48,6 +50,7 @@ class ACP::ClientConnection::Inbound
   attr_writer mcp_advertised: bool
 
   # @rbs elicitations: ACP::ClientConnection::Elicitations
+  # @rbs auth_status_updates: ACP::ClientConnection::AuthStatusUpdates
   # @rbs fs: ACP::ClientConnection::_FileSystem?
   # @rbs terminal: ACP::ClientConnection::_Terminal?
   # @rbs elicitation: ACP::ClientConnection::_Elicitation?
@@ -56,7 +59,11 @@ class ACP::ClientConnection::Inbound
   # @rbs extension_requests: Hash[String, ^(untyped) -> untyped]
   # @rbs extension_notifications: Hash[String, ^(untyped) -> void]
   # @rbs return: void
-  def initialize: (elicitations: ACP::ClientConnection::Elicitations, ?fs: ACP::ClientConnection::_FileSystem?, ?terminal: ACP::ClientConnection::_Terminal?, ?elicitation: ACP::ClientConnection::_Elicitation?, ?mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void]) -> void
+  def initialize: (elicitations: ACP::ClientConnection::Elicitations, auth_status_updates: ACP::ClientConnection::AuthStatusUpdates, ?fs: ACP::ClientConnection::_FileSystem?, ?terminal: ACP::ClientConnection::_Terminal?, ?elicitation: ACP::ClientConnection::_Elicitation?, ?mcp_message: (^(ACP::Types::Unstable::MessageMcpRequest) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError))?, ?extension_requests: Hash[String, ^(untyped) -> untyped], ?extension_notifications: Hash[String, ^(untyped) -> void]) -> void
+
+  # @rbs advertised: bool
+  # @rbs return: void
+  def auth_status_advertised=: (bool advertised) -> void
 
   # @rbs return: Hash[String, ACP::Transport::Stdio::_Handler]
   def requests: () -> Hash[String, ACP::Transport::Stdio::_Handler]

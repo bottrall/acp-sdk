@@ -209,7 +209,11 @@ Draft protocol features, such as session forking, providers and usage reporting,
 require 'acp/types/unstable'
 ```
 
-Once loaded, the connections support `fork_session`, `list_providers`, `set_provider` and `disable_provider`. Unstable features aren't part of the spec yet. Peers may not support them, and they can change or disappear in any release.
+Once loaded, the connections support `fork_session`, `list_providers`, `set_provider`, `disable_provider` and `auth_status`.
+
+To report its sign-in state, an agent advertises `auth: ACP::Types::Unstable::AgentAuthCapabilities.new(status: ACP::Types::Unstable::AuthStatusCapabilities.new)` in its capabilities and implements `auth_status`, which must not return `auth_required`: clients call it to learn whether they need to authenticate. It can then push changes with `client.auth_status_update(notification)`. A client receives them by passing `auth_status_update:`, a callable that must return quickly, to `ACP::ClientConnection.build`.
+
+Unstable features aren't part of the spec yet. Peers may not support them, and they can change or disappear in any release.
 
 ## Contributing
 

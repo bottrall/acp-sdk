@@ -59,6 +59,7 @@ describe ACP::AgentConnection do
     list_providers
     set_provider
     disable_provider
+    auth_status
   ].freeze
   per_session = %i[change_session_mode change_session_config_option].freeze
   set_provider = { 'providerId' => 'anthropic', 'apiType' => 'anthropic', 'baseUrl' => 'https://api.example.com' }
@@ -99,7 +100,8 @@ describe ACP::AgentConnection do
       { 'providerId' => 'anthropic' },
       :disable_provider,
       ACP::Types::Unstable::DisableProviderRequest
-    ]
+    ],
+    ['auth/status', {}, :auth_status, ACP::Types::Unstable::AuthStatusRequest]
   ].freeze
   let(:reader) { Object.new }
   let(:transport) { AgentConnectionTransport.new(reader) }
@@ -110,10 +112,18 @@ describe ACP::AgentConnection do
   let(:acp) do
     ACP::Types::AgentCapabilities.new(mcp_capabilities: ACP::Types::Unstable::McpCapabilities.new(acp: true))
   end
+  let(:auth_status) do
+    ACP::Types::AgentCapabilities.new(
+      auth: ACP::Types::Unstable::AgentAuthCapabilities.new(status: ACP::Types::Unstable::AuthStatusCapabilities.new)
+    )
+  end
   let(:everything) do
     ACP::Types::Unstable::AgentCapabilities.new(
       load_session: true,
-      auth: ACP::Types::AgentAuthCapabilities.new(logout: ACP::Types::LogoutCapabilities.new),
+      auth: ACP::Types::Unstable::AgentAuthCapabilities.new(
+        logout: ACP::Types::Unstable::LogoutCapabilities.new,
+        status: ACP::Types::Unstable::AuthStatusCapabilities.new
+      ),
       providers: ACP::Types::Unstable::ProvidersCapabilities.new,
       session_capabilities: ACP::Types::Unstable::SessionCapabilities.new(
         list: ACP::Types::SessionListCapabilities.new,
@@ -123,6 +133,9 @@ describe ACP::AgentConnection do
         fork: ACP::Types::Unstable::SessionForkCapabilities.new
       )
     )
+  end
+  let(:status_update) do
+    ACP::Types::Unstable::AuthStatusUpdateNotification.new(state: ACP::Types::Unstable::AuthState::AUTHENTICATED)
   end
   let(:mcp_request) do
     ACP::Types::Unstable::MessageMcpRequest.new(server_id: 'srv_1', request_id: 'mcp_1', method: 'tools/call')
@@ -200,6 +213,20 @@ describe ACP::AgentConnection do
       assert_empty transport.sent
     end
 
+    it 'lets the client send auth/status_update when auth.status is advertised' do
+      start(AgentConnectionAgent.new(:auth_status), capabilities: auth_status)
+      @client.auth_status_update(status_update)
+
+      assert_equal 1, transport.sent.size
+    end
+
+    it 'keeps the client from sending auth/status_update unless auth.status is advertised' do
+      start
+      @client.auth_status_update(status_update)
+
+      assert_empty transport.sent
+    end
+
     it 'refuses to start, naming the advertised methods the agent lacks' do
       capabilities = ACP::Types::AgentCapabilities.new(
         load_session: true,
@@ -242,6 +269,7 @@ describe ACP::AgentConnection do
 
       assert_equal(
         %w[
+          auth/status
           authenticate
           logout
           providers/disable
@@ -307,6 +335,7 @@ describe ACP::AgentConnection do
         def agent.list_providers(_request); end
         def agent.set_provider(_request); end
         def agent.disable_provider(_request); end
+        def agent.auth_status(_request); end
         capabilities = ACP::Types::AgentCapabilities.new
       RUBY
 
@@ -323,7 +352,9 @@ describe ACP::AgentConnection do
   describe 'optional methods' do
     it 'does not probe the unstable capabilities when the unstable types are not opted into' do
       keys = stable_only_routes(<<~RUBY)
-        capabilities = Struct.new(:session_capabilities, :providers).new(Struct.new(:fork).new(true), true)
+        capabilities = Struct.new(:session_capabilities, :providers, :auth).new(
+          Struct.new(:fork).new(true), true, Struct.new(:status).new(true)
+        )
       RUBY
 
       assert_equal %w[initialize session/new session/prompt], keys

@@ -1,6 +1,8 @@
 # Generated from lib/acp/agent_connection/client.rb with RBS::Inline
 
 class ACP::AgentConnection::Client
+  @auth_status_advertised: bool
+
   @mcp_advertised: bool
 
   @peer: ACP::Transport::Stdio
@@ -10,8 +12,9 @@ class ACP::AgentConnection::Client
 
   # @rbs peer: ACP::Transport::Stdio
   # @rbs mcp_advertised: bool
+  # @rbs auth_status_advertised: bool
   # @rbs return: void
-  def initialize: (peer: ACP::Transport::Stdio, ?mcp_advertised: bool) -> void
+  def initialize: (peer: ACP::Transport::Stdio, ?mcp_advertised: bool, ?auth_status_advertised: bool) -> void
 
   # @rbs session_id: String
   # @rbs update: ACP::Types::SessionUpdate::t
@@ -74,6 +77,10 @@ class ACP::AgentConnection::Client
   # @rbs request: ACP::Types::Unstable::MessageMcpRequest
   # @rbs return: (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
   def mcp_message: (ACP::Types::Unstable::MessageMcpRequest request) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
+
+  # @rbs notification: ACP::Types::Unstable::AuthStatusUpdateNotification
+  # @rbs return: void
+  def auth_status_update: (ACP::Types::Unstable::AuthStatusUpdateNotification notification) -> void
 
   # Extension methods have no schema to parse the result into.
   #

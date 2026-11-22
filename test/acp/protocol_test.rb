@@ -99,4 +99,35 @@ describe ACP::Protocol do
       [42, nil].each { |raw| refute ACP::Protocol.mcp_acp_advertised?(raw) }
     end
   end
+
+  describe '#auth_status_advertised?' do
+    it 'is false when the unstable types are not loaded' do
+      out, _err = Open3.capture3('bundle', 'exec', 'ruby', '-I', 'lib', '-e', <<~RUBY)
+        require 'acp/sdk'
+        print ACP::Protocol.auth_status_advertised?('auth' => { 'status' => {} })
+      RUBY
+
+      assert_equal 'false', out
+    end
+
+    it 'is false when the raw capabilities carry no auth capabilities' do
+      refute ACP::Protocol.auth_status_advertised?({})
+    end
+
+    it 'is false when the raw auth status is malformed' do
+      refute ACP::Protocol.auth_status_advertised?('auth' => { 'status' => true })
+    end
+
+    it 'is false when the raw auth capabilities leave status out' do
+      refute ACP::Protocol.auth_status_advertised?('auth' => { 'logout' => {} })
+    end
+
+    it 'is true when the raw auth capabilities carry status' do
+      assert ACP::Protocol.auth_status_advertised?('auth' => { 'status' => {} })
+    end
+
+    it 'ignores a malformed unrelated capability beside the raw auth capabilities' do
+      assert ACP::Protocol.auth_status_advertised?('auth' => { 'status' => {} }, 'positionEncoding' => 'utf-7')
+    end
+  end
 end

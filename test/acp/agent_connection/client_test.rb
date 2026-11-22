@@ -321,6 +321,22 @@ describe ACP::AgentConnection::Client do
     end
   end
 
+  describe '#auth_status_update' do
+    it 'refuses without notifying unless the agent advertised auth.status' do
+      peer = AgentConnectionClientPeer.new
+      error = before_initialize(peer).auth_status_update(payload)
+
+      assert_equal [ACP::RequestError.unadvertised_agent('auth.status').to_h, []], [error.to_h, peer.notifications]
+    end
+
+    it 'notifies auth/status_update when the agent advertised auth.status' do
+      peer = AgentConnectionClientPeer.new
+      ACP::AgentConnection::Client.new(peer:, auth_status_advertised: true).auth_status_update(payload)
+
+      assert_equal [['auth/status_update', payload.to_h]], peer.notifications
+    end
+  end
+
   describe '#ext_request' do
     it 'raises without a round trip for a name outside the extension namespace' do
       peer = AgentConnectionClientPeer.new
