@@ -1,15 +1,18 @@
 # Vendored ACP schema
 
-`schema.json` is the Agent Client Protocol v1 JSON Schema from the [Schema v1.34.1 release](https://github.com/agentclientprotocol/agent-client-protocol/releases/tag/schema-v1.34.1), unmodified. `bin/generate` generates `lib/acp/types` from it.
+`VERSION` names the [Agent Client Protocol schema release](https://github.com/agentclientprotocol/agent-client-protocol/releases) vendored here, and every file beside it comes from that release's `schema/v1/`, unmodified.
 
-`schema.unstable.json` is the same release's unstable schema, also unmodified. `bin/generate` additionally generates the defs it adds or changes over the stable schema under `ACP::Types::Unstable`, which callers opt into with `require 'acp/types/unstable'`. Defs identical to a stable one are not duplicated; they resolve to the stable class. See the main README for the stability caveats.
+`schema.json` is the Agent Client Protocol v1 JSON Schema. `bin/generate` generates `lib/acp/types` from it.
 
-To move to another release, replace the files and regenerate:
+`schema.unstable.json` is the same release's unstable schema. `bin/generate` additionally generates the defs it adds or changes over the stable schema under `ACP::Types::Unstable`, which callers opt into with `require 'acp/types/unstable'`. Defs identical to a stable one are not duplicated; they resolve to the stable class. See the main README for the stability caveats.
+
+`meta.json` and `meta.unstable.json` are the spec's lists of the methods each side handles. The connection tests fail when they list a method the SDK neither routes nor lists as unsupported in that test file, and the transport test fails when they list a protocol method other than `$/cancel_request`.
+
+To move to another release, set `VERSION`, then fetch the files and regenerate:
 
 ```sh
-curl -fsSL -o schema/schema.json \
-  https://raw.githubusercontent.com/agentclientprotocol/agent-client-protocol/schema-v1.34.1/schema/v1/schema.json
-curl -fsSL -o schema/schema.unstable.json \
-  https://raw.githubusercontent.com/agentclientprotocol/agent-client-protocol/schema-v1.34.1/schema/v1/schema.unstable.json
+bin/fetch-schema
 bin/generate
 ```
+
+`bin/diff-schema <before>` prints, as Markdown, the methods, defs and "MUST only send"-style rules that changed from the schema directory `before` to this one. The `schema-diff` workflow writes it to the job summary of every pull request that changes `schema/`.

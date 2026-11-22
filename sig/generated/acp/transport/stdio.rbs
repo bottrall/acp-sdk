@@ -25,6 +25,8 @@ class ACP::Transport::Stdio
 
   CONNECTION_CLOSED: ACP::RequestError
 
+  CANCEL_REQUEST: ::String
+
   class Serving < Data
     attr_reader id(): untyped
 

@@ -18,6 +18,7 @@ class ACP::Transport::Stdio
   # @rbs @logger: ACP::Transport::_Logger
 
   CONNECTION_CLOSED = ACP::RequestError::CONNECTION_CLOSED #: ACP::RequestError
+  CANCEL_REQUEST = '$/cancel_request'
 
   Serving = Data.define(
     :id, #: untyped
@@ -87,7 +88,7 @@ class ACP::Transport::Stdio
   # @rbs return: void
   def cancel(id)
     pending = @lock.synchronize { @pending.key?(id) }
-    notify('$/cancel_request', { 'requestId' => id }) if pending
+    notify(CANCEL_REQUEST, { 'requestId' => id }) if pending
   end
 
   # Each id is re-checked against the pending table, so one that settled
@@ -137,7 +138,7 @@ class ACP::Transport::Stdio
   def route(message, requests, notifications)
     method = message['method']
     error = message['error']
-    if method == '$/cancel_request' && !message.key?('id')
+    if method == CANCEL_REQUEST && !message.key?('id')
       # Cancellation is transport-owned: the notification targets a request
       # the transport is serving, not application state.
       cancel_request(message['params'])
