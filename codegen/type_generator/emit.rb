@@ -160,7 +160,9 @@ module TypeGenerator::Emit
   def or_default(expression, default)
     return "#{expression} || #{default}" if expression.is_a?(String)
 
-    callee, args, block, = expression
+    callee, args, block, trailer = expression
+    raise "Unsupported null default after a trailer: #{inline(expression)}" if trailer
+
     [callee, args, block, "|| #{default}"]
   end
 

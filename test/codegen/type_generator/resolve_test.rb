@@ -398,7 +398,7 @@ describe TypeGenerator::Resolve do
 
     def union(*options) = resolver.primitive_union(defs, 'Value', options)
 
-    def unsupported(*options) = assert_raises(RuntimeError) { union(*options) }.message
+    def unsupported(*options) = raised(RuntimeError) { union(*options) }&.message
 
     it 'resolves a $ref option through the primitive def it names' do
       assert_equal unconverted(string, [:one_of, string_class, nil]), facets(union(ref('Label')))
@@ -580,7 +580,7 @@ describe TypeGenerator::Resolve do
   end
 
   describe '.null_default' do
-    def unsupported(property) = assert_raises(RuntimeError) { resolver.null_default(property) }.message
+    def unsupported(property) = raised(RuntimeError) { resolver.null_default(property) }&.message
 
     it 'is nil for a property that does not read null as its default' do
       assert_nil resolver.null_default({ 'type' => 'array' })
@@ -598,6 +598,18 @@ describe TypeGenerator::Resolve do
       property = { 'type' => 'string', 'x-deserialize-default-on-null' => true }
 
       assert_equal "Unsupported x-deserialize-default-on-null shape: #{property}", unsupported(property)
+    end
+
+    it 'rejects a default other than the empty value' do
+      property = { 'type' => 'array', 'default' => ['tag'], 'x-deserialize-default-on-null' => true }
+
+      assert_equal "Unsupported x-deserialize-default-on-null default: #{property}", unsupported(property)
+    end
+
+    it 'is the empty value its default already names' do
+      property = { 'type' => 'array', 'default' => [], 'x-deserialize-default-on-null' => true }
+
+      assert_equal '[]', resolver.null_default(property)
     end
   end
 
