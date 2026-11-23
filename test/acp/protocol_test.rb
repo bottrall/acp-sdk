@@ -130,4 +130,35 @@ describe ACP::Protocol do
       assert ACP::Protocol.auth_status_advertised?('auth' => { 'status' => {} }, 'positionEncoding' => 'utf-7')
     end
   end
+
+  describe '#unstable_client_capabilities' do
+    it 'is nil when the unstable types are not loaded' do
+      out, _err = Open3.capture3('bundle', 'exec', 'ruby', '-I', 'lib', '-e', <<~RUBY)
+        require 'acp/sdk'
+        print ACP::Protocol.unstable_client_capabilities('session' => { 'cursors' => {} }).inspect
+      RUBY
+
+      assert_equal 'nil', out
+    end
+
+    it 're-parses the raw session capabilities with the unstable type' do
+      capabilities = ACP::Protocol.unstable_client_capabilities('session' => { 'cursors' => {} })
+
+      assert_equal({ 'cursors' => {} }, capabilities.session.to_h)
+    end
+
+    it 'ignores a malformed unrelated capability beside the raw session capabilities' do
+      capabilities = ACP::Protocol.unstable_client_capabilities('session' => { 'cursors' => {} }, 'elicitation' => 'no')
+
+      assert_equal({ 'session' => { 'cursors' => {} } }, capabilities.to_h)
+    end
+
+    it 'carries no session capabilities when the raw capabilities have none' do
+      assert_nil ACP::Protocol.unstable_client_capabilities({}).session
+    end
+
+    it 'is nil when the raw session capabilities are malformed' do
+      assert_nil ACP::Protocol.unstable_client_capabilities('session' => { 'promptSuggestions' => 'yes' })
+    end
+  end
 end

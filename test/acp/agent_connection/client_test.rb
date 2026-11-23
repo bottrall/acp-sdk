@@ -53,9 +53,10 @@ describe ACP::AgentConnection::Client do
     ACP::AgentConnection::Client.new(peer:)
   end
 
-  def advertising(peer, **capabilities)
+  def advertising(peer, unstable: nil, **capabilities)
     before_initialize(peer).tap do |client|
       client.capabilities = ACP::Types::ClientCapabilities.new(**capabilities)
+      client.unstable_capabilities = unstable
     end
   end
 
@@ -65,24 +66,79 @@ describe ACP::AgentConnection::Client do
 
   let(:payload) { AgentConnectionClientMessage.new({ 'sessionId' => 's' }) }
 
+  text = { 'type' => 'text', 'text' => 'hi' }
+  session_content = [{ 'type' => 'session', 'sessionId' => 'child' }].freeze
+  subagents = ACP::Types::SubagentCapabilities.new
+
+  describe 'schema session update coverage' do
+    ungated = %w[
+      user_message_chunk
+      agent_message_chunk
+      agent_thought_chunk
+      plan
+      available_commands_update
+      current_mode_update
+      config_option_update
+      session_info_update
+      usage_update
+    ].freeze
+    gated = ACP::AgentConnection::Client::GATED_UPDATES.keys + ACP::AgentConnection::Client::SESSION_CONTENT_UPDATES
+    listed = %w[schema.json schema.unstable.json].flat_map do |file|
+      schema = JSON.parse(File.read(File.expand_path("../../../schema/#{file}", __dir__)))
+      schema.dig('$defs', 'SessionUpdate', 'oneOf').map do |variant|
+        variant.dig('properties', 'sessionUpdate', 'const')
+      end
+    end.uniq
+
+    it 'gates every sessionUpdate variant schema/schema*.json lists, or lists it as ungated' do
+      assert_empty(
+        listed - gated - ungated,
+        "gate these in ACP::AgentConnection::Client, or add them to the ungated list in #{__FILE__}"
+      )
+    end
+
+    it 'lists as ungated only variants it does not gate' do
+      assert_empty ungated & gated
+    end
+
+    it 'lists as ungated only variants schema/schema*.json lists' do
+      assert_empty ungated - listed
+    end
+  end
+
   describe '#update' do
     def notified(update)
       [['session/update', ACP::Types::SessionNotification.new(session_id: 's', update:).to_h]]
     end
 
-    text = { 'type' => 'text', 'text' => 'hi' }
-    session_content = [{ 'type' => 'session', 'sessionId' => 'child' }]
     plan = ACP::Types::PlanCapabilities.new
-    subagents = ACP::Types::SubagentCapabilities.new
+    stable_session = ACP::Types::ClientSessionCapabilities.new(notices: {}, compaction: {})
+    unstable = lambda do |**session|
+      ACP::Types::Unstable::ClientCapabilities.new(
+        session: ACP::Types::Unstable::ClientSessionCapabilities.new(**session)
+      )
+    end
+    prompt_suggestions = ACP::Types::Unstable::PromptSuggestionsCapabilities.new
+    every_unstable = unstable.call(prompt_suggestions:, cursors: {})
     {
       'session.notices' => [
         { session: ACP::Types::ClientSessionCapabilities.new(notices: {}) },
-        { session: ACP::Types::ClientSessionCapabilities.new(compaction: {}), plan:, subagents: },
+        {
+          session: ACP::Types::ClientSessionCapabilities.new(compaction: {}),
+          plan:,
+          subagents:,
+          unstable: every_unstable
+        },
         [{ 'sessionUpdate' => 'notice', 'severity' => 'info', 'title' => 'Heads up' }]
       ],
       'session.compaction' => [
         { session: ACP::Types::ClientSessionCapabilities.new(compaction: {}) },
-        { session: ACP::Types::ClientSessionCapabilities.new(notices: {}), plan:, subagents: },
+        {
+          session: ACP::Types::ClientSessionCapabilities.new(notices: {}),
+          plan:,
+          subagents:,
+          unstable: every_unstable
+        },
         [
           { 'sessionUpdate' => 'compaction_update', 'compactionId' => 'c', 'status' => 'started' },
           { 'sessionUpdate' => 'compaction_summary_chunk', 'compactionId' => 'c', 'content' => text }
@@ -90,7 +146,7 @@ describe ACP::AgentConnection::Client do
       ],
       'plan' => [
         { plan: },
-        { session: ACP::Types::ClientSessionCapabilities.new(notices: {}, compaction: {}), subagents: },
+        { session: stable_session, subagents:, unstable: every_unstable },
         [
           {
             'sessionUpdate' => 'plan_update',
@@ -99,21 +155,44 @@ describe ACP::AgentConnection::Client do
           { 'sessionUpdate' => 'plan_removed', 'planId' => 'p' }
         ]
       ],
+      'session.promptSuggestions' => [
+        { unstable: unstable.call(prompt_suggestions:) },
+        { session: stable_session, plan:, subagents:, unstable: unstable.call(cursors: {}) },
+        [{ 'sessionUpdate' => 'prompt_suggestions_update', 'suggestions' => [] }]
+      ],
+      'session.cursors' => [
+        { unstable: unstable.call(cursors: {}) },
+        { session: stable_session, plan:, subagents:, unstable: unstable.call(prompt_suggestions:) },
+        [{ 'sessionUpdate' => 'cursor_update', 'cursorId' => 'c' }]
+      ],
       'subagents' => [
         { subagents: },
-        { session: ACP::Types::ClientSessionCapabilities.new(notices: {}, compaction: {}), plan: },
+        { session: stable_session, plan:, unstable: every_unstable },
         [
           { 'sessionUpdate' => 'subagent_update', 'sessionId' => 'child' },
           { 'sessionUpdate' => 'session_message', 'messageId' => 'm' },
           { 'sessionUpdate' => 'session_message_chunk', 'messageId' => 'm', 'content' => text },
           { 'sessionUpdate' => 'tool_call', 'toolCallId' => 't', 'title' => 'Delegate', 'content' => session_content },
           { 'sessionUpdate' => 'tool_call_update', 'toolCallId' => 't', 'content' => session_content }
-        ]
+        ],
+        {
+          'tool_call holding raw content' => ACP::Types::SessionUpdate::ToolCall.new(
+            tool_call_id: 't', title: 'Delegate', content: session_content
+          ),
+          'tool_call_update holding raw content' => ACP::Types::SessionUpdate::ToolCallUpdate.new(
+            tool_call_id: 't', content: session_content
+          )
+        }
       ]
-    }.each do |capability, (advertised, others, updates)|
-      updates.map { |hash| ACP::Types::SessionUpdate.from_h(hash) }.each do |update|
-        kind = update.to_h['sessionUpdate']
+    }.each do |capability, (advertised, others, hashes, built)|
+      given = hashes.flat_map do |hash|
+        types = [ACP::Types::SessionUpdate, ACP::Types::Unstable::SessionUpdate]
+        [hash, *types.map { |type| type.from_h(hash) }].map do |update|
+          ["#{hash['sessionUpdate']} given as #{update.class}", update]
+        end
+      end
 
+      given.to_h.merge(built.to_h).each do |kind, update|
         it "refuses #{kind} without notifying unless the client advertised #{capability}" do
           peer = AgentConnectionClientPeer.new
           clients = [before_initialize(peer), advertising(peer), advertising(peer, **others)]
@@ -141,7 +220,8 @@ describe ACP::AgentConnection::Client do
         'title' => 'Read',
         'content' => [{ 'type' => 'content', 'content' => text }]
       },
-      'a tool call update without content' => { 'sessionUpdate' => 'tool_call_update', 'toolCallId' => 't' }
+      'a tool call update without content' => { 'sessionUpdate' => 'tool_call_update', 'toolCallId' => 't' },
+      'a message chunk, whose content is one block' => { 'sessionUpdate' => 'agent_message_chunk', 'content' => text }
     }.each do |description, hash|
       it "notifies #{description} on a client that advertised nothing" do
         peer = AgentConnectionClientPeer.new
@@ -182,12 +262,48 @@ describe ACP::AgentConnection::Client do
   end
 
   describe '#request_permission' do
-    it 'requests session/request_permission whatever the client advertised' do
-      peer = AgentConnectionClientPeer.new({ 'outcome' => { 'outcome' => 'cancelled' } })
-      response = before_initialize(peer).request_permission(payload)
+    reply = { 'outcome' => { 'outcome' => 'cancelled' } }
+    permission = lambda do |content|
+      { 'sessionId' => 's', 'toolCall' => { 'toolCallId' => 't', 'content' => content }, 'options' => [] }
+    end
+    delegating = permission.call(session_content)
+    {
+      'a parsed request' => ACP::Types::RequestPermissionRequest.from_h(delegating),
+      'a request holding raw content' => ACP::Types::RequestPermissionRequest.new(
+        session_id: 's',
+        tool_call: ACP::Types::ToolCallUpdate.new(tool_call_id: 't', content: session_content),
+        options: []
+      )
+    }.each do |description, request|
+      it "refuses #{description} with session content without a round trip unless the client advertised subagents" do
+        peer = AgentConnectionClientPeer.new(reply)
+        clients = [before_initialize(peer), advertising(peer), advertising(peer, terminal: true)]
+
+        assert_equal(
+          [[unadvertised('subagents')] * 3, []],
+          [clients.map { |client| client.request_permission(request).to_h }, peer.requests]
+        )
+      end
+
+      it "requests session/request_permission for #{description} with session content when subagents is advertised" do
+        peer = AgentConnectionClientPeer.new(reply)
+        response = advertising(peer, subagents:).request_permission(request)
+
+        assert_equal(
+          [ACP::Types::RequestPermissionResponse, [['session/request_permission', request.to_h]]],
+          [response.class, peer.requests]
+        )
+      end
+    end
+
+    it 'requests session/request_permission without session content whatever the client advertised' do
+      peer = AgentConnectionClientPeer.new(reply)
+      content = [{ 'type' => 'content', 'content' => text }]
+      request = ACP::Types::RequestPermissionRequest.from_h(permission.call(content))
+      response = before_initialize(peer).request_permission(request)
 
       assert_equal(
-        [ACP::Types::RequestPermissionResponse, [['session/request_permission', payload.to_h]]],
+        [ACP::Types::RequestPermissionResponse, [['session/request_permission', request.to_h]]],
         [response.class, peer.requests]
       )
     end

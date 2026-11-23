@@ -18,4 +18,8 @@ module ACP::Protocol
   # @rbs capabilities: Hash[String, untyped]
   # @rbs return: bool
   def auth_status_advertised?: (Hash[String, untyped] capabilities) -> bool
+
+  # @rbs capabilities: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::ClientCapabilities?
+  def unstable_client_capabilities: (Hash[String, untyped] capabilities) -> ACP::Types::Unstable::ClientCapabilities?
 end

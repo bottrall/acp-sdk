@@ -87,7 +87,7 @@ Each request method returns its response type, or an [`ACP::RequestError`](#erro
 
 File, terminal and elicitation calls need the matching client capability. Without it they return an error without contacting the client, so check `client.capabilities` before offering a feature that depends on one.
 
-`update` returns `nil` once sent, but some updates need a client capability too, and without it `update` returns an error and sends nothing:
+`update` returns `nil` once sent, but some updates need a client capability too, and without it `update` returns an error and sends nothing. Check what it returns: a refused update is otherwise dropped with nothing logged.
 
 | Update | Client capability |
 | --- | --- |
@@ -95,6 +95,12 @@ File, terminal and elicitation calls need the matching client capability. Withou
 | `CompactionUpdate`, `CompactionSummaryChunk` | `session.compaction` |
 | `PlanUpdate`, `PlanRemoved` | `plan` |
 | `SubagentUpdate`, `SessionMessage`, `SessionMessageChunk`, and a `ToolCall` or `ToolCallUpdate` with `session` content | `subagents` |
+| `PromptSuggestionsUpdate` ([unstable](#unstable-features)) | `session.promptSuggestions` |
+| `CursorUpdate` ([unstable](#unstable-features)) | `session.cursors` |
+
+An update is gated by its `sessionUpdate` name, so the table holds whether you build it from `ACP::Types`, from `ACP::Types::Unstable` or as a raw Hash. The two unstable capabilities can only be read once you `require 'acp/types/unstable'`: without it those two updates are always refused.
+
+`request_permission` needs `subagents` too when its tool call has `session` content, and without it returns an error without contacting the client.
 
 ### Cancellation
 

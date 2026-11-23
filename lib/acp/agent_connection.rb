@@ -142,7 +142,7 @@ class ACP::AgentConnection
       [entry.rpc_method, handler]
     end
     {
-      'initialize' => route(ACP::Types::InitializeRequest) { |request| connect(client, request) },
+      'initialize' => route(ACP::Types::InitializeRequest) { |request, params| connect(client, request, params) },
       'session/new' =>
         route(ACP::Types::NewSessionRequest, system_prompt: true) { |request| new_session(agent, request) },
       'session/prompt' => route(ACP::Types::PromptRequest) { |request| agent.prompt(request) }
@@ -266,7 +266,8 @@ class ACP::AgentConnection
 
   # @rbs type: ACP::Transport::_Parser
   # @rbs system_prompt: bool
-  # @rbs &handle: (untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
+  # @rbs &handle: (untyped, Hash[String, untyped]) ->
+  #   (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
   # @rbs return: ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
   def route(type, system_prompt: false, &)
     lambda do |params|
@@ -274,7 +275,7 @@ class ACP::AgentConnection
       next ACP::RequestError.invalid_params([request.message]) if request.is_a?(ACP::Types::ParseError)
 
       refusal = system_prompt_refusal(request.system_prompt) if system_prompt
-      refusal || yield(request)
+      refusal || yield(request, params)
     end
   end
 
@@ -295,10 +296,12 @@ class ACP::AgentConnection
 
   # @rbs client: ACP::AgentConnection::Client
   # @rbs request: ACP::Types::InitializeRequest
+  # @rbs params: Hash[String, untyped]
   # @rbs return: ACP::Types::InitializeResponse
-  def connect(client, request)
+  def connect(client, request, params)
     capabilities = request.client_capabilities || ACP::Types::ClientCapabilities.new
     client.capabilities = capabilities
+    client.unstable_capabilities = ACP::Protocol.unstable_client_capabilities(params['clientCapabilities'] || {})
     initialize_response(auth_methods(capabilities))
   end
 

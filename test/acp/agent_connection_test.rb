@@ -576,6 +576,8 @@ describe ACP::AgentConnection do
   end
 
   describe 'initialize' do
+    let(:cursor_update) { ACP::Types::Unstable::SessionUpdate::CursorUpdate.new(cursor_id: 'c') }
+
     def connect(client_capabilities = nil, **)
       start(**)
       params = { 'protocolVersion' => 1, 'clientCapabilities' => client_capabilities }.compact
@@ -592,6 +594,20 @@ describe ACP::AgentConnection do
       connect
 
       assert_instance_of ACP::Types::ClientCapabilities, @client.capabilities
+    end
+
+    it 'gives the client handle the unstable session capabilities the client sent' do
+      connect({ 'session' => { 'cursors' => {} } })
+      @client.update('s', cursor_update)
+
+      assert_equal 1, transport.sent.size
+    end
+
+    it 'gives the client handle no unstable session capabilities when the client sent no capabilities' do
+      connect
+      @client.update('s', cursor_update)
+
+      assert_empty transport.sent
     end
 
     it 'answers with the protocol version, the capabilities and the agent info' do

@@ -5,8 +5,27 @@ class ACP::AgentConnection::Client
   # @rbs @mcp_advertised: bool
   # @rbs @auth_status_advertised: bool
 
+  GATED_UPDATES = {
+    'notice' => %i[session notices].freeze,
+    'compaction_update' => %i[session compaction].freeze,
+    'compaction_summary_chunk' => %i[session compaction].freeze,
+    'plan_update' => %i[plan].freeze,
+    'plan_removed' => %i[plan].freeze,
+    'prompt_suggestions_update' => %i[session prompt_suggestions].freeze,
+    'cursor_update' => %i[session cursors].freeze,
+    'subagent_update' => %i[subagents].freeze,
+    'session_message' => %i[subagents].freeze,
+    'session_message_chunk' => %i[subagents].freeze
+  }.freeze #: Hash[String, Array[Symbol]]
+
+  SESSION_CONTENT_UPDATES = %w[tool_call tool_call_update].freeze #: Array[String]
+  SESSION_CONTENT_GATE = %i[subagents].freeze #: Array[Symbol]
+
   # @dynamic capabilities, capabilities=
   attr_accessor :capabilities #: ACP::Types::ClientCapabilities?
+
+  # @dynamic unstable_capabilities=
+  attr_writer :unstable_capabilities #: ACP::Types::Unstable::ClientCapabilities?
 
   # @rbs peer: ACP::Transport::Stdio
   # @rbs mcp_advertised: bool
@@ -17,16 +36,20 @@ class ACP::AgentConnection::Client
     @mcp_advertised = mcp_advertised
     @auth_status_advertised = auth_status_advertised
     @capabilities = nil
+    @unstable_capabilities = nil
   end
 
   # @rbs session_id: String
-  # @rbs update: ACP::Types::SessionUpdate::t
+  # @rbs update: ACP::Types::SessionUpdate::t | ACP::Types::Unstable::SessionUpdate::t
   # @rbs return: ACP::RequestError?
   def update(session_id, update)
-    capability = unadvertised_capability(update)
-    return ACP::RequestError.unadvertised(capability) if capability
+    wire = update.to_h
+    kind = wire['sessionUpdate']
+    gate = GATED_UPDATES.fetch(kind) { session_content_gate(wire['content']) if SESSION_CONTENT_UPDATES.include?(kind) }
+    error = refusal(gate)
+    return error if error
 
-    @peer.notify('session/update', ACP::Types::SessionNotification.new(session_id:, update:).to_h)
+    @peer.notify('session/update', ACP::Types::SessionNotification.new(session_id:, update: wire).to_h)
     nil
   end
 
@@ -40,7 +63,8 @@ class ACP::AgentConnection::Client
   # @rbs request: ACP::Types::RequestPermissionRequest
   # @rbs return: ACP::Types::RequestPermissionResponse | ACP::RequestError
   def request_permission(request)
-    call('session/request_permission', ACP::Types::RequestPermissionResponse, request)
+    refusal(session_content_gate(request.to_h.dig('toolCall', 'content'))) ||
+      call('session/request_permission', ACP::Types::RequestPermissionResponse, request)
   end
 
   # @rbs return: void
@@ -160,23 +184,19 @@ class ACP::AgentConnection::Client
 
   private
 
-  # @rbs update: ACP::Types::SessionUpdate::t
-  # @rbs return: String?
-  def unadvertised_capability(update)
-    case update
-    when ACP::Types::SessionUpdate::Notice
-      'session.notices' unless capabilities&.session&.notices
-    when ACP::Types::SessionUpdate::CompactionUpdate, ACP::Types::SessionUpdate::CompactionSummaryChunk
-      'session.compaction' unless capabilities&.session&.compaction
-    when ACP::Types::SessionUpdate::PlanUpdate, ACP::Types::SessionUpdate::PlanRemoved
-      'plan' unless capabilities&.plan
-    when ACP::Types::SessionUpdate::SubagentUpdate,
-         ACP::Types::SessionUpdate::SessionMessage,
-         ACP::Types::SessionUpdate::SessionMessageChunk
-      'subagents' unless capabilities&.subagents
-    when ACP::Types::SessionUpdate::ToolCall, ACP::Types::SessionUpdate::ToolCallUpdate
-      'subagents' if update.content&.any?(ACP::Types::ToolCallContent::Session) && !capabilities&.subagents
-    end
+  # @rbs content: Array[Hash[String, untyped]]?
+  # @rbs return: Array[Symbol]?
+  def session_content_gate(content)
+    SESSION_CONTENT_GATE if content&.any? { |item| item['type'] == 'session' }
+  end
+
+  # @rbs path: Array[Symbol]?
+  # @rbs return: ACP::RequestError?
+  def refusal(path)
+    return if path.nil? || [capabilities, @unstable_capabilities].any? { |root| ACP::Protocol.advertised?(root, path) }
+
+    wire_names = path.map { |step| step.to_s.gsub(/_\w/) { |match| match.delete('_').upcase } }
+    ACP::RequestError.unadvertised(wire_names.join('.'))
   end
 
   # @rbs rpc_method: String

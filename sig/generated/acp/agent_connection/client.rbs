@@ -7,8 +7,17 @@ class ACP::AgentConnection::Client
 
   @peer: ACP::Transport::Stdio
 
+  GATED_UPDATES: Hash[String, Array[Symbol]]
+
+  SESSION_CONTENT_UPDATES: Array[String]
+
+  SESSION_CONTENT_GATE: Array[Symbol]
+
   # @dynamic capabilities, capabilities=
   attr_accessor capabilities: ACP::Types::ClientCapabilities?
+
+  # @dynamic unstable_capabilities=
+  attr_writer unstable_capabilities: ACP::Types::Unstable::ClientCapabilities?
 
   # @rbs peer: ACP::Transport::Stdio
   # @rbs mcp_advertised: bool
@@ -17,9 +26,9 @@ class ACP::AgentConnection::Client
   def initialize: (peer: ACP::Transport::Stdio, ?mcp_advertised: bool, ?auth_status_advertised: bool) -> void
 
   # @rbs session_id: String
-  # @rbs update: ACP::Types::SessionUpdate::t
+  # @rbs update: ACP::Types::SessionUpdate::t | ACP::Types::Unstable::SessionUpdate::t
   # @rbs return: ACP::RequestError?
-  def update: (String session_id, ACP::Types::SessionUpdate::t update) -> ACP::RequestError?
+  def update: (String session_id, ACP::Types::SessionUpdate::t | ACP::Types::Unstable::SessionUpdate::t update) -> ACP::RequestError?
 
   # @rbs session_id: String
   # @rbs commands: Array[ACP::Types::AvailableCommand]
@@ -96,9 +105,13 @@ class ACP::AgentConnection::Client
 
   private
 
-  # @rbs update: ACP::Types::SessionUpdate::t
-  # @rbs return: String?
-  def unadvertised_capability: (ACP::Types::SessionUpdate::t update) -> String?
+  # @rbs content: Array[Hash[String, untyped]]?
+  # @rbs return: Array[Symbol]?
+  def session_content_gate: (Array[Hash[String, untyped]]? content) -> Array[Symbol]?
+
+  # @rbs path: Array[Symbol]?
+  # @rbs return: ACP::RequestError?
+  def refusal: (Array[Symbol]? path) -> ACP::RequestError?
 
   # @rbs rpc_method: String
   # @rbs type: ACP::Transport::_Parser
