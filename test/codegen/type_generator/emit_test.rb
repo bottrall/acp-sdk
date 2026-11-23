@@ -425,6 +425,12 @@ describe TypeGenerator::Emit do
       assert_equal "hash['tags'] || []", emit.or_default("hash['tags']", '[]')
     end
 
+    it 'rejects a call that already has a trailer' do
+      error = raised(RuntimeError) { emit.or_default(['f', %w[value], nil, '#: Array[String]'], '[]') }
+
+      assert_equal 'Unsupported null default after a trailer: f(value) #: Array[String]', error&.message
+    end
+
     it 'trails the fallback after a call, keeping its block' do
       assert_equal ['f', %w[value], %w[item item], '|| {}'], emit.or_default(['f', %w[value], %w[item item], nil], '{}')
     end
@@ -650,7 +656,7 @@ describe TypeGenerator::Emit do
                    emit.inline(['f', %w[value], ['item, path', ['g', %w[item path], nil, nil]], nil])
     end
 
-    it 'appends the cast after the call' do
+    it 'appends the trailer after the call' do
       assert_equal 'f(value) { |item| item } #: Array[String]',
                    emit.inline(['f', %w[value], %w[item item], '#: Array[String]'])
     end

@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/mcp_server_http.rb with RBS::Inline
-
-class ACP::Types::Unstable::McpServerHttp = ACP::Types::Unstable::McpServer::Http

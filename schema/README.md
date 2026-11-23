@@ -4,7 +4,7 @@
 
 `schema.json` is the Agent Client Protocol v1 JSON Schema. `bin/generate` generates `lib/acp/types` from it.
 
-`schema.unstable.json` is the same release's unstable schema. `bin/generate` additionally generates the defs it adds or changes over the stable schema under `ACP::Types::Unstable`, which callers opt into with `require 'acp/types/unstable'`. Defs identical to a stable one are not duplicated; they resolve to the stable class. See the main README for the stability caveats.
+`schema.unstable.json` is the same release's unstable schema. `bin/generate` additionally generates the defs it adds or changes over the stable schema under `ACP::Types::Unstable`, which callers opt into with `require 'acp/types/unstable'`. Defs identical to a stable one are not duplicated; they resolve to the stable class. Neither are defs that differ only in linking to the draft docs, unless they refer to a def that is generated there. See the main README for the stability caveats.
 
 `meta.json` and `meta.unstable.json` are the spec's lists of the methods each side handles. The connection tests fail when they list a method the SDK neither routes nor lists as unsupported in that test file, and the transport test fails when they list a protocol method other than `$/cancel_request`.
 

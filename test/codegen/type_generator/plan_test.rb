@@ -40,6 +40,8 @@ describe TypeGenerator::Plan do
   end
   let(:vessel) { { 'oneOf' => [subsuming('cup', 'Mug')] } }
   let(:shade) { { 'oneOf' => [subsuming('dim', 'Lamp'), subsuming('bright', 'Lamp')] } }
+  let(:stable_link) { 'See [steps](https://agentclientprotocol.com/protocol/v1/steps)' }
+  let(:draft_link) { 'See [steps](https://agentclientprotocol.com/protocol/v1/draft/steps)' }
 
   describe '.files' do
     it 'emits the defs reachable from the x-method roots plus the aliases, sorted by path' do
@@ -84,6 +86,75 @@ describe TypeGenerator::Plan do
 
       assert_equal [files.except('unstable.rb').keys.map { |path| path.delete_suffix('.rb') }.sort, 'unstable/mug'],
                    [required.sort, required.last]
+    end
+  end
+
+  describe '.twins' do
+    it 'lists the defs the unstable schema changes or adds' do
+      assert_equal %w[Step Gadget Stray], plan.twins(stable.fetch('$defs'), unstable.fetch('$defs'))
+    end
+
+    it 'leaves out a def that only relinks its docs' do
+      defs = { 'Step' => object(description: stable_link) }
+
+      assert_empty plan.twins(defs, { 'Step' => object(description: draft_link) })
+    end
+
+    it 'lists a def that only relinks its docs when it refers to a twin' do
+      defs = { 'Widget' => object('Step', description: stable_link), 'Step' => object }
+      relinked = { 'Widget' => object('Step', description: draft_link), 'Step' => object(title: 'Changed') }
+
+      assert_equal %w[Step Widget], plan.twins(defs, relinked)
+    end
+  end
+
+  describe '.stable_docs' do
+    it 'relinks the strings nested anywhere in hashes and arrays' do
+      assert_equal(
+        { 'anyOf' => [{ 'description' => stable_link }] },
+        plan.stable_docs({ 'anyOf' => [{ 'description' => draft_link }] })
+      )
+    end
+
+    it 'points a draft docs link at the stable docs' do
+      assert_equal stable_link, plan.stable_docs(draft_link)
+    end
+
+    it 'returns any other value as it is' do
+      assert_equal 3, plan.stable_docs(3)
+    end
+  end
+
+  describe '.with_referrers' do
+    it 'returns the twins when no def refers to one' do
+      assert_equal %w[Step], plan.with_referrers({ 'Widget' => object('Note') }, %w[Step])
+    end
+
+    it 'adds the defs that refer to a twin' do
+      assert_equal %w[Step Widget], plan.with_referrers({ 'Widget' => object('Step'), 'Note' => object }, %w[Step])
+    end
+
+    it 'adds the defs that refer to one it added' do
+      relinked = { 'Gadget' => object('Widget'), 'Widget' => object('Step') }
+
+      assert_equal %w[Step Widget Gadget], plan.with_referrers(relinked, %w[Step])
+    end
+  end
+
+  describe '.refs' do
+    it 'collects the refs nested anywhere in hashes and arrays' do
+      node = { 'properties' => { 'steps' => { 'items' => ref('Step') } },
+               'anyOf' => [ref('Note'), { 'type' => 'null' }] }
+
+      assert_equal %w[Step Note], plan.refs(node)
+    end
+
+    it "keeps a subsuming option's allOf ref" do
+      assert_equal %w[Mug], plan.refs(subsuming('cup', 'Mug'))
+    end
+
+    it 'finds no refs in a scalar' do
+      assert_empty plan.refs('string')
     end
   end
 

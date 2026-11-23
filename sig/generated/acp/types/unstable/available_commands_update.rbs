@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/available_commands_update.rb with RBS::Inline
-
-class ACP::Types::Unstable::AvailableCommandsUpdate = ACP::Types::Unstable::SessionUpdate::AvailableCommandsUpdate

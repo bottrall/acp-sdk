@@ -14,6 +14,28 @@ module TypeGenerator::Plan
   # @rbs return: Hash[String, String]
   def unstable_files: (Hash[String, Hash[String, untyped]] defs, Hash[String, untyped] unstable_schema) -> Hash[String, String]
 
+  # The unstable schema points the docs links of defs it otherwise leaves alone
+  # at the draft docs. Such a def needs a class of its own only when it refers
+  # to a twin, whose class the stable one would not hold.
+  #
+  # @rbs defs: Hash[String, Hash[String, untyped]]
+  # @rbs unstable_defs: Hash[String, Hash[String, untyped]]
+  # @rbs return: Array[String]
+  def twins: (Hash[String, Hash[String, untyped]] defs, Hash[String, Hash[String, untyped]] unstable_defs) -> Array[String]
+
+  # @rbs node: untyped
+  # @rbs return: untyped
+  def stable_docs: (untyped node) -> untyped
+
+  # @rbs relinked: Hash[String, Hash[String, untyped]]
+  # @rbs twins: Array[String]
+  # @rbs return: Array[String]
+  def with_referrers: (Hash[String, Hash[String, untyped]] relinked, Array[String] twins) -> Array[String]
+
+  # @rbs node: untyped
+  # @rbs return: Array[String]
+  def refs: (untyped node) -> Array[String]
+
   # Aliases are required after the classes they alias: nothing autoloads here,
   # so constant assignment evaluates its target.
   #

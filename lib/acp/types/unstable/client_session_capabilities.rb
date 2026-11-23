@@ -8,7 +8,7 @@ class ACP::Types::Unstable::ClientSessionCapabilities
   attr_reader :compaction #: Hash[String, untyped]?
 
   # @dynamic config_options
-  attr_reader :config_options #: ACP::Types::Unstable::SessionConfigOptionsCapabilities?
+  attr_reader :config_options #: ACP::Types::SessionConfigOptionsCapabilities?
 
   # @dynamic notices
   attr_reader :notices #: Hash[String, untyped]?
@@ -23,7 +23,7 @@ class ACP::Types::Unstable::ClientSessionCapabilities
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs compaction: Hash[String, untyped]?
-  # @rbs config_options: ACP::Types::Unstable::SessionConfigOptionsCapabilities?
+  # @rbs config_options: ACP::Types::SessionConfigOptionsCapabilities?
   # @rbs notices: Hash[String, untyped]?
   # @rbs prompt_suggestions: ACP::Types::Unstable::PromptSuggestionsCapabilities?
   # @rbs cursors: Hash[String, untyped]?
@@ -47,7 +47,7 @@ class ACP::Types::Unstable::ClientSessionCapabilities
       config_options: ACP::Types::Check.object(
         hash['configOptions'],
         'configOptions',
-        ACP::Types::Unstable::SessionConfigOptionsCapabilities,
+        ACP::Types::SessionConfigOptionsCapabilities,
         allow_nil: true
       ),
       notices: hash['notices'],

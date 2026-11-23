@@ -5,12 +5,12 @@
 
 class ACP::Types::Unstable::PromptSuggestion
   # @dynamic prompt
-  attr_reader :prompt #: Array[ACP::Types::Unstable::ContentBlock::t]
+  attr_reader :prompt #: Array[ACP::Types::ContentBlock::t]
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
-  # @rbs prompt: Array[ACP::Types::Unstable::ContentBlock::t]
+  # @rbs prompt: Array[ACP::Types::ContentBlock::t]
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(prompt:, meta: nil)
@@ -23,7 +23,7 @@ class ACP::Types::Unstable::PromptSuggestion
   # @rbs return: ACP::Types::Unstable::PromptSuggestion
   def self.from_h(hash)
     prompt = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'prompt'), 'prompt') do |item, path|
-      ACP::Types::Check.object(item, path, ACP::Types::Unstable::ContentBlock)
+      ACP::Types::Check.object(item, path, ACP::Types::ContentBlock)
     end
     new(prompt:, meta: hash['_meta'])
   end

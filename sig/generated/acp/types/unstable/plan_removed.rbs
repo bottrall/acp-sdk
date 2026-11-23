@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/plan_removed.rb with RBS::Inline
-
-class ACP::Types::Unstable::PlanRemoved = ACP::Types::Unstable::SessionUpdate::PlanRemoved

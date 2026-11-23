@@ -66,14 +66,15 @@ class ACP::AgentConnection
   def mcp_message_notification: (ACP::AgentConnection::_Agent agent, untyped params) -> void
 
   # @rbs type: ACP::Transport::_Parser
+  # @rbs system_prompt: bool
   # @rbs &handle: (untyped, Hash[String, untyped]) ->
   #   (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
   # @rbs return: ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
-  def route: (ACP::Transport::_Parser type) { (untyped, Hash[String, untyped]) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply) } -> ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
+  def route: (ACP::Transport::_Parser type, ?system_prompt: bool) { (untyped, Hash[String, untyped]) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply) } -> ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
 
-  # @rbs request: untyped
-  # @rbs return: bool
-  def unadvertised_system_prompt?: (untyped request) -> bool
+  # @rbs system_prompt: ACP::Types::SystemPrompt?
+  # @rbs return: ACP::RequestError?
+  def system_prompt_refusal: (ACP::Types::SystemPrompt? system_prompt) -> ACP::RequestError?
 
   # @rbs client: ACP::AgentConnection::Client
   # @rbs request: ACP::Types::InitializeRequest

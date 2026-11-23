@@ -9,6 +9,8 @@ class ACP::AgentConnection::OptionalRoute
   attr_reader :agent_method #: Symbol
   # @dynamic path
   attr_reader :path #: Array[Symbol]?
+  # @dynamic system_prompt
+  attr_reader :system_prompt #: bool
   # @dynamic handle
   attr_reader :handle #: ^(ACP::AgentConnection::_FullAgent, untyped) -> (ACP::Transport::_Response | ACP::RequestError)
 
@@ -16,13 +18,15 @@ class ACP::AgentConnection::OptionalRoute
   # @rbs type: ACP::Transport::_Parser
   # @rbs agent_method: Symbol
   # @rbs path: Array[Symbol]?
+  # @rbs system_prompt: bool
   # @rbs &handle: (ACP::AgentConnection::_FullAgent, untyped) -> (ACP::Transport::_Response | ACP::RequestError)
   # @rbs return: void
-  def initialize(rpc_method:, type:, agent_method:, path:, &handle)
+  def initialize(rpc_method:, type:, agent_method:, path:, system_prompt: false, &handle)
     @rpc_method = rpc_method
     @type = type
     @agent_method = agent_method
     @path = path&.freeze
+    @system_prompt = system_prompt
     @handle = handle
     freeze
   end

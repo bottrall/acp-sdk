@@ -11,7 +11,7 @@ class ACP::Types::Unstable::NewSessionRequest
   attr_reader mcp_servers: Array[ACP::Types::Unstable::McpServer::t]
 
   # @dynamic system_prompt
-  attr_reader system_prompt: ACP::Types::Unstable::SystemPrompt?
+  attr_reader system_prompt: ACP::Types::SystemPrompt?
 
   # @dynamic config_options
   attr_reader config_options: Array[ACP::Types::Unstable::InitialSessionConfigOption]?
@@ -22,11 +22,11 @@ class ACP::Types::Unstable::NewSessionRequest
   # @rbs cwd: String
   # @rbs additional_directories: Array[String]?
   # @rbs mcp_servers: Array[ACP::Types::Unstable::McpServer::t]
-  # @rbs system_prompt: ACP::Types::Unstable::SystemPrompt?
+  # @rbs system_prompt: ACP::Types::SystemPrompt?
   # @rbs config_options: Array[ACP::Types::Unstable::InitialSessionConfigOption]?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize: (cwd: String, mcp_servers: Array[ACP::Types::Unstable::McpServer::t], ?additional_directories: Array[String]?, ?system_prompt: ACP::Types::Unstable::SystemPrompt?, ?config_options: Array[ACP::Types::Unstable::InitialSessionConfigOption]?, ?meta: Hash[String, untyped]?) -> void
+  def initialize: (cwd: String, mcp_servers: Array[ACP::Types::Unstable::McpServer::t], ?additional_directories: Array[String]?, ?system_prompt: ACP::Types::SystemPrompt?, ?config_options: Array[ACP::Types::Unstable::InitialSessionConfigOption]?, ?meta: Hash[String, untyped]?) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Unstable::NewSessionRequest

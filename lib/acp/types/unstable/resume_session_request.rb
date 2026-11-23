@@ -17,7 +17,7 @@ class ACP::Types::Unstable::ResumeSessionRequest
   attr_reader :mcp_servers #: Array[ACP::Types::Unstable::McpServer::t]?
 
   # @dynamic system_prompt
-  attr_reader :system_prompt #: ACP::Types::Unstable::SystemPrompt?
+  attr_reader :system_prompt #: ACP::Types::SystemPrompt?
 
   # @dynamic config_options
   attr_reader :config_options #: Array[ACP::Types::Unstable::InitialSessionConfigOption]?
@@ -29,7 +29,7 @@ class ACP::Types::Unstable::ResumeSessionRequest
   # @rbs cwd: String
   # @rbs additional_directories: Array[String]?
   # @rbs mcp_servers: Array[ACP::Types::Unstable::McpServer::t]?
-  # @rbs system_prompt: ACP::Types::Unstable::SystemPrompt?
+  # @rbs system_prompt: ACP::Types::SystemPrompt?
   # @rbs config_options: Array[ACP::Types::Unstable::InitialSessionConfigOption]?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
@@ -76,7 +76,7 @@ class ACP::Types::Unstable::ResumeSessionRequest
       system_prompt: ACP::Types::Check.object(
         hash['systemPrompt'],
         'systemPrompt',
-        ACP::Types::Unstable::SystemPrompt,
+        ACP::Types::SystemPrompt,
         allow_nil: true
       ),
       config_options:,

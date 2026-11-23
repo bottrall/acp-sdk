@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/mcp_server_sse.rb with RBS::Inline
-
-class ACP::Types::Unstable::McpServerSse = ACP::Types::Unstable::McpServer::Sse

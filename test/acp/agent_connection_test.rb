@@ -136,7 +136,7 @@ describe ACP::AgentConnection do
     ACP::Types::Unstable::AgentCapabilities.new(
       load_session: true,
       auth: ACP::Types::Unstable::AgentAuthCapabilities.new(
-        logout: ACP::Types::Unstable::LogoutCapabilities.new,
+        logout: ACP::Types::LogoutCapabilities.new,
         status: ACP::Types::Unstable::AuthStatusCapabilities.new
       ),
       providers: ACP::Types::Unstable::ProvidersCapabilities.new,
@@ -492,49 +492,87 @@ describe ACP::AgentConnection do
   end
 
   describe 'systemPrompt' do
-    system_prompt = { 'mode' => 'append', 'content' => [{ 'type' => 'text', 'text' => 'Be terse.' }] }
-    lifecycle = %w[session/new session/load session/resume session/fork]
-    let(:prompted) do
+    carrying = (routes + unstable_routes).select { |*, type| type.method_defined?(:system_prompt) }
+    new_session = { 'cwd' => '/work', 'mcpServers' => [] }
+    override = ACP::Types::SessionSystemPromptModeCapabilities.new(
+      override: ACP::Types::SessionSystemPromptOverrideCapabilities.new
+    )
+
+    def prompted(mode = nil)
       ACP::Types::Unstable::AgentCapabilities.new(
         load_session: true,
         session_capabilities: ACP::Types::Unstable::SessionCapabilities.new(
           resume: ACP::Types::SessionResumeCapabilities.new,
           fork: ACP::Types::Unstable::SessionForkCapabilities.new,
-          system_prompt: ACP::Types::Unstable::SessionSystemPromptCapabilities.new
+          system_prompt: ACP::Types::SessionSystemPromptCapabilities.new(mode:)
         )
       )
     end
 
-    define_method(:prompt_reply) do |rpc_method, params, capabilities|
+    define_method(:prompt_reply) do |rpc_method, params, capabilities, mode = 'append'|
       agent = AgentConnectionAgent.new(*optional)
       start(agent, capabilities:)
-      [transport.requests.fetch(rpc_method).call(params.merge('systemPrompt' => system_prompt)), agent.calls]
+      system_prompt = { 'mode' => mode, 'content' => [{ 'type' => 'text', 'text' => 'Be terse.' }] }
+      reply = transport.requests.fetch(rpc_method).call(params.merge('systemPrompt' => system_prompt))
+      [reply, agent.calls.map(&:first)]
     end
 
     it 'refuses session/new carrying one when the agent advertised no session capabilities' do
-      reply, = prompt_reply('session/new', { 'cwd' => '/work', 'mcpServers' => [] }, ACP::Types::AgentCapabilities.new)
+      reply, = prompt_reply('session/new', new_session, bare)
 
       assert_equal ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt').to_h, reply.to_h
     end
 
-    (routes + unstable_routes)
-      .select { |rpc_method, *| lifecycle.include?(rpc_method) }
-      .each do |rpc_method, params, agent_method|
-        it "refuses #{rpc_method} carrying one without calling the agent unless the agent advertised it" do
-          reply, calls = prompt_reply(rpc_method, params, everything)
+    carrying.each do |rpc_method, params, agent_method|
+      it "refuses #{rpc_method} carrying one without calling the agent unless the agent advertised it" do
+        reply, calls = prompt_reply(rpc_method, params, everything)
 
-          assert_equal(
-            [ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt').to_h, []],
-            [reply.to_h, calls]
-          )
-        end
-
-        it "answers #{rpc_method} carrying one with the agent's #{agent_method} when the agent advertised it" do
-          _reply, calls = prompt_reply(rpc_method, params, prompted)
-
-          assert_equal [agent_method], calls.map(&:first)
-        end
+        assert_equal(
+          [ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt').to_h, []],
+          [reply.to_h, calls]
+        )
       end
+
+      it "answers #{rpc_method} carrying one in append mode with the agent's #{agent_method}" do
+        _reply, calls = prompt_reply(rpc_method, params, prompted)
+
+        assert_equal [agent_method], calls
+      end
+    end
+
+    it 'refuses override mode without calling the agent when the agent advertised no mode' do
+      reply, calls = prompt_reply('session/new', new_session, prompted, 'override')
+
+      assert_equal(
+        [ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt.mode.override').to_h, []],
+        [reply.to_h, calls]
+      )
+    end
+
+    it 'refuses override mode when the modes the agent advertised leave it out' do
+      modes = ACP::Types::SessionSystemPromptModeCapabilities.new
+      reply, = prompt_reply('session/new', new_session, prompted(modes), 'override')
+
+      assert_equal(
+        ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt.mode.override').to_h,
+        reply.to_h
+      )
+    end
+
+    it "answers override mode with the agent's new_session when the agent advertised it" do
+      _reply, calls = prompt_reply('session/new', new_session, prompted(override), 'override')
+
+      assert_equal [:new_session], calls
+    end
+
+    it 'refuses an unknown mode without calling the agent, whatever modes the agent advertised' do
+      reply, calls = prompt_reply('session/new', new_session, prompted(override), 'replace')
+
+      assert_equal(
+        [ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt.mode.replace').to_h, []],
+        [reply.to_h, calls]
+      )
+    end
   end
 
   describe 'initialize' do

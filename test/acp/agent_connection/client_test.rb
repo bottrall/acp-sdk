@@ -268,8 +268,7 @@ describe ACP::AgentConnection::Client do
     end
     delegating = permission.call(session_content)
     {
-      'a stable request' => ACP::Types::RequestPermissionRequest.from_h(delegating),
-      'an unstable request' => ACP::Types::Unstable::RequestPermissionRequest.from_h(delegating),
+      'a parsed request' => ACP::Types::RequestPermissionRequest.from_h(delegating),
       'a request holding raw content' => ACP::Types::RequestPermissionRequest.new(
         session_id: 's',
         tool_call: ACP::Types::ToolCallUpdate.new(tool_call_id: 't', content: session_content),
