@@ -139,7 +139,7 @@ class ACP::AgentConnection
       [entry.rpc_method, route(entry.type) { |request| entry.handle.call(full, request) }]
     end
     {
-      'initialize' => route(ACP::Types::InitializeRequest) { |request| connect(client, request) },
+      'initialize' => route(ACP::Types::InitializeRequest) { |request, params| connect(client, request, params) },
       'session/new' => route(ACP::Types::NewSessionRequest) { |request| new_session(agent, request) },
       'session/prompt' => route(ACP::Types::PromptRequest) { |request| agent.prompt(request) }
     }.merge(optional_requests)
@@ -260,7 +260,8 @@ class ACP::AgentConnection
   end
 
   # @rbs type: ACP::Transport::_Parser
-  # @rbs &handle: (untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
+  # @rbs &handle: (untyped, Hash[String, untyped]) ->
+  #   (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
   # @rbs return: ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
   def route(type, &)
     lambda do |params|
@@ -270,7 +271,7 @@ class ACP::AgentConnection
         next ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt')
       end
 
-      yield(request)
+      yield(request, params)
     end
   end
 
@@ -283,10 +284,12 @@ class ACP::AgentConnection
 
   # @rbs client: ACP::AgentConnection::Client
   # @rbs request: ACP::Types::InitializeRequest
+  # @rbs params: Hash[String, untyped]
   # @rbs return: ACP::Types::InitializeResponse
-  def connect(client, request)
+  def connect(client, request, params)
     capabilities = request.client_capabilities || ACP::Types::ClientCapabilities.new
     client.capabilities = capabilities
+    client.unstable_capabilities = ACP::Protocol.unstable_client_capabilities(params['clientCapabilities'] || {})
     initialize_response(auth_methods(capabilities))
   end
 

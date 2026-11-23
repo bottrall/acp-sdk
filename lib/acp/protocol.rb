@@ -50,4 +50,17 @@ module ACP::Protocol
     # the auth sub-object is re-parsed with the unstable type.
     advertised?(ACP::Types.parse(ACP::Types::Unstable::AgentAuthCapabilities, capabilities['auth']), %i[status])
   end
+
+  # @rbs capabilities: Hash[String, untyped]
+  # @rbs return: ACP::Types::Unstable::ClientCapabilities?
+  def unstable_client_capabilities(capabilities)
+    return unless ACP::Types.unstable_enabled?
+
+    # The agent's stable parse of the initialize request drops session.cursors
+    # and session.promptSuggestions, so session is re-parsed with the unstable
+    # type. Only that sub-object: an unstable-only field elsewhere arrives
+    # unvalidated, and a malformed one would fail the whole parse.
+    parsed = ACP::Types.parse(ACP::Types::Unstable::ClientCapabilities, capabilities.slice('session'))
+    parsed unless parsed.is_a?(ACP::Types::ParseError)
+  end
 end
