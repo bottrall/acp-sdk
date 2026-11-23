@@ -80,16 +80,16 @@ class ACP::AgentConnection::Client
   def create_elicitation: (ACP::Types::CreateElicitationRequest request) -> (ACP::Types::CreateElicitationResponse | ACP::RequestError)
 
   # @rbs notification: ACP::Types::CompleteElicitationNotification
-  # @rbs return: void
-  def complete_elicitation: (ACP::Types::CompleteElicitationNotification notification) -> void
+  # @rbs return: ACP::RequestError?
+  def complete_elicitation: (ACP::Types::CompleteElicitationNotification notification) -> ACP::RequestError?
 
   # @rbs request: ACP::Types::Unstable::MessageMcpRequest
   # @rbs return: (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
   def mcp_message: (ACP::Types::Unstable::MessageMcpRequest request) -> (ACP::Types::Unstable::MessageMcpResponse::t | ACP::RequestError)
 
   # @rbs notification: ACP::Types::Unstable::AuthStatusUpdateNotification
-  # @rbs return: void
-  def auth_status_update: (ACP::Types::Unstable::AuthStatusUpdateNotification notification) -> void
+  # @rbs return: ACP::RequestError?
+  def auth_status_update: (ACP::Types::Unstable::AuthStatusUpdateNotification notification) -> ACP::RequestError?
 
   # Extension methods have no schema to parse the result into.
   #

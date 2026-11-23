@@ -502,6 +502,10 @@ describe ACP::AgentConnection::Client do
 
         assert_equal [['elicitation/complete', payload.to_h]], peer.notifications
       end
+
+      it 'returns nil after notifying' do
+        assert_nil advertising(AgentConnectionClientPeer.new, elicitation: only_url).complete_elicitation(payload)
+      end
     end
   end
 
@@ -539,6 +543,12 @@ describe ACP::AgentConnection::Client do
       ACP::AgentConnection::Client.new(peer:, auth_status_advertised: true).auth_status_update(payload)
 
       assert_equal [['auth/status_update', payload.to_h]], peer.notifications
+    end
+
+    it 'returns nil after notifying' do
+      client = ACP::AgentConnection::Client.new(peer: AgentConnectionClientPeer.new, auth_status_advertised: true)
+
+      assert_nil client.auth_status_update(payload)
     end
   end
 
