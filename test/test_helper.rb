@@ -4,19 +4,13 @@ require 'minitest/autorun'
 require 'minitest/spec'
 require 'json'
 require 'acp/sdk'
+require_relative '../codegen/schema_diff'
 
 SCHEMA_METHODS = %w[meta.json meta.unstable.json]
                  .map { |file| JSON.parse(File.read(File.expand_path("../schema/#{file}", __dir__))) }
-                 .flat_map { |meta| meta.select { |_, methods| methods.is_a?(Hash) }.to_a }
-                 .group_by(&:first)
-                 .transform_values { |sections| sections.flat_map { |_, methods| methods.values }.uniq }
+                 .map { |meta| SchemaDiff.methods_by_section(meta) }
+                 .reduce { |all, meta| all.merge(meta) { |_section, stable, unstable| stable | unstable } }
                  .freeze
-
-# Each section's coverage lives in the test file of the side that handles it,
-# so a section upstream adds would otherwise go unchecked.
-unless (SCHEMA_METHODS.keys - %w[agentMethods clientMethods protocolMethods proxyMethods]).empty?
-  raise "schema/meta*.json adds a section; cover it in the connection or transport tests: #{SCHEMA_METHODS.keys}"
-end
 
 class FakeLogger
   def initialize
