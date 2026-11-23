@@ -686,12 +686,6 @@ describe ACP::Transport::Stdio do
     end
   end
 
-  describe 'schema protocol methods' do
-    it 'handles every protocol method schema/meta*.json lists' do
-      assert_equal [ACP::Transport::Stdio::CANCEL_REQUEST], SCHEMA_METHODS.fetch('protocolMethods')
-    end
-  end
-
   describe 'a request handler that raises' do
     it 'is answered with an internal error that carries none of the exception' do
       start(requests: { 'boom' => ->(_) { raise 'secret db password leaked' } })

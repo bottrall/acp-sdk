@@ -62,22 +62,16 @@ namespace :generate do
   end
 end
 
-# A schema directory from before this repo vendored meta.json and VERSION reads
-# as listing no methods and naming no version.
-def read_optional(path, missing)
-  File.exist?(path) ? File.read(path) : missing
-end
-
 def schema_edition(dir, suffix)
   SchemaDiff::Edition.new(
     schema: JSON.parse(File.read(File.join(dir, "schema#{suffix}.json"))),
-    meta: JSON.parse(read_optional(File.join(dir, "meta#{suffix}.json"), '{}'))
+    meta: JSON.parse(File.read(File.join(dir, "meta#{suffix}.json")))
   )
 end
 
 def schema_release(dir)
   SchemaDiff::Release.new(
-    version: read_optional(File.join(dir, 'VERSION'), 'unknown').strip,
+    version: File.read(File.join(dir, 'VERSION')).strip,
     stable: schema_edition(dir, ''),
     unstable: schema_edition(dir, '.unstable')
   )

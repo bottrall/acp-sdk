@@ -63,9 +63,15 @@ module SchemaDiff
   # @rbs meta: Hash[String, untyped]
   # @rbs return: Array[String]
   def method_names(meta)
-    meta.select { |_, methods| methods.is_a?(Hash) }.flat_map do |section, methods|
-      methods.values.map { |method| "`#{method}` (#{section})" }
+    methods_by_section(meta).flat_map do |section, methods|
+      methods.map { |method| "`#{method}` (#{section})" }
     end
+  end
+
+  # @rbs meta: Hash[String, untyped]
+  # @rbs return: Hash[String, Array[String]]
+  def methods_by_section(meta)
+    meta.select { |_, methods| methods.is_a?(Hash) }.transform_values(&:values)
   end
 
   # @rbs schema: Hash[String, untyped]
