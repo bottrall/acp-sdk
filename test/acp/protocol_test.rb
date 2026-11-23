@@ -114,6 +114,10 @@ describe ACP::Protocol do
       refute ACP::Protocol.auth_status_advertised?({})
     end
 
+    it 'is false when the raw auth capabilities are malformed' do
+      refute ACP::Protocol.auth_status_advertised?('auth' => 'nope')
+    end
+
     it 'is false when the raw auth status is malformed' do
       refute ACP::Protocol.auth_status_advertised?('auth' => { 'status' => true })
     end

@@ -141,11 +141,12 @@ class ACP::AgentConnection::Client
   end
 
   # @rbs notification: ACP::Types::CompleteElicitationNotification
-  # @rbs return: void
+  # @rbs return: ACP::RequestError?
   def complete_elicitation(notification)
     return ACP::RequestError.unadvertised('elicitation.url') unless capabilities&.elicitation&.url
 
     @peer.notify('elicitation/complete', notification.to_h)
+    nil
   end
 
   # @rbs request: ACP::Types::Unstable::MessageMcpRequest
@@ -157,11 +158,12 @@ class ACP::AgentConnection::Client
   end
 
   # @rbs notification: ACP::Types::Unstable::AuthStatusUpdateNotification
-  # @rbs return: void
+  # @rbs return: ACP::RequestError?
   def auth_status_update(notification)
     return ACP::RequestError.unadvertised_agent('auth.status') unless @auth_status_advertised
 
     @peer.notify('auth/status_update', notification.to_h)
+    nil
   end
 
   # Extension methods have no schema to parse the result into.
