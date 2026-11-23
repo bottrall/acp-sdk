@@ -6,9 +6,9 @@ describe ACP::AgentConnection::OptionalRoute do
   response_class = Struct.new(:capabilities)
   capabilities_class = Struct.new(:flag)
 
-  build = lambda { |path, &handle|
+  build = lambda { |path, **options, &handle|
     ACP::AgentConnection::OptionalRoute.new(
-      rpc_method: 'thing/do', type: ACP::Types::LogoutRequest, agent_method: :do_thing, path:, &handle
+      rpc_method: 'thing/do', type: ACP::Types::LogoutRequest, agent_method: :do_thing, path:, **options, &handle
     )
   }
 
@@ -31,6 +31,10 @@ describe ACP::AgentConnection::OptionalRoute do
 
     it 'keeps a nil path for a per-session method' do
       assert_nil build.call(nil).path
+    end
+
+    it 'carries no systemPrompt unless built with one' do
+      assert_equal [false, true], [build.call(nil).system_prompt, build.call(nil, system_prompt: true).system_prompt]
     end
   end
 
