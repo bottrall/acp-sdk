@@ -14,7 +14,7 @@ class ACP::Types::Unstable::InitializeResponse
   attr_reader :auth_methods #: Array[ACP::Types::AuthMethod::t]?
 
   # @dynamic agent_info
-  attr_reader :agent_info #: ACP::Types::Unstable::Implementation?
+  attr_reader :agent_info #: ACP::Types::Implementation?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
@@ -22,7 +22,7 @@ class ACP::Types::Unstable::InitializeResponse
   # @rbs protocol_version: Integer
   # @rbs agent_capabilities: ACP::Types::Unstable::AgentCapabilities?
   # @rbs auth_methods: Array[ACP::Types::AuthMethod::t]?
-  # @rbs agent_info: ACP::Types::Unstable::Implementation?
+  # @rbs agent_info: ACP::Types::Implementation?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(protocol_version:, agent_capabilities: nil, auth_methods: nil, agent_info: nil, meta: nil)
@@ -54,12 +54,7 @@ class ACP::Types::Unstable::InitializeResponse
         allow_nil: true
       ),
       auth_methods:,
-      agent_info: ACP::Types::Check.object(
-        hash['agentInfo'],
-        'agentInfo',
-        ACP::Types::Unstable::Implementation,
-        allow_nil: true
-      ),
+      agent_info: ACP::Types::Check.object(hash['agentInfo'], 'agentInfo', ACP::Types::Implementation, allow_nil: true),
       meta: hash['_meta']
     )
   end

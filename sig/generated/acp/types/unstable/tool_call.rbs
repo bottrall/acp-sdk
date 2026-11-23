@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/tool_call.rb with RBS::Inline
-
-class ACP::Types::Unstable::ToolCall = ACP::Types::Unstable::SessionUpdate::ToolCall

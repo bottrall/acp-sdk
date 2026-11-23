@@ -8,7 +8,7 @@ module ACP::Types::Unstable::McpServer
   #   type t = ACP::Types::Unstable::McpServer::Http
   #          | ACP::Types::Unstable::McpServer::Sse
   #          | ACP::Types::Unstable::McpServer::Acp
-  #          | ACP::Types::Unstable::McpServerStdio
+  #          | ACP::Types::McpServerStdio
   #          | Hash[String, untyped]
 
   # @rbs hash: Hash[String, untyped]
@@ -18,7 +18,7 @@ module ACP::Types::Unstable::McpServer
     when 'http' then ACP::Types::Unstable::McpServer::Http.from_h(hash)
     when 'sse' then ACP::Types::Unstable::McpServer::Sse.from_h(hash)
     when 'acp' then ACP::Types::Unstable::McpServer::Acp.from_h(hash)
-    when nil then ACP::Types::Unstable::McpServerStdio.from_h(hash)
+    when nil then ACP::Types::McpServerStdio.from_h(hash)
     else hash
     end
   end

@@ -60,10 +60,6 @@ module SchemaDiff
   # @rbs return: Array[String]
   def method_names: (Hash[String, untyped] meta) -> Array[String]
 
-  # @rbs meta: Hash[String, untyped]
-  # @rbs return: Hash[String, Array[String]]
-  def methods_by_section: (Hash[String, untyped] meta) -> Hash[String, Array[String]]
-
   # @rbs schema: Hash[String, untyped]
   # @rbs return: Array[String]
   def send_rules: (Hash[String, untyped] schema) -> Array[String]

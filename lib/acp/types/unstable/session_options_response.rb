@@ -5,7 +5,7 @@
 
 class ACP::Types::Unstable::SessionOptionsResponse
   # @dynamic modes
-  attr_reader :modes #: ACP::Types::Unstable::SessionModeState?
+  attr_reader :modes #: ACP::Types::SessionModeState?
 
   # @dynamic config_options
   attr_reader :config_options #: Array[ACP::Types::Unstable::SessionConfigOption]?
@@ -13,7 +13,7 @@ class ACP::Types::Unstable::SessionOptionsResponse
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
-  # @rbs modes: ACP::Types::Unstable::SessionModeState?
+  # @rbs modes: ACP::Types::SessionModeState?
   # @rbs config_options: Array[ACP::Types::Unstable::SessionConfigOption]?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
@@ -31,7 +31,7 @@ class ACP::Types::Unstable::SessionOptionsResponse
       ACP::Types::Check.object(item, path, ACP::Types::Unstable::SessionConfigOption)
     end
     new(
-      modes: ACP::Types::Check.object(hash['modes'], 'modes', ACP::Types::Unstable::SessionModeState, allow_nil: true),
+      modes: ACP::Types::Check.object(hash['modes'], 'modes', ACP::Types::SessionModeState, allow_nil: true),
       config_options:,
       meta: hash['_meta']
     )

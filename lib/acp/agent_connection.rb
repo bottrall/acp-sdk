@@ -278,7 +278,7 @@ class ACP::AgentConnection
     end
   end
 
-  # @rbs system_prompt: (ACP::Types::SystemPrompt | ACP::Types::Unstable::SystemPrompt)?
+  # @rbs system_prompt: ACP::Types::SystemPrompt?
   # @rbs return: ACP::RequestError?
   def system_prompt_refusal(system_prompt)
     return unless system_prompt

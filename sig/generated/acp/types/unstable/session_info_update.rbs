@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/session_info_update.rb with RBS::Inline
-
-class ACP::Types::Unstable::SessionInfoUpdate = ACP::Types::Unstable::SessionUpdate::SessionInfoUpdate

@@ -101,18 +101,10 @@ describe SchemaDiff do
   end
 
   describe '.method_names' do
-    it 'names each listed method with its section' do
-      meta = { 'agentMethods' => { 'new' => 'session/new' }, 'clientMethods' => { 'kill' => 't/kill' } }
-
-      assert_equal ['`session/new` (agentMethods)', '`t/kill` (clientMethods)'], diff.method_names(meta)
-    end
-  end
-
-  describe '.methods_by_section' do
-    it 'lists the methods of each section, skipping keys that are not sections' do
+    it 'names each listed method with its section, skipping keys that are not sections' do
       meta = { 'version' => 1, 'agentMethods' => { 'new' => 'session/new' }, 'clientMethods' => { 'kill' => 't/kill' } }
 
-      assert_equal({ 'agentMethods' => ['session/new'], 'clientMethods' => ['t/kill'] }, diff.methods_by_section(meta))
+      assert_equal ['`session/new` (agentMethods)', '`t/kill` (clientMethods)'], diff.method_names(meta)
     end
   end
 

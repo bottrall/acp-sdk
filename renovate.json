@@ -19,7 +19,6 @@
       "groupName": "ACP schema",
       "allowedVersions": "<2.0.0",
       "automerge": false,
-      "addLabels": ["deps-review"],
       "semanticCommitType": "feat",
       "semanticCommitScope": null,
       "commitMessageTopic": "the vendored schema",

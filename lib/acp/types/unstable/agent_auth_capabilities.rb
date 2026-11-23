@@ -8,13 +8,13 @@ class ACP::Types::Unstable::AgentAuthCapabilities
   attr_reader :status #: ACP::Types::Unstable::AuthStatusCapabilities?
 
   # @dynamic logout
-  attr_reader :logout #: ACP::Types::Unstable::LogoutCapabilities?
+  attr_reader :logout #: ACP::Types::LogoutCapabilities?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs status: ACP::Types::Unstable::AuthStatusCapabilities?
-  # @rbs logout: ACP::Types::Unstable::LogoutCapabilities?
+  # @rbs logout: ACP::Types::LogoutCapabilities?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(status: nil, logout: nil, meta: nil)
@@ -34,12 +34,7 @@ class ACP::Types::Unstable::AgentAuthCapabilities
         ACP::Types::Unstable::AuthStatusCapabilities,
         allow_nil: true
       ),
-      logout: ACP::Types::Check.object(
-        hash['logout'],
-        'logout',
-        ACP::Types::Unstable::LogoutCapabilities,
-        allow_nil: true
-      ),
+      logout: ACP::Types::Check.object(hash['logout'], 'logout', ACP::Types::LogoutCapabilities, allow_nil: true),
       meta: hash['_meta']
     )
   end

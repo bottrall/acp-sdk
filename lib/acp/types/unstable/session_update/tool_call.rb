@@ -20,10 +20,10 @@ class ACP::Types::Unstable::SessionUpdate::ToolCall
   attr_reader :status #: String?
 
   # @dynamic content
-  attr_reader :content #: Array[ACP::Types::Unstable::ToolCallContent::t]?
+  attr_reader :content #: Array[ACP::Types::ToolCallContent::t]?
 
   # @dynamic locations
-  attr_reader :locations #: Array[ACP::Types::Unstable::ToolCallLocation]?
+  attr_reader :locations #: Array[ACP::Types::ToolCallLocation]?
 
   # @dynamic raw_input
   attr_reader :raw_input #: untyped
@@ -39,8 +39,8 @@ class ACP::Types::Unstable::SessionUpdate::ToolCall
   # @rbs name: String?
   # @rbs kind: String?
   # @rbs status: String?
-  # @rbs content: Array[ACP::Types::Unstable::ToolCallContent::t]?
-  # @rbs locations: Array[ACP::Types::Unstable::ToolCallLocation]?
+  # @rbs content: Array[ACP::Types::ToolCallContent::t]?
+  # @rbs locations: Array[ACP::Types::ToolCallLocation]?
   # @rbs raw_input: untyped
   # @rbs raw_output: untyped
   # @rbs meta: Hash[String, untyped]?
@@ -74,10 +74,10 @@ class ACP::Types::Unstable::SessionUpdate::ToolCall
   # @rbs return: ACP::Types::Unstable::SessionUpdate::ToolCall
   def self.from_h(hash)
     content = ACP::Types::Check.array(hash['content'], 'content', allow_nil: true) do |item, path|
-      ACP::Types::Check.object(item, path, ACP::Types::Unstable::ToolCallContent)
+      ACP::Types::Check.object(item, path, ACP::Types::ToolCallContent)
     end
     locations = ACP::Types::Check.array(hash['locations'], 'locations', allow_nil: true) do |item, path|
-      ACP::Types::Check.object(item, path, ACP::Types::Unstable::ToolCallLocation)
+      ACP::Types::Check.object(item, path, ACP::Types::ToolCallLocation)
     end
     new(
       tool_call_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'toolCallId'), 'toolCallId'),

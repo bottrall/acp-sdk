@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/terminal.rb with RBS::Inline
-
-class ACP::Types::Unstable::Terminal = ACP::Types::Unstable::ToolCallContent::Terminal

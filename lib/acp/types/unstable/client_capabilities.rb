@@ -5,7 +5,7 @@
 
 class ACP::Types::Unstable::ClientCapabilities
   # @dynamic fs
-  attr_reader :fs #: ACP::Types::Unstable::FileSystemCapabilities?
+  attr_reader :fs #: ACP::Types::FileSystemCapabilities?
 
   # @dynamic terminal
   attr_reader :terminal #: bool?
@@ -17,24 +17,24 @@ class ACP::Types::Unstable::ClientCapabilities
   attr_reader :subagents #: ACP::Types::SubagentCapabilities?
 
   # @dynamic plan
-  attr_reader :plan #: ACP::Types::Unstable::PlanCapabilities?
+  attr_reader :plan #: ACP::Types::PlanCapabilities?
 
   # @dynamic auth
-  attr_reader :auth #: ACP::Types::Unstable::AuthCapabilities?
+  attr_reader :auth #: ACP::Types::AuthCapabilities?
 
   # @dynamic elicitation
-  attr_reader :elicitation #: ACP::Types::Unstable::ElicitationCapabilities?
+  attr_reader :elicitation #: ACP::Types::ElicitationCapabilities?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
-  # @rbs fs: ACP::Types::Unstable::FileSystemCapabilities?
+  # @rbs fs: ACP::Types::FileSystemCapabilities?
   # @rbs terminal: bool?
   # @rbs session: ACP::Types::Unstable::ClientSessionCapabilities?
   # @rbs subagents: ACP::Types::SubagentCapabilities?
-  # @rbs plan: ACP::Types::Unstable::PlanCapabilities?
-  # @rbs auth: ACP::Types::Unstable::AuthCapabilities?
-  # @rbs elicitation: ACP::Types::Unstable::ElicitationCapabilities?
+  # @rbs plan: ACP::Types::PlanCapabilities?
+  # @rbs auth: ACP::Types::AuthCapabilities?
+  # @rbs elicitation: ACP::Types::ElicitationCapabilities?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(
@@ -62,7 +62,7 @@ class ACP::Types::Unstable::ClientCapabilities
   # @rbs return: ACP::Types::Unstable::ClientCapabilities
   def self.from_h(hash)
     new(
-      fs: ACP::Types::Check.object(hash['fs'], 'fs', ACP::Types::Unstable::FileSystemCapabilities, allow_nil: true),
+      fs: ACP::Types::Check.object(hash['fs'], 'fs', ACP::Types::FileSystemCapabilities, allow_nil: true),
       terminal: ACP::Types::Check.boolean(hash['terminal'], 'terminal', allow_nil: true),
       session: ACP::Types::Check.object(
         hash['session'],
@@ -76,12 +76,12 @@ class ACP::Types::Unstable::ClientCapabilities
         ACP::Types::SubagentCapabilities,
         allow_nil: true
       ),
-      plan: ACP::Types::Check.object(hash['plan'], 'plan', ACP::Types::Unstable::PlanCapabilities, allow_nil: true),
-      auth: ACP::Types::Check.object(hash['auth'], 'auth', ACP::Types::Unstable::AuthCapabilities, allow_nil: true),
+      plan: ACP::Types::Check.object(hash['plan'], 'plan', ACP::Types::PlanCapabilities, allow_nil: true),
+      auth: ACP::Types::Check.object(hash['auth'], 'auth', ACP::Types::AuthCapabilities, allow_nil: true),
       elicitation: ACP::Types::Check.object(
         hash['elicitation'],
         'elicitation',
-        ACP::Types::Unstable::ElicitationCapabilities,
+        ACP::Types::ElicitationCapabilities,
         allow_nil: true
       ),
       meta: hash['_meta']

@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/content.rb with RBS::Inline
-
-class ACP::Types::Unstable::Content = ACP::Types::Unstable::ToolCallContent::Content

@@ -136,7 +136,7 @@ describe ACP::AgentConnection do
     ACP::Types::Unstable::AgentCapabilities.new(
       load_session: true,
       auth: ACP::Types::Unstable::AgentAuthCapabilities.new(
-        logout: ACP::Types::Unstable::LogoutCapabilities.new,
+        logout: ACP::Types::LogoutCapabilities.new,
         status: ACP::Types::Unstable::AuthStatusCapabilities.new
       ),
       providers: ACP::Types::Unstable::ProvidersCapabilities.new,
@@ -494,8 +494,8 @@ describe ACP::AgentConnection do
   describe 'systemPrompt' do
     carrying = (routes + unstable_routes).select { |*, type| type.method_defined?(:system_prompt) }
     new_session = { 'cwd' => '/work', 'mcpServers' => [] }
-    override = ACP::Types::Unstable::SessionSystemPromptModeCapabilities.new(
-      override: ACP::Types::Unstable::SessionSystemPromptOverrideCapabilities.new
+    override = ACP::Types::SessionSystemPromptModeCapabilities.new(
+      override: ACP::Types::SessionSystemPromptOverrideCapabilities.new
     )
 
     def prompted(mode = nil)
@@ -504,7 +504,7 @@ describe ACP::AgentConnection do
         session_capabilities: ACP::Types::Unstable::SessionCapabilities.new(
           resume: ACP::Types::SessionResumeCapabilities.new,
           fork: ACP::Types::Unstable::SessionForkCapabilities.new,
-          system_prompt: ACP::Types::Unstable::SessionSystemPromptCapabilities.new(mode:)
+          system_prompt: ACP::Types::SessionSystemPromptCapabilities.new(mode:)
         )
       )
     end
@@ -550,7 +550,7 @@ describe ACP::AgentConnection do
     end
 
     it 'refuses override mode when the modes the agent advertised leave it out' do
-      modes = ACP::Types::Unstable::SessionSystemPromptModeCapabilities.new
+      modes = ACP::Types::SessionSystemPromptModeCapabilities.new
       reply, = prompt_reply('session/new', new_session, prompted(modes), 'override')
 
       assert_equal(
