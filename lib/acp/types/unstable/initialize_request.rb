@@ -11,14 +11,14 @@ class ACP::Types::Unstable::InitializeRequest
   attr_reader :client_capabilities #: ACP::Types::Unstable::ClientCapabilities?
 
   # @dynamic client_info
-  attr_reader :client_info #: ACP::Types::Unstable::Implementation?
+  attr_reader :client_info #: ACP::Types::Implementation?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs protocol_version: Integer
   # @rbs client_capabilities: ACP::Types::Unstable::ClientCapabilities?
-  # @rbs client_info: ACP::Types::Unstable::Implementation?
+  # @rbs client_info: ACP::Types::Implementation?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(protocol_version:, client_capabilities: nil, client_info: nil, meta: nil)
@@ -48,7 +48,7 @@ class ACP::Types::Unstable::InitializeRequest
       client_info: ACP::Types::Check.object(
         hash['clientInfo'],
         'clientInfo',
-        ACP::Types::Unstable::Implementation,
+        ACP::Types::Implementation,
         allow_nil: true
       ),
       meta: hash['_meta']

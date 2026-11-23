@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/subagent_update.rb with RBS::Inline
-
-class ACP::Types::Unstable::SubagentUpdate = ACP::Types::Unstable::SessionUpdate::SubagentUpdate

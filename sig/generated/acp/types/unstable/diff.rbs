@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/diff.rb with RBS::Inline
-
-class ACP::Types::Unstable::Diff = ACP::Types::Unstable::ToolCallContent::Diff

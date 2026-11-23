@@ -5,12 +5,12 @@
 
 class ACP::Types::Unstable::SessionUpdate::Plan
   # @dynamic entries
-  attr_reader :entries #: Array[ACP::Types::Unstable::PlanEntry]
+  attr_reader :entries #: Array[ACP::Types::PlanEntry]
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
-  # @rbs entries: Array[ACP::Types::Unstable::PlanEntry]
+  # @rbs entries: Array[ACP::Types::PlanEntry]
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(entries:, meta: nil)
@@ -23,7 +23,7 @@ class ACP::Types::Unstable::SessionUpdate::Plan
   # @rbs return: ACP::Types::Unstable::SessionUpdate::Plan
   def self.from_h(hash)
     entries = ACP::Types::Check.array(ACP::Types::Check.key(hash, 'entries'), 'entries') do |item, path|
-      ACP::Types::Check.object(item, path, ACP::Types::Unstable::PlanEntry)
+      ACP::Types::Check.object(item, path, ACP::Types::PlanEntry)
     end
     new(entries:, meta: hash['_meta'])
   end

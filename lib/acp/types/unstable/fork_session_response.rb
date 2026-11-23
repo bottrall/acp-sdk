@@ -8,7 +8,7 @@ class ACP::Types::Unstable::ForkSessionResponse
   attr_reader :session_id #: String
 
   # @dynamic modes
-  attr_reader :modes #: ACP::Types::Unstable::SessionModeState?
+  attr_reader :modes #: ACP::Types::SessionModeState?
 
   # @dynamic config_options
   attr_reader :config_options #: Array[ACP::Types::Unstable::SessionConfigOption]?
@@ -17,7 +17,7 @@ class ACP::Types::Unstable::ForkSessionResponse
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs session_id: String
-  # @rbs modes: ACP::Types::Unstable::SessionModeState?
+  # @rbs modes: ACP::Types::SessionModeState?
   # @rbs config_options: Array[ACP::Types::Unstable::SessionConfigOption]?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
@@ -37,7 +37,7 @@ class ACP::Types::Unstable::ForkSessionResponse
     end
     new(
       session_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'sessionId'), 'sessionId'),
-      modes: ACP::Types::Check.object(hash['modes'], 'modes', ACP::Types::Unstable::SessionModeState, allow_nil: true),
+      modes: ACP::Types::Check.object(hash['modes'], 'modes', ACP::Types::SessionModeState, allow_nil: true),
       config_options:,
       meta: hash['_meta']
     )

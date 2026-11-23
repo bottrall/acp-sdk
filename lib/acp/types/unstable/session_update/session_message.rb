@@ -20,7 +20,7 @@ class ACP::Types::Unstable::SessionUpdate::SessionMessage
   attr_reader :recipient_message_id #: String?
 
   # @dynamic content
-  attr_reader :content #: Array[ACP::Types::Unstable::ContentBlock::t]?
+  attr_reader :content #: Array[ACP::Types::ContentBlock::t]?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
@@ -30,7 +30,7 @@ class ACP::Types::Unstable::SessionUpdate::SessionMessage
   # @rbs recipient_session_id: String?
   # @rbs sender_message_id: String?
   # @rbs recipient_message_id: String?
-  # @rbs content: Array[ACP::Types::Unstable::ContentBlock::t]?
+  # @rbs content: Array[ACP::Types::ContentBlock::t]?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(
@@ -56,7 +56,7 @@ class ACP::Types::Unstable::SessionUpdate::SessionMessage
   # @rbs return: ACP::Types::Unstable::SessionUpdate::SessionMessage
   def self.from_h(hash)
     content = ACP::Types::Check.array(hash['content'], 'content', allow_nil: true) do |item, path|
-      ACP::Types::Check.object(item, path, ACP::Types::Unstable::ContentBlock)
+      ACP::Types::Check.object(item, path, ACP::Types::ContentBlock)
     end
     new(
       message_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'messageId'), 'messageId'),

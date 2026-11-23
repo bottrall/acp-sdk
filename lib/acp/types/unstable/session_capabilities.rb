@@ -5,16 +5,16 @@
 
 class ACP::Types::Unstable::SessionCapabilities
   # @dynamic list
-  attr_reader :list #: ACP::Types::Unstable::SessionListCapabilities?
+  attr_reader :list #: ACP::Types::SessionListCapabilities?
 
   # @dynamic delete
-  attr_reader :delete #: ACP::Types::Unstable::SessionDeleteCapabilities?
+  attr_reader :delete #: ACP::Types::SessionDeleteCapabilities?
 
   # @dynamic additional_directories
-  attr_reader :additional_directories #: ACP::Types::Unstable::SessionAdditionalDirectoriesCapabilities?
+  attr_reader :additional_directories #: ACP::Types::SessionAdditionalDirectoriesCapabilities?
 
   # @dynamic system_prompt
-  attr_reader :system_prompt #: ACP::Types::Unstable::SessionSystemPromptCapabilities?
+  attr_reader :system_prompt #: ACP::Types::SessionSystemPromptCapabilities?
 
   # @dynamic fork
   attr_reader :fork #: ACP::Types::Unstable::SessionForkCapabilities?
@@ -32,25 +32,25 @@ class ACP::Types::Unstable::SessionCapabilities
   attr_reader :title #: ACP::Types::Unstable::SessionTitleCapabilities?
 
   # @dynamic resume
-  attr_reader :resume #: ACP::Types::Unstable::SessionResumeCapabilities?
+  attr_reader :resume #: ACP::Types::SessionResumeCapabilities?
 
   # @dynamic close
-  attr_reader :close #: ACP::Types::Unstable::SessionCloseCapabilities?
+  attr_reader :close #: ACP::Types::SessionCloseCapabilities?
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
-  # @rbs list: ACP::Types::Unstable::SessionListCapabilities?
-  # @rbs delete: ACP::Types::Unstable::SessionDeleteCapabilities?
-  # @rbs additional_directories: ACP::Types::Unstable::SessionAdditionalDirectoriesCapabilities?
-  # @rbs system_prompt: ACP::Types::Unstable::SessionSystemPromptCapabilities?
+  # @rbs list: ACP::Types::SessionListCapabilities?
+  # @rbs delete: ACP::Types::SessionDeleteCapabilities?
+  # @rbs additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?
+  # @rbs system_prompt: ACP::Types::SessionSystemPromptCapabilities?
   # @rbs fork: ACP::Types::Unstable::SessionForkCapabilities?
   # @rbs archive: ACP::Types::Unstable::SessionArchiveCapabilities?
   # @rbs status: ACP::Types::Unstable::SessionStatusCapabilities?
   # @rbs options: ACP::Types::Unstable::SessionOptionsCapabilities?
   # @rbs title: ACP::Types::Unstable::SessionTitleCapabilities?
-  # @rbs resume: ACP::Types::Unstable::SessionResumeCapabilities?
-  # @rbs close: ACP::Types::Unstable::SessionCloseCapabilities?
+  # @rbs resume: ACP::Types::SessionResumeCapabilities?
+  # @rbs close: ACP::Types::SessionCloseCapabilities?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(
@@ -86,28 +86,23 @@ class ACP::Types::Unstable::SessionCapabilities
   # @rbs return: ACP::Types::Unstable::SessionCapabilities
   def self.from_h(hash)
     new(
-      list: ACP::Types::Check.object(
-        hash['list'],
-        'list',
-        ACP::Types::Unstable::SessionListCapabilities,
-        allow_nil: true
-      ),
+      list: ACP::Types::Check.object(hash['list'], 'list', ACP::Types::SessionListCapabilities, allow_nil: true),
       delete: ACP::Types::Check.object(
         hash['delete'],
         'delete',
-        ACP::Types::Unstable::SessionDeleteCapabilities,
+        ACP::Types::SessionDeleteCapabilities,
         allow_nil: true
       ),
       additional_directories: ACP::Types::Check.object(
         hash['additionalDirectories'],
         'additionalDirectories',
-        ACP::Types::Unstable::SessionAdditionalDirectoriesCapabilities,
+        ACP::Types::SessionAdditionalDirectoriesCapabilities,
         allow_nil: true
       ),
       system_prompt: ACP::Types::Check.object(
         hash['systemPrompt'],
         'systemPrompt',
-        ACP::Types::Unstable::SessionSystemPromptCapabilities,
+        ACP::Types::SessionSystemPromptCapabilities,
         allow_nil: true
       ),
       fork: ACP::Types::Check.object(
@@ -143,15 +138,10 @@ class ACP::Types::Unstable::SessionCapabilities
       resume: ACP::Types::Check.object(
         hash['resume'],
         'resume',
-        ACP::Types::Unstable::SessionResumeCapabilities,
+        ACP::Types::SessionResumeCapabilities,
         allow_nil: true
       ),
-      close: ACP::Types::Check.object(
-        hash['close'],
-        'close',
-        ACP::Types::Unstable::SessionCloseCapabilities,
-        allow_nil: true
-      ),
+      close: ACP::Types::Check.object(hash['close'], 'close', ACP::Types::SessionCloseCapabilities, allow_nil: true),
       meta: hash['_meta']
     )
   end

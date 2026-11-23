@@ -27,11 +27,57 @@ module TypeGenerator::Plan
   # @rbs return: Hash[String, String]
   def unstable_files(defs, unstable_schema)
     unstable_defs = unstable_schema.fetch('$defs')
-    twins = unstable_defs.reject { |name, definition| defs[name] == definition }.keys
     roots = unstable_defs.select { |_, definition| definition.key?('x-method') }.keys
-    schema = TypeGenerator::Schema.new(unstable_defs, header: TypeGenerator::UNSTABLE_HEADER, twins:)
+    schema = TypeGenerator::Schema.new(
+      unstable_defs,
+      header: TypeGenerator::UNSTABLE_HEADER,
+      twins: twins(defs, unstable_defs)
+    )
     generated, aliases = generate(schema, roots)
     generated.merge(opt_in_file(generated.keys, aliases))
+  end
+
+  # The unstable schema points the docs links of defs it otherwise leaves alone
+  # at the draft docs. Such a def needs a class of its own only when it refers
+  # to a twin, whose class the stable one would not hold.
+  #
+  # @rbs defs: Hash[String, Hash[String, untyped]]
+  # @rbs unstable_defs: Hash[String, Hash[String, untyped]]
+  # @rbs return: Array[String]
+  def twins(defs, unstable_defs)
+    differing = unstable_defs.reject { |name, definition| defs[name] == definition }
+    changed = differing.reject { |name, definition| defs[name] == stable_docs(definition) }.keys
+    with_referrers(differing.except(*changed), changed)
+  end
+
+  # @rbs node: untyped
+  # @rbs return: untyped
+  def stable_docs(node)
+    case node
+    when Hash then node.transform_values { |value| stable_docs(value) }
+    when Array then node.map { |value| stable_docs(value) }
+    when String then node.gsub('/protocol/v1/draft/', '/protocol/v1/')
+    else node
+    end
+  end
+
+  # @rbs relinked: Hash[String, Hash[String, untyped]]
+  # @rbs twins: Array[String]
+  # @rbs return: Array[String]
+  def with_referrers(relinked, twins)
+    referrers = relinked.select { |_, definition| refs(definition).intersect?(twins) }.keys
+    referrers.empty? ? twins : with_referrers(relinked.except(*referrers), twins + referrers)
+  end
+
+  # @rbs node: untyped
+  # @rbs return: Array[String]
+  def refs(node)
+    case node
+    when Hash
+      node.flat_map { |key, value| key == '$ref' ? [TypeGenerator::Naming.ref_name(value)] : refs(value) }
+    when Array then node.flat_map { |value| refs(value) }
+    else []
+    end
   end
 
   # Aliases are required after the classes they alias: nothing autoloads here,

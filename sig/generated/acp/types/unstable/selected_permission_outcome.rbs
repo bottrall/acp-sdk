@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/selected_permission_outcome.rb with RBS::Inline
-
-class ACP::Types::Unstable::SelectedPermissionOutcome = ACP::Types::Unstable::RequestPermissionOutcome::Selected

@@ -1,3 +1,0 @@
-# Generated from lib/acp/types/unstable/session_reference.rb with RBS::Inline
-
-class ACP::Types::Unstable::SessionReference = ACP::Types::Unstable::ToolCallContent::Session

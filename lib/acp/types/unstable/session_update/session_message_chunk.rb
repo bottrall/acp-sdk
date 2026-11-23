@@ -8,13 +8,13 @@ class ACP::Types::Unstable::SessionUpdate::SessionMessageChunk
   attr_reader :message_id #: String
 
   # @dynamic content
-  attr_reader :content #: ACP::Types::Unstable::ContentBlock::t
+  attr_reader :content #: ACP::Types::ContentBlock::t
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs message_id: String
-  # @rbs content: ACP::Types::Unstable::ContentBlock::t
+  # @rbs content: ACP::Types::ContentBlock::t
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(message_id:, content:, meta: nil)
@@ -29,11 +29,7 @@ class ACP::Types::Unstable::SessionUpdate::SessionMessageChunk
   def self.from_h(hash)
     new(
       message_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'messageId'), 'messageId'),
-      content: ACP::Types::Check.object(
-        ACP::Types::Check.key(hash, 'content'),
-        'content',
-        ACP::Types::Unstable::ContentBlock
-      ),
+      content: ACP::Types::Check.object(ACP::Types::Check.key(hash, 'content'), 'content', ACP::Types::ContentBlock),
       meta: hash['_meta']
     )
   end

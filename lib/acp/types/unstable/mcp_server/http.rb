@@ -11,14 +11,14 @@ class ACP::Types::Unstable::McpServer::Http
   attr_reader :url #: String
 
   # @dynamic headers
-  attr_reader :headers #: Array[ACP::Types::Unstable::HttpHeader]
+  attr_reader :headers #: Array[ACP::Types::HttpHeader]
 
   # @dynamic meta
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs name: String
   # @rbs url: String
-  # @rbs headers: Array[ACP::Types::Unstable::HttpHeader]
+  # @rbs headers: Array[ACP::Types::HttpHeader]
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
   def initialize(name:, url:, headers:, meta: nil)
@@ -37,7 +37,7 @@ class ACP::Types::Unstable::McpServer::Http
       'headers',
       allow_nil: true
     ) do |item, path|
-      ACP::Types::Check.object(item, path, ACP::Types::Unstable::HttpHeader)
+      ACP::Types::Check.object(item, path, ACP::Types::HttpHeader)
     end || []
     new(
       name: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'name'), 'name'),

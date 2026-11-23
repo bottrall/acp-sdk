@@ -11,7 +11,7 @@ class ACP::Types::Unstable::SessionUpdate::CompactionUpdate
   attr_reader :status #: String
 
   # @dynamic summary
-  attr_reader :summary #: Array[ACP::Types::Unstable::ContentBlock::t]?
+  attr_reader :summary #: Array[ACP::Types::ContentBlock::t]?
 
   # @dynamic error
   attr_reader :error #: String?
@@ -21,7 +21,7 @@ class ACP::Types::Unstable::SessionUpdate::CompactionUpdate
 
   # @rbs compaction_id: String
   # @rbs status: String
-  # @rbs summary: Array[ACP::Types::Unstable::ContentBlock::t]?
+  # @rbs summary: Array[ACP::Types::ContentBlock::t]?
   # @rbs error: String?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
@@ -38,7 +38,7 @@ class ACP::Types::Unstable::SessionUpdate::CompactionUpdate
   # @rbs return: ACP::Types::Unstable::SessionUpdate::CompactionUpdate
   def self.from_h(hash)
     summary = ACP::Types::Check.array(hash['summary'], 'summary', allow_nil: true) do |item, path|
-      ACP::Types::Check.object(item, path, ACP::Types::Unstable::ContentBlock)
+      ACP::Types::Check.object(item, path, ACP::Types::ContentBlock)
     end
     new(
       compaction_id: ACP::Types::Check.string(ACP::Types::Check.key(hash, 'compactionId'), 'compactionId'),

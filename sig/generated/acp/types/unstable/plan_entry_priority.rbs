@@ -1,9 +1,0 @@
-# Generated from lib/acp/types/unstable/plan_entry_priority.rb with RBS::Inline
-
-module ACP::Types::Unstable::PlanEntryPriority
-  HIGH: ::String
-
-  MEDIUM: ::String
-
-  LOW: ::String
-end

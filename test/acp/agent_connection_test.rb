@@ -136,7 +136,7 @@ describe ACP::AgentConnection do
     ACP::Types::Unstable::AgentCapabilities.new(
       load_session: true,
       auth: ACP::Types::Unstable::AgentAuthCapabilities.new(
-        logout: ACP::Types::Unstable::LogoutCapabilities.new,
+        logout: ACP::Types::LogoutCapabilities.new,
         status: ACP::Types::Unstable::AuthStatusCapabilities.new
       ),
       providers: ACP::Types::Unstable::ProvidersCapabilities.new,
@@ -500,7 +500,7 @@ describe ACP::AgentConnection do
         session_capabilities: ACP::Types::Unstable::SessionCapabilities.new(
           resume: ACP::Types::SessionResumeCapabilities.new,
           fork: ACP::Types::Unstable::SessionForkCapabilities.new,
-          system_prompt: ACP::Types::Unstable::SessionSystemPromptCapabilities.new
+          system_prompt: ACP::Types::SessionSystemPromptCapabilities.new
         )
       )
     end

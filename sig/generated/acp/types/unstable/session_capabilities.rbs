@@ -2,16 +2,16 @@
 
 class ACP::Types::Unstable::SessionCapabilities
   # @dynamic list
-  attr_reader list: ACP::Types::Unstable::SessionListCapabilities?
+  attr_reader list: ACP::Types::SessionListCapabilities?
 
   # @dynamic delete
-  attr_reader delete: ACP::Types::Unstable::SessionDeleteCapabilities?
+  attr_reader delete: ACP::Types::SessionDeleteCapabilities?
 
   # @dynamic additional_directories
-  attr_reader additional_directories: ACP::Types::Unstable::SessionAdditionalDirectoriesCapabilities?
+  attr_reader additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?
 
   # @dynamic system_prompt
-  attr_reader system_prompt: ACP::Types::Unstable::SessionSystemPromptCapabilities?
+  attr_reader system_prompt: ACP::Types::SessionSystemPromptCapabilities?
 
   # @dynamic fork
   attr_reader fork: ACP::Types::Unstable::SessionForkCapabilities?
@@ -29,28 +29,28 @@ class ACP::Types::Unstable::SessionCapabilities
   attr_reader title: ACP::Types::Unstable::SessionTitleCapabilities?
 
   # @dynamic resume
-  attr_reader resume: ACP::Types::Unstable::SessionResumeCapabilities?
+  attr_reader resume: ACP::Types::SessionResumeCapabilities?
 
   # @dynamic close
-  attr_reader close: ACP::Types::Unstable::SessionCloseCapabilities?
+  attr_reader close: ACP::Types::SessionCloseCapabilities?
 
   # @dynamic meta
   attr_reader meta: Hash[String, untyped]?
 
-  # @rbs list: ACP::Types::Unstable::SessionListCapabilities?
-  # @rbs delete: ACP::Types::Unstable::SessionDeleteCapabilities?
-  # @rbs additional_directories: ACP::Types::Unstable::SessionAdditionalDirectoriesCapabilities?
-  # @rbs system_prompt: ACP::Types::Unstable::SessionSystemPromptCapabilities?
+  # @rbs list: ACP::Types::SessionListCapabilities?
+  # @rbs delete: ACP::Types::SessionDeleteCapabilities?
+  # @rbs additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?
+  # @rbs system_prompt: ACP::Types::SessionSystemPromptCapabilities?
   # @rbs fork: ACP::Types::Unstable::SessionForkCapabilities?
   # @rbs archive: ACP::Types::Unstable::SessionArchiveCapabilities?
   # @rbs status: ACP::Types::Unstable::SessionStatusCapabilities?
   # @rbs options: ACP::Types::Unstable::SessionOptionsCapabilities?
   # @rbs title: ACP::Types::Unstable::SessionTitleCapabilities?
-  # @rbs resume: ACP::Types::Unstable::SessionResumeCapabilities?
-  # @rbs close: ACP::Types::Unstable::SessionCloseCapabilities?
+  # @rbs resume: ACP::Types::SessionResumeCapabilities?
+  # @rbs close: ACP::Types::SessionCloseCapabilities?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize: (?list: ACP::Types::Unstable::SessionListCapabilities?, ?delete: ACP::Types::Unstable::SessionDeleteCapabilities?, ?additional_directories: ACP::Types::Unstable::SessionAdditionalDirectoriesCapabilities?, ?system_prompt: ACP::Types::Unstable::SessionSystemPromptCapabilities?, ?fork: ACP::Types::Unstable::SessionForkCapabilities?, ?archive: ACP::Types::Unstable::SessionArchiveCapabilities?, ?status: ACP::Types::Unstable::SessionStatusCapabilities?, ?options: ACP::Types::Unstable::SessionOptionsCapabilities?, ?title: ACP::Types::Unstable::SessionTitleCapabilities?, ?resume: ACP::Types::Unstable::SessionResumeCapabilities?, ?close: ACP::Types::Unstable::SessionCloseCapabilities?, ?meta: Hash[String, untyped]?) -> void
+  def initialize: (?list: ACP::Types::SessionListCapabilities?, ?delete: ACP::Types::SessionDeleteCapabilities?, ?additional_directories: ACP::Types::SessionAdditionalDirectoriesCapabilities?, ?system_prompt: ACP::Types::SessionSystemPromptCapabilities?, ?fork: ACP::Types::Unstable::SessionForkCapabilities?, ?archive: ACP::Types::Unstable::SessionArchiveCapabilities?, ?status: ACP::Types::Unstable::SessionStatusCapabilities?, ?options: ACP::Types::Unstable::SessionOptionsCapabilities?, ?title: ACP::Types::Unstable::SessionTitleCapabilities?, ?resume: ACP::Types::SessionResumeCapabilities?, ?close: ACP::Types::SessionCloseCapabilities?, ?meta: Hash[String, untyped]?) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Unstable::SessionCapabilities

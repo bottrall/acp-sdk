@@ -2,7 +2,7 @@
 
 class ACP::Types::Unstable::SessionUpdate::AgentMessageChunk
   # @dynamic content
-  attr_reader content: ACP::Types::Unstable::ContentBlock::t
+  attr_reader content: ACP::Types::ContentBlock::t
 
   # @dynamic message_id
   attr_reader message_id: String?
@@ -10,11 +10,11 @@ class ACP::Types::Unstable::SessionUpdate::AgentMessageChunk
   # @dynamic meta
   attr_reader meta: Hash[String, untyped]?
 
-  # @rbs content: ACP::Types::Unstable::ContentBlock::t
+  # @rbs content: ACP::Types::ContentBlock::t
   # @rbs message_id: String?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize: (content: ACP::Types::Unstable::ContentBlock::t, ?message_id: String?, ?meta: Hash[String, untyped]?) -> void
+  def initialize: (content: ACP::Types::ContentBlock::t, ?message_id: String?, ?meta: Hash[String, untyped]?) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Unstable::SessionUpdate::AgentMessageChunk

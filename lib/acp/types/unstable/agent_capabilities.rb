@@ -8,7 +8,7 @@ class ACP::Types::Unstable::AgentCapabilities
   attr_reader :load_session #: bool?
 
   # @dynamic prompt_capabilities
-  attr_reader :prompt_capabilities #: ACP::Types::Unstable::PromptCapabilities?
+  attr_reader :prompt_capabilities #: ACP::Types::PromptCapabilities?
 
   # @dynamic mcp_capabilities
   attr_reader :mcp_capabilities #: ACP::Types::Unstable::McpCapabilities?
@@ -26,7 +26,7 @@ class ACP::Types::Unstable::AgentCapabilities
   attr_reader :meta #: Hash[String, untyped]?
 
   # @rbs load_session: bool?
-  # @rbs prompt_capabilities: ACP::Types::Unstable::PromptCapabilities?
+  # @rbs prompt_capabilities: ACP::Types::PromptCapabilities?
   # @rbs mcp_capabilities: ACP::Types::Unstable::McpCapabilities?
   # @rbs session_capabilities: ACP::Types::Unstable::SessionCapabilities?
   # @rbs auth: ACP::Types::Unstable::AgentAuthCapabilities?
@@ -60,7 +60,7 @@ class ACP::Types::Unstable::AgentCapabilities
       prompt_capabilities: ACP::Types::Check.object(
         hash['promptCapabilities'],
         'promptCapabilities',
-        ACP::Types::Unstable::PromptCapabilities,
+        ACP::Types::PromptCapabilities,
         allow_nil: true
       ),
       mcp_capabilities: ACP::Types::Check.object(

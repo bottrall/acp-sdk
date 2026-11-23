@@ -5,7 +5,7 @@ class ACP::Types::Unstable::ClientSessionCapabilities
   attr_reader compaction: Hash[String, untyped]?
 
   # @dynamic config_options
-  attr_reader config_options: ACP::Types::Unstable::SessionConfigOptionsCapabilities?
+  attr_reader config_options: ACP::Types::SessionConfigOptionsCapabilities?
 
   # @dynamic notices
   attr_reader notices: Hash[String, untyped]?
@@ -20,13 +20,13 @@ class ACP::Types::Unstable::ClientSessionCapabilities
   attr_reader meta: Hash[String, untyped]?
 
   # @rbs compaction: Hash[String, untyped]?
-  # @rbs config_options: ACP::Types::Unstable::SessionConfigOptionsCapabilities?
+  # @rbs config_options: ACP::Types::SessionConfigOptionsCapabilities?
   # @rbs notices: Hash[String, untyped]?
   # @rbs prompt_suggestions: ACP::Types::Unstable::PromptSuggestionsCapabilities?
   # @rbs cursors: Hash[String, untyped]?
   # @rbs meta: Hash[String, untyped]?
   # @rbs return: void
-  def initialize: (?compaction: Hash[String, untyped]?, ?config_options: ACP::Types::Unstable::SessionConfigOptionsCapabilities?, ?notices: Hash[String, untyped]?, ?prompt_suggestions: ACP::Types::Unstable::PromptSuggestionsCapabilities?, ?cursors: Hash[String, untyped]?, ?meta: Hash[String, untyped]?) -> void
+  def initialize: (?compaction: Hash[String, untyped]?, ?config_options: ACP::Types::SessionConfigOptionsCapabilities?, ?notices: Hash[String, untyped]?, ?prompt_suggestions: ACP::Types::Unstable::PromptSuggestionsCapabilities?, ?cursors: Hash[String, untyped]?, ?meta: Hash[String, untyped]?) -> void
 
   # @rbs hash: Hash[String, untyped]
   # @rbs return: ACP::Types::Unstable::ClientSessionCapabilities
