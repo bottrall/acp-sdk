@@ -71,7 +71,7 @@ Each request method returns its response type, or an [`ACP::RequestError`](#erro
 | `change_session_mode`, `change_session_config_option` | Your sessions offer modes or config options |
 | `session_created(response)` | You want a hook after `session/new` is answered, e.g. to send available commands |
 
-`start` raises `ArgumentError` if you advertise a capability without implementing its method. Requests for anything you don't advertise are rejected before they reach your agent, including a session request carrying a `systemPrompt` unless `capabilities.session_capabilities` sets `system_prompt`.
+`start` raises `ArgumentError` if you advertise a capability without implementing its method. Requests for anything you don't advertise are rejected before they reach your agent. That includes a session request carrying a `systemPrompt`: `capabilities.session_capabilities` must set `system_prompt`, which admits `append` mode only. `override` mode also needs `system_prompt.mode.override`, and any other mode is always rejected.
 
 ### Calling the client
 

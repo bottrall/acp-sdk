@@ -21,7 +21,8 @@ class ACP::AgentConnection
       rpc_method: 'session/load',
       type: ACP::Types::LoadSessionRequest,
       agent_method: :load_session,
-      path: %i[agent_capabilities load_session]
+      path: %i[agent_capabilities load_session],
+      system_prompt: true
     ) { |agent, request| agent.load_session(request) },
     OptionalRoute.new(
       rpc_method: 'session/list',
@@ -33,7 +34,8 @@ class ACP::AgentConnection
       rpc_method: 'session/resume',
       type: ACP::Types::ResumeSessionRequest,
       agent_method: :resume_session,
-      path: %i[agent_capabilities session_capabilities resume]
+      path: %i[agent_capabilities session_capabilities resume],
+      system_prompt: true
     ) { |agent, request| agent.resume_session(request) },
     OptionalRoute.new(
       rpc_method: 'session/close',
@@ -136,11 +138,13 @@ class ACP::AgentConnection
     # Safe: start passes only the optional routes the agent defines.
     full = agent #: ACP::AgentConnection::_FullAgent
     optional_requests = optional.to_h do |entry|
-      [entry.rpc_method, route(entry.type) { |request| entry.handle.call(full, request) }]
+      handler = route(entry.type, system_prompt: entry.system_prompt) { |request| entry.handle.call(full, request) }
+      [entry.rpc_method, handler]
     end
     {
       'initialize' => route(ACP::Types::InitializeRequest) { |request| connect(client, request) },
-      'session/new' => route(ACP::Types::NewSessionRequest) { |request| new_session(agent, request) },
+      'session/new' =>
+        route(ACP::Types::NewSessionRequest, system_prompt: true) { |request| new_session(agent, request) },
       'session/prompt' => route(ACP::Types::PromptRequest) { |request| agent.prompt(request) }
     }.merge(optional_requests)
   end
@@ -157,7 +161,8 @@ class ACP::AgentConnection
         rpc_method: 'session/fork',
         type: ACP::Types::Unstable::ForkSessionRequest,
         agent_method: :fork_session,
-        path: %i[agent_capabilities session_capabilities fork]
+        path: %i[agent_capabilities session_capabilities fork],
+        system_prompt: true
       ) { |agent, request| agent.fork_session(request) },
       OptionalRoute.new(
         rpc_method: 'session/archive',
@@ -260,25 +265,32 @@ class ACP::AgentConnection
   end
 
   # @rbs type: ACP::Transport::_Parser
+  # @rbs system_prompt: bool
   # @rbs &handle: (untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
   # @rbs return: ^(untyped) -> (ACP::Transport::_Response | ACP::RequestError | ACP::Transport::Reply)
-  def route(type, &)
+  def route(type, system_prompt: false, &)
     lambda do |params|
       request = ACP::Types.parse(type, params)
       next ACP::RequestError.invalid_params([request.message]) if request.is_a?(ACP::Types::ParseError)
-      if unadvertised_system_prompt?(request)
-        next ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt')
-      end
 
-      yield(request)
+      refusal = system_prompt_refusal(request.system_prompt) if system_prompt
+      refusal || yield(request)
     end
   end
 
-  # @rbs request: untyped
-  # @rbs return: bool
-  def unadvertised_system_prompt?(request)
-    request.respond_to?(:system_prompt) && !request.system_prompt.nil? &&
-      !@capabilities.session_capabilities&.system_prompt
+  # @rbs system_prompt: (ACP::Types::SystemPrompt | ACP::Types::Unstable::SystemPrompt)?
+  # @rbs return: ACP::RequestError?
+  def system_prompt_refusal(system_prompt)
+    return unless system_prompt
+
+    advertised = @capabilities.session_capabilities&.system_prompt
+    return ACP::RequestError.unadvertised_agent_param('sessionCapabilities.systemPrompt') unless advertised
+
+    mode = system_prompt.mode
+    return if mode == ACP::Types::SystemPromptMode::APPEND
+    return if mode == ACP::Types::SystemPromptMode::OVERRIDE && advertised.mode&.override
+
+    ACP::RequestError.unadvertised_agent_param("sessionCapabilities.systemPrompt.mode.#{mode}")
   end
 
   # @rbs client: ACP::AgentConnection::Client
