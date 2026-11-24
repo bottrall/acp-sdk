@@ -18,7 +18,7 @@ GEM
     fileutils (1.8.1)
     formatador (1.2.3)
       reline
-    guard (2.20.2)
+    guard (2.21.0)
       formatador (>= 0.2.4)
       listen (>= 2.7, < 4.0)
       logger (~> 1.6)
@@ -165,7 +165,7 @@ CHECKSUMS
   ffi (1.17.4-x86_64-linux-gnu) sha256=9d3db14c2eae074b382fa9c083fe95aec6e0a1451da249eab096c34002bc752d
   fileutils (1.8.1) sha256=2d541a1ee34a9ed5c4f054be8fb819a26b5d654488a31dc8806917cf448b9cc3
   formatador (1.2.3) sha256=19fa898133c2c26cdbb5d09f6998c1e137ad9427a046663e55adfe18b950d894
-  guard (2.20.2) sha256=2d0574d35619669f2f71739a0313290810b9cf66b2263f5d97e815fcce598d4d
+  guard (2.21.0) sha256=60d815d294753d16a07fd70e57eb21f884a4aada51ddde05dbce9c2b71d246cd
   guard-compat (1.2.1) sha256=3ad21ab0070107f92edfd82610b5cdc2fb8e368851e72362ada9703443d646fe
   guard-shell (0.7.2) sha256=c9cd104c597c51465f7bed623753f7f4cfb87cfbd0ff28bdda9a02f6605e436d
   io-console (0.9.5) sha256=83dd9bbf4c4680416629245b39cd4212eb5f4d9a4ea91804870c1f6b846414d5
