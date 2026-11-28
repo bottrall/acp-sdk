@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.15.0](https://github.com/bottrall/acp-sdk/compare/v0.14.1...v0.15.0) (2026-11-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* for callers who opted into acp/types/unstable, the types that moved to stable are no longer under ACP::Types::Unstable, and the nes/* and document/* types are gone.
+
+### Features
+
+* bump the vendored schema to v1.34.1 ([#202](https://github.com/bottrall/acp-sdk/issues/202)) ([1d50d51](https://github.com/bottrall/acp-sdk/commit/1d50d51afa6b9bd51a8d523356efd8f3739f2b13)), closes [#193](https://github.com/bottrall/acp-sdk/issues/193)
+* gate session updates and systemPrompt on advertised capabilities ([#205](https://github.com/bottrall/acp-sdk/issues/205)) ([ce80df0](https://github.com/bottrall/acp-sdk/commit/ce80df0b8608ebd799c9534072c7e82fb0506377)), closes [#195](https://github.com/bottrall/acp-sdk/issues/195)
+* route the unstable auth/status and auth/status_update methods ([#206](https://github.com/bottrall/acp-sdk/issues/206)) ([02bd8e8](https://github.com/bottrall/acp-sdk/commit/02bd8e88b77388f0cd42560a084fe1a2a28ea1b7))
+* route the unstable session archive, status, options and title methods ([#203](https://github.com/bottrall/acp-sdk/issues/203)) ([c9ac125](https://github.com/bottrall/acp-sdk/commit/c9ac125a40e82eb6e1857cb10ebe3ac88b3854d4)), closes [#198](https://github.com/bottrall/acp-sdk/issues/198)
+
+
+### Bug Fixes
+
+* **codegen:** guard or_default trailers and null_default defaults ([#215](https://github.com/bottrall/acp-sdk/issues/215)) ([d2424a0](https://github.com/bottrall/acp-sdk/commit/d2424a01a12487bf09021ac90a9ab9053aac9f24)), closes [#213](https://github.com/bottrall/acp-sdk/issues/213)
+* **codegen:** handle the schema shapes v1.34.1 introduces ([#200](https://github.com/bottrall/acp-sdk/issues/200)) ([3d16652](https://github.com/bottrall/acp-sdk/commit/3d1665287ffaf7ede8aeb01e1d475c23b9d32f6c)), closes [#192](https://github.com/bottrall/acp-sdk/issues/192)
+* **codegen:** honour x-deserialize-default-on-null ([#204](https://github.com/bottrall/acp-sdk/issues/204)) ([2858742](https://github.com/bottrall/acp-sdk/commit/2858742695cc6a586cc302d17a7d4507f6220e08)), closes [#194](https://github.com/bottrall/acp-sdk/issues/194)
+* **codegen:** reuse the stable class when an unstable def differs only by its docs link ([#218](https://github.com/bottrall/acp-sdk/issues/218)) ([8766c15](https://github.com/bottrall/acp-sdk/commit/8766c1534b3dbec8f824baf130f9b0f6126ca59f)), closes [#212](https://github.com/bottrall/acp-sdk/issues/212)
+* fail bin/ scripts when rake can't list its tasks ([#225](https://github.com/bottrall/acp-sdk/issues/225)) ([4ca644b](https://github.com/bottrall/acp-sdk/commit/4ca644b1dc6caf5f763ca1412dd354f26334767b)), closes [#224](https://github.com/bottrall/acp-sdk/issues/224)
+* gate session updates by wire name ([#219](https://github.com/bottrall/acp-sdk/issues/219)) ([16a0add](https://github.com/bottrall/acp-sdk/commit/16a0addf341231ad942d77cc64090553cdf2de8b)), closes [#209](https://github.com/bottrall/acp-sdk/issues/209)
+* gate systemPrompt on the advertised mode ([#216](https://github.com/bottrall/acp-sdk/issues/216)) ([cb4d830](https://github.com/bottrall/acp-sdk/commit/cb4d8300a94e80b7ad5638f64405adbdecabf9c0)), closes [#210](https://github.com/bottrall/acp-sdk/issues/210)
+* honest return types for the notification senders that can refuse ([#222](https://github.com/bottrall/acp-sdk/issues/222)) ([a9cddd2](https://github.com/bottrall/acp-sdk/commit/a9cddd29f6bb814188416ff07a0b9e766e0333a6)), closes [#211](https://github.com/bottrall/acp-sdk/issues/211)
+
 ## [0.14.1](https://github.com/bottrall/acp-sdk/compare/v0.14.0...v0.14.1) (2026-11-15)
 
 
