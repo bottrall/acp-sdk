@@ -36,7 +36,9 @@ has_vite_config() { compgen -G 'vite.config.*' >/dev/null; }
 # and under pipefail the rake it cut off would turn a match into a failure.
 has_rake_task() {
   local tasks
-  tasks=$(bundle exec rake -P 2>/dev/null) || return 1
+  # Callers read a return of 1 as a missing task and pass, so a rake that
+  # can't run must fail instead.
+  tasks=$(bundle exec rake -P) || exit
   grep -qx "rake $1" <<<"$tasks"
 }
 
